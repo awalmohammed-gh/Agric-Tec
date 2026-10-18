@@ -85,6 +85,20 @@ export function currentYearNetByMonth(records: FarmRecord[]): number[] {
   return net;
 }
 
+/** Income and expenses per month (Jan–Dec) for the current year only. */
+export function currentYearMonthly(records: FarmRecord[]): { income: number[]; expense: number[] } {
+  const year = getYear(new Date());
+  const income = Array.from({ length: 12 }, () => 0);
+  const expense = Array.from({ length: 12 }, () => 0);
+  for (const record of records) {
+    const date = parseISODate(record.date);
+    if (getYear(date) !== year) continue;
+    income[getMonth(date)] += incomeOf(record);
+    expense[getMonth(date)] += expenseOf(record);
+  }
+  return { income, expense };
+}
+
 export function incomeByCrop(records: FarmRecord[]): Record<string, number> {
   const totals: Record<string, number> = {};
   for (const record of records) {
