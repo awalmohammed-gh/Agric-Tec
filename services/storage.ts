@@ -53,7 +53,44 @@ export const storage = {
       }
       keys.forEach((key) => window.localStorage.removeItem(key));
     } catch {
-      // Storage unavailable: nothing to clear.
+      throw new Error(
+        'Could not delete your data. Check your browser storage settings and try again.',
+      );
+    }
+  },
+
+  /** Replace one user's data, restoring the previous values if a write fails. */
+  replaceUser(userId: string, data: Record<string, unknown>): void {
+    if (!isBrowser()) throw new Error('Data import is only available in your browser.');
+    const area = window.localStorage;
+    const prefix = PREFIX + userId + ':';
+    const previous = new Map<string, string>();
+    const currentKeys = () => {
+      const keys: string[] = [];
+      for (let index = 0; index < area.length; index++) {
+        const key = area.key(index);
+        if (key?.startsWith(prefix)) keys.push(key);
+      }
+      return keys;
+    };
+    currentKeys().forEach((key) => {
+      const raw = area.getItem(key);
+      if (raw !== null) previous.set(key, raw);
+    });
+    try {
+      currentKeys().forEach((key) => area.removeItem(key));
+      for (const [name, value] of Object.entries(data))
+        area.setItem(prefix + name, JSON.stringify(value));
+    } catch {
+      try {
+        currentKeys().forEach((key) => area.removeItem(key));
+        previous.forEach((raw, key) => area.setItem(key, raw));
+      } catch {
+        throw new Error(
+          'Storage is unavailable. Your backup file is unchanged; restore it when browser storage is available.',
+        );
+      }
+      throw new Error('Import failed. Your previous data has been restored.');
     }
   },
 };

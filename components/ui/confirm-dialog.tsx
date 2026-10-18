@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReactNode } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 
@@ -13,6 +15,8 @@ export interface ConfirmDialogProps {
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  children?: ReactNode;
+  confirmDisabled?: boolean;
 }
 
 /** Accessible replacement for window.confirm. */
@@ -26,6 +30,8 @@ export function ConfirmDialog({
   loading = false,
   onConfirm,
   onCancel,
+  children,
+  confirmDisabled = false,
 }: ConfirmDialogProps) {
   return (
     <Modal
@@ -38,13 +44,19 @@ export function ConfirmDialog({
           <Button variant="ghost" onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>
-          <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm} loading={loading}>
+          <Button
+            variant={danger ? 'danger' : 'primary'}
+            onClick={onConfirm}
+            loading={loading}
+            disabled={confirmDisabled}
+          >
             {confirmLabel}
           </Button>
         </>
       }
     >
       <p className="text-text-dim text-sm leading-relaxed">{message}</p>
+      {children && <div className="mt-4">{children}</div>}
     </Modal>
   );
 }

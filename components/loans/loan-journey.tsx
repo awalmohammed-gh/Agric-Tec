@@ -30,7 +30,7 @@ export function LoanJourney() {
       title: 'Reach a 550 score',
       detail: `Your score is ${credit.score}`,
       done: credit.score >= 550,
-      action: { label: 'Improve score', href: '/profile' },
+      action: { label: 'Improve score', href: '/settings#verification' },
     },
     {
       title: 'Show a profit',

@@ -1,5 +1,6 @@
 import { delay, storage, userKey } from '@/services/storage';
 import type { Profile } from '@/types';
+import { safeProfile } from '@/lib/profile';
 
 const key = (userId: string) => userKey(userId, 'profile');
 
@@ -23,12 +24,21 @@ export const profileService = {
   async get(userId: string): Promise<Profile> {
     await delay();
     const saved = storage.get<Profile | null>(key(userId), null);
-    return saved ? { ...defaultProfile(userId), ...saved, userId } : defaultProfile(userId);
+    return safeProfile(
+      saved
+        ? {
+            ...defaultProfile(userId),
+            ...saved,
+            userId,
+            verification: { ...defaultProfile(userId).verification, ...saved.verification },
+          }
+        : defaultProfile(userId),
+    );
   },
 
   async save(userId: string, profile: Profile): Promise<Profile> {
     await delay();
-    const toSave: Profile = { ...profile, userId };
+    const toSave = safeProfile({ ...profile, userId });
     storage.set(key(userId), toSave);
     return toSave;
   },

@@ -2,6 +2,11 @@ import { create } from 'zustand';
 import { DEFAULT_SETTINGS, settingsService } from '@/services/settings.service';
 import type { Language, NotificationSettings, StoreStatus } from '@/types';
 
+let saves: Promise<unknown> = Promise.resolve();
+export async function waitForSettingsSaves(): Promise<void> {
+  await saves.catch(() => {});
+}
+
 interface SettingsState {
   userId: string | null;
   language: Language;
@@ -18,6 +23,23 @@ export const useSettingsStore = create<SettingsState>()((set, get) => {
     if (!userId) throw new Error('You need to sign in first');
     return userId;
   };
+
+  function update(
+    change: (
+      current: Pick<SettingsState, 'language' | 'notifications'>,
+    ) => Pick<SettingsState, 'language' | 'notifications'>,
+  ): Promise<void> {
+    const userId = requireUser();
+    const task = saves
+      .catch(() => {})
+      .then(async () => {
+        if (get().userId !== userId) return;
+        const saved = await settingsService.save(userId, change(get()));
+        if (get().userId === userId) set(saved);
+      });
+    saves = task;
+    return task;
+  }
 
   return {
     userId: null,
@@ -37,21 +59,12 @@ export const useSettingsStore = create<SettingsState>()((set, get) => {
       }
     },
 
-    setLanguage: async (language) => {
-      const saved = await settingsService.save(requireUser(), {
-        language,
-        notifications: get().notifications,
-      });
-      set({ language: saved.language });
-    },
-
-    toggleNotification: async (key) => {
-      const { language, notifications } = get();
-      const saved = await settingsService.save(requireUser(), {
-        language,
-        notifications: { ...notifications, [key]: !notifications[key] },
-      });
-      set({ notifications: saved.notifications });
-    },
+    setLanguage: (language) =>
+      update((current) => ({ language, notifications: current.notifications })),
+    toggleNotification: (key) =>
+      update((current) => ({
+        language: current.language,
+        notifications: { ...current.notifications, [key]: !current.notifications[key] },
+      })),
   };
 });

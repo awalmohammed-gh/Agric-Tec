@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { getDailyInsight, getInsightCount } from '@/lib/ai/recommendations';
 import { useModalStore } from '@/store/modal-store';
+import { useSettingsStore } from '@/store/settings-store';
 
 const ROTATE_MS = 15_000;
 
@@ -17,13 +18,14 @@ export function InsightBanner() {
   const stats = useFarmStats();
   const openModal = useModalStore((s) => s.openModal);
   const [index, setIndex] = useState(0);
+  const insightsEnabled = useSettingsStore((state) => state.notifications.aiInsights);
 
   // A timeout per index (not an interval) so a manual prev/next restarts the 15s countdown.
   useEffect(() => {
-    if (!stats.hasData) return;
+    if (!stats.hasData || !insightsEnabled) return;
     const timer = setTimeout(() => setIndex((i) => i + 1), ROTATE_MS);
     return () => clearTimeout(timer); // no leak when leaving the page
-  }, [index, stats.hasData]);
+  }, [index, stats.hasData, insightsEnabled]);
 
   const count = getInsightCount(stats);
   const position = ((index % count) + count) % count;

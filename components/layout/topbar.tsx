@@ -7,6 +7,7 @@ import { GlobalSearch } from '@/components/layout/global-search';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { isNavActive, NAV_SECTIONS, PAGE_META } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
+import { navKey, useT } from '@/lib/i18n';
 
 const iconButtonClass =
   'relative inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-text-dim transition-colors hover:bg-glass-strong hover:text-text';
@@ -43,6 +44,7 @@ function pageInfo(pathname: string): PageInfo {
  */
 export function Topbar() {
   const pathname = usePathname();
+  const t = useT();
   const { title, subtitle, section, icon: Icon } = pageInfo(pathname);
 
   return (
@@ -66,11 +68,11 @@ export function Topbar() {
           <div className="min-w-0">
             {section && (
               <p className="text-text-mute text-[10px] font-semibold tracking-wider uppercase min-[900px]:text-[11px]">
-                {section}
+                {t(`nav.section.${section}`)}
               </p>
             )}
             <h1 className="font-display text-text truncate text-[15px] leading-tight font-bold min-[900px]:text-xl">
-              {title}
+              {t(navKey(pathname)) === navKey(pathname) ? title : t(navKey(pathname))}
             </h1>
             {subtitle && (
               <p className="text-text-dim hidden truncate text-xs lg:block">{subtitle}</p>

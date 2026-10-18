@@ -19,7 +19,8 @@ export function proxy(request: NextRequest) {
     url.searchParams.set('next', pathname);
     return NextResponse.redirect(url);
   }
-  if (hasSession && isAuthPage) {
+  // Registration remains accessible so a guest can create a full account.
+  if (hasSession && isAuthPage && !pathname.startsWith('/signup')) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   return NextResponse.next();

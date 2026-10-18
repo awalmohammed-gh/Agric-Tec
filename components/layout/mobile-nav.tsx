@@ -7,15 +7,12 @@ import { Grid2x2, LogOut, X } from 'lucide-react';
 import { useSignOut } from '@/components/layout/use-sign-out';
 import {
   isNavActive,
-  MOBILE_MENU_SECTIONS,
+  MOBILE_MENU_ITEMS,
   MOBILE_PRIMARY_NAV,
   type NavItem,
 } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/store/ui-store';
-
-/** The seven pages not in the bottom bar, in sidebar order; Sign Out makes the eighth cell. */
-const MENU_ITEMS = MOBILE_MENU_SECTIONS.flatMap((section) => section.items);
 
 /** Menu grid cell: icon above a small centred label, no card. At least 64px tall to tap. */
 const gridItemClass =
@@ -70,9 +67,7 @@ export function MobileNav() {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
 
-  const activeMenuItem = MOBILE_MENU_SECTIONS.flatMap((section) => section.items).find((item) =>
-    isNavActive(pathname, item.href),
-  );
+  const activeMenuItem = MOBILE_MENU_ITEMS.find((item) => isNavActive(pathname, item.href));
 
   // Move focus into the sheet when it opens, and back to the Menu button when it closes.
   useEffect(() => {
@@ -145,7 +140,7 @@ export function MobileNav() {
         {/* 4 × 2 icon grid: icon on top, small label underneath, no cards */}
         <nav aria-label="More pages">
           <ul className="grid grid-cols-4 gap-x-1 gap-y-2">
-            {MENU_ITEMS.map((item) => {
+            {MOBILE_MENU_ITEMS.map((item) => {
               const active = isNavActive(pathname, item.href);
               const Icon = item.icon;
               return (

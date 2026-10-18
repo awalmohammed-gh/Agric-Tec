@@ -112,7 +112,7 @@ export function UserMenu() {
             )}
           </div>
           <Link
-            href="/profile"
+            href="/settings#profile"
             role="menuitem"
             tabIndex={-1}
             onClick={navigate}
@@ -122,7 +122,7 @@ export function UserMenu() {
             Profile
           </Link>
           <Link
-            href="/settings"
+            href="/settings#preferences"
             role="menuitem"
             tabIndex={-1}
             onClick={navigate}

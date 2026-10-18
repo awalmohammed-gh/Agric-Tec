@@ -51,6 +51,8 @@ export interface Profile {
   farmType: 'Smallholder' | 'Commercial' | 'Cooperative';
   primaryCrops: string[];
   gps?: { lat: number; lng: number };
+  /** Last four digits only, including the check digit. Never the full Ghana Card number. */
+  ghanaCardLast4?: string;
   verification: { phone: boolean; location: boolean; ghanaCard: boolean };
 }
 

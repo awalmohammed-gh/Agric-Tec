@@ -8,7 +8,7 @@ import {
   Wheat,
   HandCoins,
   Store,
-  User,
+  UserCog,
   UserRound,
   Settings,
   type LucideIcon,
@@ -53,8 +53,8 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Account',
     items: [
-      { label: 'Profile', href: '/profile', icon: User },
-      { label: 'Settings', href: '/settings', icon: Settings },
+      // Profile lives on the Settings page (/profile redirects there).
+      { label: 'Profile & Settings', href: '/settings', icon: UserCog },
     ],
   },
 ];
@@ -96,13 +96,9 @@ export const PAGE_META: Record<string, { title: string; subtitle: string }> = {
     title: 'Market & Weather',
     subtitle: 'Live crop prices and local weather to plan your farm work.',
   },
-  '/profile': {
-    title: 'Profile',
-    subtitle: 'Your farmer identity: the details lenders see.',
-  },
   '/settings': {
-    title: 'Settings',
-    subtitle: 'Manage your theme, language, notifications and data.',
+    title: 'Profile & Settings',
+    subtitle: 'Your farmer identity, verification, preferences and data in one place.',
   },
 };
 
@@ -115,13 +111,17 @@ export const MOBILE_PRIMARY_NAV: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Records', href: '/records', icon: Leaf },
   { label: 'Crop Doctor', href: '/crop-doctor', icon: Stethoscope },
-  { label: 'Profile', href: '/profile', icon: UserRound },
+  { label: 'Profile', href: '/settings', icon: UserRound },
 ];
 
-/** Everything not in the bottom bar, grouped like the sidebar, for the mobile Menu sheet. */
-export const MOBILE_MENU_SECTIONS: NavSection[] = NAV_SECTIONS.map((section) => ({
-  ...section,
-  items: section.items.filter(
+/**
+ * The mobile Menu sheet: every page not in the bottom bar, in sidebar order. The bar's
+ * Profile opens the Profile & Settings page at the top, so Settings here jumps straight
+ * to its preferences section.
+ */
+export const MOBILE_MENU_ITEMS: NavItem[] = [
+  ...NAV_SECTIONS.flatMap((section) => section.items).filter(
     (item) => !MOBILE_PRIMARY_NAV.some((primary) => primary.href === item.href),
   ),
-})).filter((section) => section.items.length > 0);
+  { label: 'Settings', href: '/settings#preferences', icon: Settings },
+];

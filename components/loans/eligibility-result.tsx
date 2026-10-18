@@ -17,7 +17,7 @@ import { MIN_LOAN } from '@/components/loans/loan-schema';
 const FIXES: Record<EligibilityIssueCode, { label: string; href: string } | null> = {
   records: { label: 'Add records', href: '/records' },
   affordability: { label: 'Add records', href: '/records' },
-  score: { label: 'Complete profile', href: '/profile' },
+  score: { label: 'Complete profile', href: '/settings#profile' },
   'lender-max': null,
 };
 

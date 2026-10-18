@@ -4,16 +4,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_SECTIONS } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
+import { navKey, useT } from '@/lib/i18n';
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-4">
       {NAV_SECTIONS.map((section) => (
         <div key={section.title} className="mb-5 last:mb-0">
           <p className="text-text-mute mb-2 px-3 text-[10px] font-semibold tracking-wider uppercase">
-            {section.title}
+            {t(`nav.section.${section.title}`)}
           </p>
           <ul className="space-y-1">
             {section.items.map((item) => {
@@ -33,7 +35,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     )}
                   >
                     <Icon size={18} aria-hidden="true" className="shrink-0" />
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate">{t(navKey(item.href))}</span>
                   </Link>
                 </li>
               );

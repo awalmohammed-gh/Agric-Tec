@@ -6,6 +6,8 @@ import { useLoanStore } from '@/store/loan-store';
 import { useProfileStore } from '@/store/profile-store';
 import { useSettingsStore } from '@/store/settings-store';
 import { useUiStore } from '@/store/ui-store';
+import { useModalStore } from '@/store/modal-store';
+import { useReportStore } from '@/store/report-store';
 
 export { useAuthStore, useChatStore, useFarmStore, useProfileStore, useSettingsStore };
 
@@ -22,6 +24,8 @@ export async function loadAllStores(userId: string): Promise<void> {
 
 /** Empties every in-memory store, so no data from the previous user is left behind. */
 export function resetAllStores(): void {
+  useModalStore.getState().closeModal();
+  useReportStore.getState().closePreview();
   useFarmStore.setState({ userId: null, records: [], momo: [], diagnoses: [], status: 'idle' });
   useProfileStore.setState({ userId: null, profile: null, status: 'idle' });
   useChatStore.setState({ userId: null, messages: [], isTyping: false, status: 'idle' });
