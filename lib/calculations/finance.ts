@@ -166,6 +166,25 @@ export function financialHealth(records: FarmRecord[]): number {
   return Math.min(100, Math.max(20, score));
 }
 
+/** Unique crops in order of first appearance, not counting "Other". */
+export function activeCropList(records: FarmRecord[]): FarmRecord['crop'][] {
+  return [...new Set(records.map((r) => r.crop).filter((crop) => crop !== 'Other'))];
+}
+
+/**
+ * Change from `previous` to `current` in % (1 decimal place).
+ * Returns null when there is no baseline (previous is 0 but current isn't).
+ */
+export function percentChange(current: number, previous: number): number | null {
+  if (previous === 0) return current === 0 ? 0 : null;
+  return round1(((current - previous) / Math.abs(previous)) * 100);
+}
+
+/** Sum of a series, e.g. the total income across a chart's months. */
+export function sumSeries(values: number[]): number {
+  return values.reduce((total, value) => total + value, 0);
+}
+
 /** Number of unique crops, not counting "Other". */
 export function activeCropCount(records: FarmRecord[]): number {
   return new Set(records.map((r) => r.crop).filter((crop) => crop !== 'Other')).size;

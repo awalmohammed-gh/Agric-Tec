@@ -86,15 +86,18 @@ export function DataLoader({ children }: { children: ReactNode }) {
 function AppSkeleton() {
   return (
     <div role="status" aria-label="Loading AgriCtec" className="flex min-h-screen">
-      <div className="glass fixed inset-y-0 left-0 hidden w-[260px] space-y-3 border-y-0 border-l-0 p-5 min-[900px]:block">
+      <div className="glass fixed inset-y-3 left-3 hidden w-[260px] space-y-3 rounded-3xl p-5 min-[900px]:block">
         <Skeleton className="mb-6 h-11 w-40" />
         {Array.from({ length: 9 }, (_, i) => (
           <Skeleton key={i} className="h-10 w-full" />
         ))}
       </div>
-      <div className="min-w-0 flex-1 px-5 py-6 min-[900px]:ml-[260px] md:px-8">
-        <Skeleton className="mb-2 h-9 w-56" />
-        <Skeleton className="mb-8 h-4 w-80 max-w-full" />
+      <div className="min-w-0 flex-1 px-5 py-6 min-[900px]:ml-[272px] md:px-8">
+        <div className="glass mb-6 flex h-16 items-center gap-3 rounded-2xl px-3">
+          <Skeleton className="size-10" />
+          <Skeleton className="h-5 w-48" />
+        </div>
+        <Skeleton className="mb-6 h-56 w-full rounded-3xl" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} className="h-32" />

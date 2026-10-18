@@ -16,8 +16,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         <div className="flex min-h-screen">
           <Sidebar />
           <MobileNavOverlay />
-          {/* The 900px breakpoint matches the sidebar, so content never sits under it. */}
-          <main className="min-w-0 flex-1 px-5 py-6 pb-16 min-[900px]:ml-[260px] md:px-8">
+          {/* 900px matches the sidebar; 272px = 12px inset + 260px floating sidebar. */}
+          <main className="min-w-0 flex-1 px-5 py-6 pb-16 min-[900px]:ml-[272px] md:px-8">
             <Topbar />
             <PageContainer>{children}</PageContainer>
           </main>

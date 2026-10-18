@@ -17,6 +17,8 @@ export interface Recommendation {
   icon: LucideIcon;
   title: string;
   text: string;
+  /** Where the farmer can act on it. */
+  cta: { label: string; href: string };
 }
 
 const MIN_RECORDS = 5;
@@ -41,6 +43,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
   if (!stats.hasData) {
     items.push({
       id: 'start',
+      cta: { label: 'Add a record', href: '/records' },
       icon: Rocket,
       title: 'Start Your Journey',
       text: 'Add your first farm record or MoMo transaction. Every entry builds your digital financial identity.',
@@ -49,6 +52,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
     const missing = MIN_RECORDS - stats.recordCount;
     items.push({
       id: 'history',
+      cta: { label: 'Add records', href: '/records' },
       icon: ClipboardList,
       title: 'Build Financial History',
       text: `Add ${missing} more record${missing === 1 ? '' : 's'} to unlock loan offers from our partners.`,
@@ -63,6 +67,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
         : 'You have expenses recorded but no income yet.';
     items.push({
       id: 'expenses',
+      cta: { label: 'Review expenses', href: '/records' },
       icon: TrendingDown,
       title: 'High Expense Ratio',
       text: top
@@ -74,6 +79,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
   if (stats.momo.count === 0) {
     items.push({
       id: 'momo',
+      cta: { label: 'Log MoMo', href: '/momo' },
       icon: Smartphone,
       title: 'Connect Mobile Money',
       text: `Log your MoMo payments. A strong MoMo history can raise your credit score by up to ${MOMO_MAX_POINTS} points.`,
@@ -83,6 +89,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
   if (!stats.profileComplete) {
     items.push({
       id: 'profile',
+      cta: { label: 'Complete profile', href: '/profile' },
       icon: UserRoundCheck,
       title: 'Complete Your Profile',
       text: 'Add your name, phone, farm name and acreage so lenders can verify who you are.',
@@ -93,6 +100,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
   if (topCrop && stats.income > 0) {
     items.push({
       id: 'top-crop',
+      cta: { label: 'Plan next season', href: '/yield-predictor' },
       icon: Trophy,
       title: 'Top Earner',
       text: `${topCrop[0]} brings in ${pct(topCrop[1], stats.income)}% of your income. Consider expanding it next season.`,
@@ -103,6 +111,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
   if (stats.credit.score >= LOAN_READY_SCORE && maxLoan > 0) {
     items.push({
       id: 'loan-ready',
+      cta: { label: 'See loan offers', href: '/loans' },
       icon: BadgeCheck,
       title: 'Loan Ready',
       text: `With a score of ${stats.credit.score}, you may qualify for loans up to ${formatGHS(maxLoan)}.`,
@@ -151,6 +160,11 @@ function insightPool(stats: FarmStats): string[] {
   }
 
   return [...pool, ...FALLBACK_INSIGHTS];
+}
+
+/** How many insights the banner rotates through. */
+export function getInsightCount(stats: FarmStats): number {
+  return insightPool(stats).length;
 }
 
 /** One insight for the banner; `index` rotates through them (wraps around). */

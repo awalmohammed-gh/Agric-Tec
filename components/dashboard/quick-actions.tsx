@@ -10,62 +10,72 @@ import {
   Smartphone,
   type LucideIcon,
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { useModalStore, type GlobalModal } from '@/store/modal-store';
 
-type QuickAction = { label: string; icon: LucideIcon } & (
+type QuickAction = { label: string; icon: LucideIcon; tone: string } & (
   { modal: GlobalModal } | { href: string }
 );
 
 const ACTIONS: QuickAction[] = [
-  { label: 'Add Record', icon: Plus, modal: 'record' },
-  { label: 'MoMo Txn', icon: Smartphone, modal: 'momo' },
-  { label: 'Crop Scan', icon: ScanLine, href: '/crop-doctor' },
-  { label: 'Ask AI', icon: Bot, href: '/assistant' },
-  { label: 'Apply Loan', icon: HandCoins, href: '/loans' },
-  { label: 'Export', icon: Download, href: '/reports' },
+  { label: 'Add Record', icon: Plus, tone: 'bg-accent/15 text-ink-green', modal: 'record' },
+  { label: 'MoMo Txn', icon: Smartphone, tone: 'bg-gold/15 text-ink-gold', modal: 'momo' },
+  {
+    label: 'Crop Scan',
+    icon: ScanLine,
+    tone: 'bg-purple/15 text-ink-purple',
+    href: '/crop-doctor',
+  },
+  { label: 'Ask AI', icon: Bot, tone: 'bg-info/15 text-ink-blue', href: '/assistant' },
+  { label: 'Apply Loan', icon: HandCoins, tone: 'bg-accent/15 text-ink-green', href: '/loans' },
+  { label: 'Export', icon: Download, tone: 'bg-glass-strong text-text-dim', href: '/reports' },
 ];
 
 const tileClass =
-  'glass flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl p-3 text-center text-sm font-semibold text-text transition-all duration-200 hover:-translate-y-1 hover:border-accent/50 hover:shadow-[0_8px_24px_-8px_var(--accent-glow)]';
+  'group flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-glass px-2 py-3 text-center text-xs font-semibold text-text transition-all duration-200 hover:-translate-y-1 hover:border-accent/50 hover:bg-glass-strong hover:shadow-[0_10px_24px_-10px_var(--accent-glow)]';
 
-function TileContent({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+function TileContent({ action }: { action: QuickAction }) {
+  const Icon = action.icon;
   return (
     <>
-      <span className="bg-accent/15 text-ink-green inline-flex size-10 items-center justify-center rounded-xl">
-        <Icon size={20} aria-hidden="true" />
+      <span
+        className={cn(
+          'inline-flex size-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110',
+          action.tone,
+        )}
+      >
+        <Icon size={19} aria-hidden="true" />
       </span>
-      {label}
+      {action.label}
     </>
   );
 }
 
-export function QuickActions() {
+/** Six one-tap shortcuts. Lays out 3 per row, or all 6 in one row when its container is wide. */
+export function QuickActions({ className }: { className?: string }) {
   const openModal = useModalStore((s) => s.openModal);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Quick Actions</CardTitle>
-      </CardHeader>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {ACTIONS.map((action) =>
-          'modal' in action ? (
-            <button
-              key={action.label}
-              type="button"
-              onClick={() => openModal(action.modal)}
-              className={tileClass}
-            >
-              <TileContent icon={action.icon} label={action.label} />
-            </button>
-          ) : (
-            <Link key={action.label} href={action.href} className={tileClass}>
-              <TileContent icon={action.icon} label={action.label} />
-            </Link>
-          ),
-        )}
-      </div>
-    </Card>
+    <nav aria-label="Quick actions" className={cn('@container', className)}>
+      <ul className="grid grid-cols-3 gap-2 sm:gap-3 @lg:grid-cols-6">
+        {ACTIONS.map((action) => (
+          <li key={action.label}>
+            {'modal' in action ? (
+              <button
+                type="button"
+                onClick={() => openModal(action.modal)}
+                className={cn(tileClass, 'w-full')}
+              >
+                <TileContent action={action} />
+              </button>
+            ) : (
+              <Link href={action.href} className={tileClass}>
+                <TileContent action={action} />
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }

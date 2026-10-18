@@ -1,10 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowDownLeft, ArrowUpRight, History, Sprout, type LucideIcon } from 'lucide-react';
+import { isToday, isYesterday } from 'date-fns';
+import {
+  ArrowDownLeft,
+  ArrowRight,
+  ArrowUpRight,
+  History,
+  Sprout,
+  type LucideIcon,
+} from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatDate, formatGHS } from '@/lib/format';
+import { CROP_EMOJI } from '@/constants/crops';
+import { formatDate, formatGHS, parseISODate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useFarmStore } from '@/store/farm-store';
 import type { FarmRecord, MomoTransaction } from '@/types';
@@ -16,6 +25,7 @@ type Tone = 'in' | 'out' | 'activity';
 interface ActivityItem {
   id: string;
   label: string;
+  meta: string;
   date: string;
   createdAt: string;
   tone: Tone;
@@ -28,10 +38,19 @@ const TONES: Record<Tone, { icon: LucideIcon; tile: string; text: string }> = {
   activity: { icon: Sprout, tile: 'bg-info/15 text-ink-blue', text: '' },
 };
 
+/** "Today", "Yesterday", or "12 Oct 2026". */
+function friendlyDate(iso: string): string {
+  const date = parseISODate(iso);
+  if (isToday(date)) return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  return formatDate(date);
+}
+
 function combine(records: FarmRecord[], momo: MomoTransaction[]): ActivityItem[] {
   const fromRecords = records.map<ActivityItem>((r) => ({
     id: r.id,
     label: r.description,
+    meta: `${CROP_EMOJI[r.crop]} ${r.crop}`,
     date: r.date,
     createdAt: r.createdAt,
     tone: r.type === 'income' ? 'in' : r.type === 'expense' ? 'out' : 'activity',
@@ -39,7 +58,8 @@ function combine(records: FarmRecord[], momo: MomoTransaction[]): ActivityItem[]
   }));
   const fromMomo = momo.map<ActivityItem>((t) => ({
     id: t.id,
-    label: `MoMo · ${t.counterparty}`,
+    label: t.counterparty,
+    meta: `MoMo${t.network ? ` · ${t.network}` : ''}`,
     date: t.date,
     createdAt: t.createdAt,
     tone: t.direction === 'in' ? 'in' : 'out',
@@ -50,20 +70,25 @@ function combine(records: FarmRecord[], momo: MomoTransaction[]): ActivityItem[]
     .slice(0, MAX_ITEMS);
 }
 
-export function RecentActivity() {
+export function RecentActivity({ className }: { className?: string }) {
   const records = useFarmStore((s) => s.records);
   const momo = useFarmStore((s) => s.momo);
   const items = combine(records, momo);
 
   return (
-    <Card>
+    <Card className={cn('flex flex-col', className)}>
       <CardHeader>
         <CardTitle>Recent Activity</CardTitle>
         <Link
           href="/records"
-          className="text-ink-green -my-2 inline-flex min-h-11 items-center text-sm font-semibold hover:underline"
+          className="group text-ink-green -my-2 inline-flex min-h-11 items-center gap-1 text-sm font-semibold"
         >
-          View all →
+          View all
+          <ArrowRight
+            size={14}
+            aria-hidden="true"
+            className="transition-transform group-hover:translate-x-0.5"
+          />
         </Link>
       </CardHeader>
 
@@ -74,12 +99,15 @@ export function RecentActivity() {
           description="Your latest records and MoMo transactions will show up here."
         />
       ) : (
-        <ul className="divide-border divide-y">
+        <ul className="-mx-2 space-y-1">
           {items.map((item) => {
             const tone = TONES[item.tone];
             const Icon = tone.icon;
             return (
-              <li key={item.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <li
+                key={item.id}
+                className="hover:bg-glass flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors"
+              >
                 <span
                   className={cn(
                     'inline-flex size-10 shrink-0 items-center justify-center rounded-xl',
@@ -90,10 +118,14 @@ export function RecentActivity() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-text truncate text-sm font-medium">{item.label}</p>
-                  <p className="text-text-mute text-xs">{formatDate(item.date)}</p>
+                  <p className="text-text-mute truncate text-xs">
+                    {item.meta} · {friendlyDate(item.date)}
+                  </p>
                 </div>
                 {item.amount !== null && (
-                  <span className={cn('shrink-0 text-sm font-semibold', tone.text)}>
+                  <span
+                    className={cn('shrink-0 text-sm font-semibold whitespace-nowrap', tone.text)}
+                  >
                     {item.tone === 'in' ? '+' : '−'}
                     {formatGHS(item.amount)}
                   </span>
