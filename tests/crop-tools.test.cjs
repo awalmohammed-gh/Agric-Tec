@@ -33,6 +33,7 @@ for (const extension of ['.ts', '.tsx']) {
 const { createElement } = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { diagnoseCrop } = require('../lib/ai/crop-diagnosis.ts');
+const { captureCameraFrame, openCropCamera, stopCameraStream } = require('../lib/image/camera.ts');
 const {
   compressImage,
   imageValidationError,
@@ -82,6 +83,108 @@ test('upload validation rejects PDFs, unsupported images and 15MB photos with ex
     diagnoseCrop({ name: 'large.jpg', type: 'image/jpeg', size: 15 * 1024 * 1024 }),
     { message: oversized },
   );
+});
+
+test('live camera requests the rear-facing camera without microphone access and stops all tracks', async () => {
+  const original = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+  let requested;
+  let stopped = 0;
+  const stream = {
+    getTracks: () => [
+      {
+        stop() {
+          stopped++;
+        },
+      },
+      {
+        stop() {
+          stopped++;
+        },
+      },
+    ],
+  };
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: {
+      async getUserMedia(options) {
+        requested = options;
+        return stream;
+      },
+    },
+  });
+  try {
+    assert.equal(await openCropCamera(), stream);
+    assert.equal(requested.audio, false);
+    assert.equal(requested.video.facingMode.ideal, 'environment');
+    stopCameraStream(stream);
+    assert.equal(stopped, 2);
+    stopCameraStream(null);
+  } finally {
+    if (original) Object.defineProperty(navigator, 'mediaDevices', original);
+    else delete navigator.mediaDevices;
+  }
+});
+
+test('a live camera frame becomes a bounded JPEG File accepted by the crop upload flow', async () => {
+  const original = global.document;
+  const video = { readyState: 2, videoWidth: 3024, videoHeight: 4032 };
+  let drawn;
+  const canvas = {
+    width: 0,
+    height: 0,
+    getContext: () => ({
+      drawImage: (...args) => {
+        drawn = args;
+      },
+    }),
+    toBlob(callback, type, quality) {
+      assert.equal(type, 'image/jpeg');
+      assert.equal(quality, 0.9);
+      callback(new Blob(['camera photo'], { type }));
+    },
+  };
+  global.document = { createElement: () => canvas };
+  try {
+    const photo = await captureCameraFrame(video);
+    assert.ok(photo instanceof File);
+    assert.match(photo.name, /^crop-photo-.*\.jpg$/);
+    assert.equal(photo.type, 'image/jpeg');
+    assert.equal(canvas.width, 1200);
+    assert.equal(canvas.height, 1600);
+    assert.deepEqual(drawn, [video, 0, 0, 1200, 1600]);
+    assert.equal(imageValidationError(photo), null);
+  } finally {
+    global.document = original;
+  }
+});
+
+test('camera capture rejects missing frames, unavailable canvas, and failed encoding', async () => {
+  await assert.rejects(
+    captureCameraFrame({ readyState: 0, videoWidth: 0, videoHeight: 0 }),
+    /Wait for the camera preview/,
+  );
+  const original = global.document;
+  try {
+    global.document = { createElement: () => ({ getContext: () => null }) };
+    await assert.rejects(
+      captureCameraFrame({ readyState: 2, videoWidth: 640, videoHeight: 480 }),
+      /Could not capture/,
+    );
+    global.document = {
+      createElement: () => ({
+        getContext: () => ({ drawImage() {} }),
+        toBlob(callback) {
+          callback(null);
+        },
+      }),
+    };
+    await assert.rejects(
+      captureCameraFrame({ readyState: 2, videoWidth: 640, videoHeight: 480 }),
+      /Could not capture/,
+    );
+  } finally {
+    global.document = original;
+  }
 });
 
 test('repeat photos yield identical mock diagnoses and selected crops get relevant samples', async () => {
@@ -310,6 +413,14 @@ test('upload markup exposes keyboard-accessible controls and diagnosis content s
   assert.match(upload, /tabindex="0"/);
   assert.match(upload, /accept="image\/png,image\/jpeg,image\/webp"/);
   assert.match(upload, /PNG, JPG or WEBP up to 10MB/);
+  const galleryInput = upload.match(/<input[^>]*aria-label="Choose a crop image"[^>]*>/)?.[0];
+  const cameraInput = upload.match(/<input[^>]*aria-label="Take a crop photo"[^>]*>/)?.[0];
+  assert.ok(galleryInput);
+  assert.ok(cameraInput);
+  assert.doesNotMatch(galleryInput, /capture=/);
+  assert.match(cameraInput, /capture="environment"/);
+  assert.match(upload, /Take photo/);
+  assert.match(upload, /Upload photo/);
   const result = {
     disease: '<script>danger</script>',
     severity: 'High',

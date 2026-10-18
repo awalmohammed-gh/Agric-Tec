@@ -1,7 +1,20 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ImagePlus, ScanLine, ShieldCheck, Stethoscope } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  Bug,
+  CircleDot,
+  Focus,
+  Grid3x3,
+  Hand,
+  Leaf,
+  ScanLine,
+  ShieldCheck,
+  Stethoscope,
+  Sun,
+  type LucideIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { AnalyzingState } from '@/components/crop-doctor/analyzing-state';
 import { DiagnosisCard } from '@/components/crop-doctor/diagnosis-card';
@@ -9,17 +22,37 @@ import { DiagnosisHistory } from '@/components/crop-doctor/diagnosis-history';
 import { ImagePreview } from '@/components/crop-doctor/image-preview';
 import { UploadZone } from '@/components/crop-doctor/upload-zone';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
-import { FormField } from '@/components/ui/form-field';
-import { Select } from '@/components/ui/select';
+import { CROP_TONES, CropIcon } from '@/components/ui/crop-icon';
 import { CROPS } from '@/constants/crops';
 import { diagnoseCrop } from '@/lib/ai/crop-diagnosis';
 import { todayISO } from '@/lib/format';
 import { compressImage } from '@/lib/image/compress';
+import { cn } from '@/lib/utils';
+import { useChatStore } from '@/store/chat-store';
 import { useFarmStore } from '@/store/farm-store';
+import { useModalStore } from '@/store/modal-store';
 import type { Crop, DiagnosisResult } from '@/types';
 
+const PHOTO_TIPS: { icon: LucideIcon; text: string }[] = [
+  { icon: Sun, text: 'Natural daylight, no flash' },
+  { icon: Focus, text: 'Get close to the damaged area' },
+  { icon: Leaf, text: 'One leaf filling the frame' },
+  { icon: Hand, text: 'Hold steady for a sharp photo' },
+];
+
+const CHECKS: { icon: LucideIcon; title: string; text: string }[] = [
+  { icon: CircleDot, title: 'Fungal spots & blight', text: 'Leaf spots, rot and black pod' },
+  { icon: Bug, title: 'Pest damage', text: 'Fall armyworm and chewed leaves' },
+  { icon: Grid3x3, title: 'Viral mosaic', text: 'Yellow patterns and curled leaves' },
+  { icon: Leaf, title: 'Healthy tissue', text: 'Confirms when no issue is found' },
+];
+
+const chipClass =
+  'inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-xs font-semibold whitespace-nowrap transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-accent';
+
 export function CropDoctorView() {
+  const router = useRouter();
+  const openRecordWithDefaults = useModalStore((s) => s.openRecordWithDefaults);
   const [crop, setCrop] = useState<Crop | ''>('');
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<DiagnosisResult | null>(null);
@@ -94,44 +127,103 @@ export function CropDoctorView() {
     }
   }
 
+  function chooseCrop(next: Crop | '') {
+    setCrop(next);
+    if (file) void analyze(file, next);
+  }
+
+  function logTreatment(diagnosis: DiagnosisResult) {
+    openRecordWithDefaults({
+      type: 'expense',
+      crop: diagnosis.crop ?? 'Other',
+      description: `Treatment for ${diagnosis.disease}`,
+    });
+  }
+
+  function askAssistant(diagnosis: DiagnosisResult) {
+    const question = `How do I treat ${diagnosis.disease}${diagnosis.crop ? ` on my ${diagnosis.crop}` : ''}?`;
+    router.push('/assistant');
+    void useChatStore.getState().sendMessage(question);
+  }
+
+  const busy = analyzing || saving;
+
   return (
     <>
-      <div className="grid grid-cols-1 items-start gap-5 @3xl:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-2">
+        {/* Scanner */}
         <Card className="rounded-3xl">
           <CardHeader>
             <div>
               <CardTitle className="flex items-center gap-2">
-                <ImagePlus size={17} aria-hidden="true" className="text-ink-green" />
-                Upload Crop Image
+                <ScanLine size={17} aria-hidden="true" className="text-ink-green" />
+                Scan a crop
               </CardTitle>
-              <CardSub>A clear, close-up leaf photo works best</CardSub>
+              <CardSub>Pick the crop, then add a clear photo of the affected leaf</CardSub>
             </div>
           </CardHeader>
-          <FormField
-            label="Which crop is this?"
-            htmlFor="diagnosis-crop"
-            hint="Optional: helps select a relevant sample diagnosis"
-            className="mb-5"
-          >
-            <Select
-              id="diagnosis-crop"
-              value={crop}
-              disabled={analyzing || saving}
-              aria-describedby="diagnosis-crop-hint"
-              onChange={(event) => {
-                const next = event.target.value as Crop | '';
-                setCrop(next);
-                if (file) void analyze(file, next);
-              }}
-            >
-              <option value="">Not sure / choose a crop</option>
-              {CROPS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </Select>
-          </FormField>
+
+          <fieldset className="mb-5" disabled={busy}>
+            <legend className="text-text-dim mb-2 text-xs font-semibold tracking-wide uppercase">
+              1. Which crop is this?
+            </legend>
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+              <label className="relative">
+                <input
+                  type="radio"
+                  name="diagnosis-crop"
+                  value=""
+                  checked={crop === ''}
+                  onChange={() => chooseCrop('')}
+                  className="peer sr-only"
+                />
+                <span
+                  className={cn(
+                    chipClass,
+                    crop === ''
+                      ? 'border-accent/50 bg-accent/15 text-ink-green'
+                      : 'border-border bg-glass text-text-dim hover:text-text',
+                  )}
+                >
+                  Not sure
+                </span>
+              </label>
+              {CROPS.filter((c) => c !== 'Other').map((option) => {
+                const active = crop === option;
+                return (
+                  <label key={option} className="relative">
+                    <input
+                      type="radio"
+                      name="diagnosis-crop"
+                      value={option}
+                      checked={active}
+                      onChange={() => chooseCrop(option)}
+                      className="peer sr-only"
+                    />
+                    <span
+                      className={cn(
+                        chipClass,
+                        active
+                          ? 'border-accent/50 bg-accent/15 text-ink-green'
+                          : 'border-border bg-glass text-text-dim hover:text-text',
+                      )}
+                    >
+                      <CropIcon
+                        crop={option}
+                        size={15}
+                        className={active ? undefined : CROP_TONES[option].split(' ')[1]}
+                      />
+                      {option}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <p className="text-text-dim mb-2 text-xs font-semibold tracking-wide uppercase">
+            2. Add a photo
+          </p>
           {file ? (
             <ImagePreview
               file={file}
@@ -146,19 +238,35 @@ export function CropDoctorView() {
           ) : (
             <UploadZone onFile={(image) => void analyze(image, crop)} disabled={saving} />
           )}
+
+          <div className="border-border bg-glass mt-5 rounded-2xl border p-4">
+            <p className="text-text mb-3 text-xs font-semibold">Tips for an accurate scan</p>
+            <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {PHOTO_TIPS.map(({ icon: Icon, text }) => (
+                <li key={text} className="text-text-dim flex items-center gap-2 text-xs">
+                  <span className="bg-accent/10 text-ink-green inline-flex size-7 shrink-0 items-center justify-center rounded-lg">
+                    <Icon size={14} aria-hidden="true" />
+                  </span>
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
           <p className="text-text-mute mt-4 flex items-center gap-1.5 text-[11px]">
             <ShieldCheck size={13} aria-hidden="true" className="text-ink-green" />
             Your photo stays on this device.
           </p>
         </Card>
-        <Card className="rounded-3xl" aria-busy={analyzing}>
+
+        {/* Result */}
+        <Card className="rounded-3xl @4xl:sticky @4xl:top-28" aria-busy={analyzing}>
           <CardHeader>
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Stethoscope size={17} aria-hidden="true" className="text-ink-purple" />
-                Diagnosis Result
+                Diagnosis
               </CardTitle>
-              <CardSub>Sample insights to help explore the tool</CardSub>
+              <CardSub>Likely issue, confidence and a treatment plan</CardSub>
             </div>
           </CardHeader>
           <div aria-live="polite">
@@ -171,14 +279,43 @@ export function CropDoctorView() {
                 saved={saved}
                 onSave={() => void save()}
                 onScanAnother={reset}
+                onLogTreatment={() => logTreatment(result)}
+                onAskAssistant={() => askAssistant(result)}
               />
             ) : (
-              <EmptyState
-                icon={ScanLine}
-                title="A closer look at your crop"
-                description="Upload a photo to explore a sample diagnosis, confidence score and treatment guide."
-                className="min-h-80"
-              />
+              <div className="py-2">
+                <div className="flex flex-col items-center px-4 py-6 text-center">
+                  <span className="border-purple/20 bg-purple/10 text-ink-purple mb-4 inline-flex size-16 items-center justify-center rounded-2xl border">
+                    <ScanLine size={30} strokeWidth={1.5} aria-hidden="true" />
+                  </span>
+                  <p className="font-display text-text text-xl font-bold">
+                    Your diagnosis appears here
+                  </p>
+                  <p className="text-text-dim mt-1 max-w-sm text-sm">
+                    Add a photo to see the likely problem, how confident the AI is, and what to do
+                    next.
+                  </p>
+                </div>
+                <p className="text-text-mute mb-3 text-[11px] font-semibold tracking-wider uppercase">
+                  What the Crop Doctor checks
+                </p>
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {CHECKS.map(({ icon: Icon, title, text }) => (
+                    <li
+                      key={title}
+                      className="border-border bg-glass flex gap-3 rounded-2xl border p-3.5"
+                    >
+                      <span className="bg-purple/10 text-ink-purple inline-flex size-9 shrink-0 items-center justify-center rounded-xl">
+                        <Icon size={17} aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="text-text block text-sm font-semibold">{title}</span>
+                        <span className="text-text-mute block text-xs">{text}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         </Card>

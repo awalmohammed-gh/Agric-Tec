@@ -224,6 +224,21 @@
   animation: slideIn 0.3s ease-out both;
 }
 
+/* Crop scanner: a line sweeping down and back up the viewfinder */
+@keyframes scanSweep {
+  0%,
+  100% {
+    top: 8%;
+  }
+  50% {
+    top: 92%;
+  }
+}
+
+@utility animate-scan-sweep {
+  animation: scanSweep 3s ease-in-out infinite;
+}
+
 @utility animate-typing {
   animation: typing 1.4s ease-in-out infinite;
 }
