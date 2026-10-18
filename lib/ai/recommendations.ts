@@ -89,7 +89,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
   if (!stats.profileComplete) {
     items.push({
       id: 'profile',
-      cta: { label: 'Complete profile', href: '/settings#profile' },
+      cta: { label: 'Complete profile', href: '/settings/profile' },
       icon: UserRoundCheck,
       title: 'Complete Your Profile',
       text: 'Add your name, phone, farm name and acreage so lenders can verify who you are.',

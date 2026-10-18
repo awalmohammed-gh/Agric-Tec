@@ -1,33 +1,24 @@
 import type { ReactNode } from 'react';
-import { SETTINGS_SECTIONS } from '@/components/settings/settings-sections';
+import { SETTINGS_PAGES } from '@/components/settings/settings-sections';
 
-/** One anchored group on the Profile & Settings page, with a small labelled heading. */
-export function SettingsSection({
-  id,
-  description,
-  children,
-}: {
-  id: string;
-  description: string;
-  children: ReactNode;
-}) {
-  const meta = SETTINGS_SECTIONS.find((s) => s.id === id);
+/** Heading and content of one settings page, looked up by its route. */
+export function SettingsSection({ href, children }: { href: string; children: ReactNode }) {
+  const meta = SETTINGS_PAGES.find((page) => page.href === href);
   const Icon = meta?.icon;
   return (
-    <section
-      id={id}
-      aria-labelledby={`${id}-heading`}
-      className="scroll-mt-20 min-[900px]:scroll-mt-28"
-    >
-      <div className="mb-3 flex items-baseline justify-between gap-3 px-1">
-        <h2
-          id={`${id}-heading`}
-          className="text-text-mute flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase"
-        >
-          {Icon && <Icon size={13} aria-hidden="true" className="text-ink-green" />}
-          {meta?.label ?? id}
-        </h2>
-        <p className="text-text-mute hidden text-xs sm:block">{description}</p>
+    <section aria-labelledby="settings-page-heading">
+      <div className="mb-4 flex items-center gap-3 px-1">
+        {Icon && (
+          <span className="bg-accent/15 text-ink-green inline-flex size-10 shrink-0 items-center justify-center rounded-xl">
+            <Icon size={19} aria-hidden="true" />
+          </span>
+        )}
+        <div className="min-w-0">
+          <h2 id="settings-page-heading" className="text-text text-lg leading-tight font-bold">
+            {meta?.label}
+          </h2>
+          <p className="text-text-mute text-xs">{meta?.description}</p>
+        </div>
       </div>
       {children}
     </section>

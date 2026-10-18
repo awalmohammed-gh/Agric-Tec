@@ -53,7 +53,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Account',
     items: [
-      // Profile lives on the Settings page (/profile redirects there).
+      // Profile is a page inside Settings (/profile redirects to /settings/profile).
       { label: 'Profile & Settings', href: '/settings', icon: UserCog },
     ],
   },
@@ -98,7 +98,7 @@ export const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   },
   '/settings': {
     title: 'Profile & Settings',
-    subtitle: 'Your farmer identity, verification, preferences and data in one place.',
+    subtitle: 'Manage your profile, verification, preferences and data.',
   },
 };
 
@@ -111,17 +111,20 @@ export const MOBILE_PRIMARY_NAV: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Records', href: '/records', icon: Leaf },
   { label: 'Crop Doctor', href: '/crop-doctor', icon: Stethoscope },
-  { label: 'Profile', href: '/settings', icon: UserRound },
+  { label: 'Profile', href: '/settings/profile', icon: UserRound },
 ];
 
 /**
  * The mobile Menu sheet: every page not in the bottom bar, in sidebar order. The bar's
- * Profile opens the Profile & Settings page at the top, so Settings here jumps straight
- * to its preferences section.
+ * Profile opens the Profile settings page, so Settings here opens the Preferences page.
  */
 export const MOBILE_MENU_ITEMS: NavItem[] = [
   ...NAV_SECTIONS.flatMap((section) => section.items).filter(
-    (item) => !MOBILE_PRIMARY_NAV.some((primary) => primary.href === item.href),
+    // Skip pages the bar already covers, including Settings, whose Profile page is in the bar.
+    (item) =>
+      !MOBILE_PRIMARY_NAV.some(
+        (primary) => primary.href === item.href || primary.href.startsWith(`${item.href}/`),
+      ),
   ),
-  { label: 'Settings', href: '/settings#preferences', icon: Settings },
+  { label: 'Settings', href: '/settings/preferences', icon: Settings },
 ];

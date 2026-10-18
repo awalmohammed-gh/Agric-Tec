@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-/** Profile now lives on the Profile & Settings page; old links land on its profile section. */
+/** Profile is now a page inside Settings; old links land there. */
 export default function ProfilePage() {
-  redirect('/settings#profile');
+  redirect('/settings/profile');
 }

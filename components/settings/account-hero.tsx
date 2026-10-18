@@ -11,6 +11,7 @@ import {
   Sprout,
   type LucideIcon,
 } from 'lucide-react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { CropIcon, cropFromName } from '@/components/ui/crop-icon';
 import { ScoreRing } from '@/components/ui/score-ring';
@@ -22,17 +23,17 @@ import type { Profile } from '@/types';
 
 /** The single most useful thing to do next, with the section it lives in. */
 function nextStep(profile: Profile | null): { text: string; href: string } | null {
-  if (!profile) return { text: 'Add your name and phone number', href: '#personal-info' };
+  if (!profile) return { text: 'Add your name and phone number', href: '/settings/profile' };
   if (!profile.name.trim() || !profile.phone || !profile.email)
     return { text: 'Finish your personal details', href: '#personal-info' };
   if (!profile.farmName.trim() || profile.acres <= 0 || profile.primaryCrops.length === 0)
     return { text: 'Add your farm name, size and crops', href: '#farm-details' };
   if (!profile.verification.phone)
-    return { text: 'Verify your phone number', href: '#verification' };
+    return { text: 'Verify your phone number', href: '/settings/verification' };
   if (!profile.verification.location)
-    return { text: 'Save your farm location', href: '#verification' };
+    return { text: 'Save your farm location', href: '/settings/verification' };
   if (!profile.verification.ghanaCard)
-    return { text: 'Verify your Ghana Card', href: '#verification' };
+    return { text: 'Verify your Ghana Card', href: '/settings/verification' };
   return null;
 }
 
@@ -116,13 +117,13 @@ export function AccountHero() {
           <div className="min-w-0 flex-1">
             <p className="text-text text-sm font-bold">{complete}% complete</p>
             {step ? (
-              <a
+              <Link
                 href={step.href}
                 className="text-ink-green mt-1 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
               >
                 {step.text}
                 <ArrowRight size={12} aria-hidden="true" />
-              </a>
+              </Link>
             ) : (
               <p className="text-ink-green mt-1 text-xs font-semibold">Your profile is complete</p>
             )}
@@ -136,8 +137,8 @@ export function AccountHero() {
       <ul className="relative mt-5 flex flex-wrap gap-2" aria-label="Verification status">
         {checks.map(({ label, icon: Icon, done }) => (
           <li key={label}>
-            <a
-              href="#verification"
+            <Link
+              href="/settings/verification"
               className={cn(
                 'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors',
                 done
@@ -153,17 +154,17 @@ export function AccountHero() {
                 <Hourglass size={12} aria-hidden="true" />
               )}
               <span className="sr-only">{done ? 'verified' : 'pending'}</span>
-            </a>
+            </Link>
           </li>
         ))}
         <li className="ml-auto hidden @md:block">
-          <a
+          <Link
             href="#personal-info"
             className="border-border bg-glass text-text hover:bg-glass-strong inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors"
           >
             <PencilLine size={13} aria-hidden="true" />
             Edit profile
-          </a>
+          </Link>
         </li>
       </ul>
     </section>

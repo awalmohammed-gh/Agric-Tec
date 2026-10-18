@@ -21,7 +21,7 @@ const FACTOR_LINKS: Record<string, string> = {
   recordCompleteness: '/records',
   incomeStability: '/records',
   momoActivity: '/momo',
-  verification: '/settings#verification',
+  verification: '/settings/verification',
 };
 
 /**
