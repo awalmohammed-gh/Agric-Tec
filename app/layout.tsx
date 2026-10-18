@@ -27,6 +27,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#0a0e1a',
+  // Lets the mobile bottom navigation pad itself with env(safe-area-inset-bottom).
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

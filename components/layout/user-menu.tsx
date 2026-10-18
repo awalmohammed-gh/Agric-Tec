@@ -2,29 +2,27 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ChevronsUpDown, LogOut, Settings, User } from 'lucide-react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { signOutAndReset, useAuthStore, useProfileStore } from '@/store';
+import { useSignOut } from '@/components/layout/use-sign-out';
+import { useAuthStore, useProfileStore } from '@/store';
 import { useUiStore } from '@/store/ui-store';
 
 const itemClass =
   'flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors focus:outline-none focus-visible:bg-glass-strong hover:bg-glass-strong';
 
 export function UserMenu() {
-  const router = useRouter();
   const menuId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
+  const { signOut, signingOut } = useSignOut();
 
   const session = useAuthStore((s) => s.session);
   const profile = useProfileStore((s) => s.profile);
-  const closeSidebar = useUiStore((s) => s.closeSidebar);
+  const closeMobileNav = useUiStore((s) => s.closeMobileNav);
 
   const name = profile?.name.trim() || 'New Farmer';
   const initial = (profile?.name.trim()[0] ?? 'N').toUpperCase();
@@ -75,7 +73,7 @@ export function UserMenu() {
         break;
       case 'Escape':
         event.preventDefault();
-        event.stopPropagation(); // don't also close the mobile drawer
+        event.stopPropagation(); // don't also close the mobile menu
         close();
         break;
       case 'Tab':
@@ -84,22 +82,9 @@ export function UserMenu() {
     }
   }
 
-  async function handleSignOut() {
-    setSigningOut(true);
-    try {
-      await signOutAndReset();
-      toast.success('Signed out');
-      router.replace('/login');
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not sign out');
-      setSigningOut(false);
-    }
-  }
-
   function navigate() {
     setOpen(false);
-    closeSidebar();
+    closeMobileNav();
   }
 
   return (
@@ -150,7 +135,7 @@ export function UserMenu() {
             type="button"
             role="menuitem"
             tabIndex={-1}
-            onClick={handleSignOut}
+            onClick={() => void signOut()}
             disabled={signingOut}
             className={cn(itemClass, 'text-ink-red disabled:opacity-60')}
           >

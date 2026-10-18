@@ -31,7 +31,7 @@ export function resetAllStores(): void {
     notifications: DEFAULT_SETTINGS.notifications,
     status: 'idle',
   });
-  useUiStore.setState({ sidebarOpen: false });
+  useUiStore.setState({ mobileNavOpen: false });
   useLoanStore.setState({
     userId: null,
     applications: [],

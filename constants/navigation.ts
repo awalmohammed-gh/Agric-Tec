@@ -9,6 +9,7 @@ import {
   HandCoins,
   Store,
   User,
+  UserRound,
   Settings,
   type LucideIcon,
 } from 'lucide-react';
@@ -104,3 +105,23 @@ export const PAGE_META: Record<string, { title: string; subtitle: string }> = {
     subtitle: 'Manage your theme, language, notifications and data.',
   },
 };
+
+/** True when `pathname` is the item's page or one of its nested routes. */
+export const isNavActive = (pathname: string, href: string) =>
+  pathname === href || pathname.startsWith(`${href}/`);
+
+/** Mobile bottom bar: four direct destinations; the Menu button sits in the middle. */
+export const MOBILE_PRIMARY_NAV: NavItem[] = [
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Records', href: '/records', icon: Leaf },
+  { label: 'Crop Doctor', href: '/crop-doctor', icon: Stethoscope },
+  { label: 'Profile', href: '/profile', icon: UserRound },
+];
+
+/** Everything not in the bottom bar, grouped like the sidebar, for the mobile Menu sheet. */
+export const MOBILE_MENU_SECTIONS: NavSection[] = NAV_SECTIONS.map((section) => ({
+  ...section,
+  items: section.items.filter(
+    (item) => !MOBILE_PRIMARY_NAV.some((primary) => primary.href === item.href),
+  ),
+})).filter((section) => section.items.length > 0);

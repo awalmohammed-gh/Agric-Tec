@@ -83,7 +83,9 @@
   body {
     @apply bg-bg-1 text-text font-sans antialiased;
     min-height: 100vh;
-    overflow-x: hidden;
+    /* clip, not hidden: hidden can make <body> a scroll container, which breaks the
+       sticky top bar (it then sticks to <body> instead of the viewport). */
+    overflow-x: clip;
   }
 
   input::placeholder,
@@ -214,6 +216,25 @@
 
 @utility animate-bg-shift {
   animation: bgShift 20s ease-in-out infinite;
+}
+
+/* Desktop top bar: glass that turns more solid over the first 24px of scroll.
+   A scroll-driven animation, so there is no scroll listener and no React re-render. */
+@keyframes topbarSolid {
+  to {
+    background-color: var(--glass-strong);
+    box-shadow: var(--shadow);
+  }
+}
+
+@utility topbar-glass {
+  background-color: var(--glass);
+  box-shadow: 0 8px 30px -12px rgba(0, 0, 0, 0.35);
+  @supports (animation-timeline: scroll()) {
+    animation: topbarSolid linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 24px;
+  }
 }
 
 @utility animate-pulse-soft {

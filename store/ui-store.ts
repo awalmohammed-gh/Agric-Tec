@@ -4,21 +4,22 @@ import { sessionStore } from '@/services/storage';
 const SAMPLE_PROMPT_KEY = 'samplePromptDismissed';
 
 interface UiState {
-  sidebarOpen: boolean;
-  openSidebar: () => void;
-  closeSidebar: () => void;
-  toggleSidebar: () => void;
+  /** Bottom-sheet menu of the mobile navigation (below 900px). */
+  mobileNavOpen: boolean;
+  openMobileNav: () => void;
+  closeMobileNav: () => void;
+  toggleMobileNav: () => void;
   /** "Start fresh" on the dashboard's sample-data card; remembered for this browser tab. */
   samplePromptDismissed: boolean;
   dismissSamplePrompt: () => void;
 }
 
-/** UI-only state: the mobile sidebar drawer and dismissed hints. */
+/** UI-only state: the mobile navigation menu and dismissed hints. */
 export const useUiStore = create<UiState>()((set) => ({
-  sidebarOpen: false,
-  openSidebar: () => set({ sidebarOpen: true }),
-  closeSidebar: () => set({ sidebarOpen: false }),
-  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+  mobileNavOpen: false,
+  openMobileNav: () => set({ mobileNavOpen: true }),
+  closeMobileNav: () => set({ mobileNavOpen: false }),
+  toggleMobileNav: () => set((state) => ({ mobileNavOpen: !state.mobileNavOpen })),
 
   // sessionStore is SSR-safe (returns the fallback on the server).
   samplePromptDismissed: sessionStore.get(SAMPLE_PROMPT_KEY, false),

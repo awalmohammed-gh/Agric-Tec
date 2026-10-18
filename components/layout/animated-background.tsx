@@ -1,9 +1,13 @@
-/** Two fixed decorative layers behind the whole app: drifting colour blobs and a faint grid. */
+/**
+ * Two fixed decorative layers behind the whole app: colour blobs and a faint grid.
+ * The slow hue shift runs from 900px only: on phones a constantly repainting full-screen
+ * filter layer makes scrolling janky.
+ */
 export function AnimatedBackground() {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       <div
-        className="animate-bg-shift absolute inset-0"
+        className="min-[900px]:animate-bg-shift absolute inset-0"
         style={{
           backgroundColor: 'var(--bg-1)',
           backgroundImage: [

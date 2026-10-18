@@ -1,15 +1,12 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
-import { Bell, Menu, type LucideIcon } from 'lucide-react';
+import { Bell, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { GlobalSearch } from '@/components/layout/global-search';
-import { SIDEBAR_ID } from '@/components/layout/sidebar';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
-import { NAV_SECTIONS, PAGE_META } from '@/constants/navigation';
+import { isNavActive, NAV_SECTIONS, PAGE_META } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
-import { useUiStore } from '@/store/ui-store';
 
 const iconButtonClass =
   'relative inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-text-dim transition-colors hover:bg-glass-strong hover:text-text';
@@ -24,9 +21,7 @@ interface PageInfo {
 /** Title, subtitle, nav section and icon for the current route (works for nested routes too). */
 function pageInfo(pathname: string): PageInfo {
   for (const section of NAV_SECTIONS) {
-    const item = section.items.find(
-      (i) => pathname === i.href || pathname.startsWith(`${i.href}/`),
-    );
+    const item = section.items.find((i) => isNavActive(pathname, i.href));
     if (item) {
       const meta = PAGE_META[item.href];
       return {
@@ -40,49 +35,30 @@ function pageInfo(pathname: string): PageInfo {
   return { title: 'AgriCtec', subtitle: '', section: null, icon: null };
 }
 
-// Scroll position as an external store, so the bar can turn more solid once the page scrolls.
-const subscribeScroll = (onChange: () => void) => {
-  window.addEventListener('scroll', onChange, { passive: true });
-  return () => window.removeEventListener('scroll', onChange);
-};
-const getScrolled = () => window.scrollY > 8;
-const getServerScrolled = () => false;
-
-/** Floating, sticky top bar. The title block re-animates on every navigation. */
+/**
+ * Top bar. Below 900px: a full-width, opaque bar stuck to the top of the page (no blur,
+ * no scroll effects, so it cannot jitter). From 900px: the floating glass bar, which turns
+ * more solid on scroll through a CSS scroll-driven animation (no scroll listener or re-renders).
+ * The title block re-animates on every navigation.
+ */
 export function Topbar() {
   const pathname = usePathname();
-  const sidebarOpen = useUiStore((s) => s.sidebarOpen);
-  const openSidebar = useUiStore((s) => s.openSidebar);
-  const scrolled = useSyncExternalStore(subscribeScroll, getScrolled, getServerScrolled);
   const { title, subtitle, section, icon: Icon } = pageInfo(pathname);
 
   return (
-    <header className="sticky top-3 z-30 mb-6">
+    <header className="sticky top-0 z-30 -mx-5 mb-6 min-[900px]:top-3 min-[900px]:mx-0 md:-mx-8">
       <div
         className={cn(
-          'border-border flex items-center gap-2 rounded-2xl border px-2 py-2 backdrop-blur-xl transition-[background-color,box-shadow] duration-300 sm:gap-3 sm:px-3',
-          scrolled
-            ? 'bg-glass-strong shadow-glass'
-            : 'bg-glass shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)]',
+          'border-border bg-bg-2 flex items-center gap-2 border-b px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 sm:gap-3',
+          'min-[900px]:topbar-glass min-[900px]:rounded-2xl min-[900px]:border min-[900px]:px-3 min-[900px]:py-2 min-[900px]:backdrop-blur-xl',
         )}
       >
-        <button
-          type="button"
-          onClick={openSidebar}
-          aria-label="Open menu"
-          aria-controls={SIDEBAR_ID}
-          aria-expanded={sidebarOpen}
-          className={`${iconButtonClass} min-[900px]:hidden`}
-        >
-          <Menu size={20} aria-hidden="true" />
-        </button>
-
         {/* key={pathname}: the whole block fades in again whenever the route changes */}
         <div key={pathname} className="animate-fade-in flex min-w-0 flex-1 items-center gap-3">
           {Icon && (
             <span
               aria-hidden="true"
-              className="from-accent/25 to-accent/5 text-ink-green hidden size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br sm:inline-flex"
+              className="from-accent/25 to-accent/5 text-ink-green hidden size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br min-[360px]:inline-flex"
             >
               <Icon size={20} />
             </span>
