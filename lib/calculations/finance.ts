@@ -94,6 +94,28 @@ export function incomeByCrop(records: FarmRecord[]): Record<string, number> {
   return totals;
 }
 
+/** Expense categories, matched by keywords in the record description (first match wins). */
+const EXPENSE_CATEGORIES: { name: string; pattern: RegExp }[] = [
+  { name: 'Fertilizer', pattern: /fertili[sz]er|npk|urea|manure|compost/i },
+  { name: 'Pest control', pattern: /pesticide|insecticide|fungicide|herbicide|spray|chemical/i },
+  { name: 'Seeds', pattern: /seed|seedling|sucker|cutting|stem/i },
+  { name: 'Labour', pattern: /labou?r|worker|wage|weeding|harvest|shelling|planting/i },
+  { name: 'Transport', pattern: /transport|haulage|truck|freight|delivery/i },
+  { name: 'Equipment', pattern: /equipment|tool|tractor|machine|sprayer|irrigation|pump/i },
+];
+
+/** Total expenses per category, e.g. { Fertilizer: 2400, Labour: 2100, Other: 300 }. */
+export function expenseByCategory(records: FarmRecord[]): Record<string, number> {
+  const totals: Record<string, number> = {};
+  for (const record of records) {
+    if (record.type !== 'expense') continue;
+    const category =
+      EXPENSE_CATEGORIES.find((c) => c.pattern.test(record.description))?.name ?? 'Other';
+    totals[category] = (totals[category] ?? 0) + record.amount;
+  }
+  return totals;
+}
+
 export function momoTotals(momo: MomoTransaction[]): {
   inflow: number;
   outflow: number;

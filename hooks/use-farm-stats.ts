@@ -7,6 +7,7 @@ import {
   activeCropCount,
   annualizedNetProfit,
   currentYearNetByMonth,
+  expenseByCategory,
   financialHealth,
   incomeByCrop,
   momoMonthlySeries,
@@ -89,12 +90,17 @@ export function useFarmStats() {
     monthly12: monthlySeries(records, 12),
     currentYearNet: currentYearNetByMonth(records),
     incomeByCrop: incomeByCrop(records),
+    expenseByCategory: expenseByCategory(records),
     momo: { ...momoSummary, monthly6: momoMonthlySeries(momo, 6) },
     credit,
     creditLabel: scoreLabel(credit.score),
     health: financialHealth(records),
     annualizedProfit: annualizedNetProfit(records),
     readiness,
+    recordCount: records.length,
+    profileComplete,
     hasData: records.length > 0 || momo.length > 0,
   };
 }
+
+export type FarmStats = ReturnType<typeof useFarmStats>;

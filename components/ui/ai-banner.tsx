@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 export interface AiBannerProps {
   icon: LucideIcon;
   title: string;
-  subtitle: string;
+  subtitle: ReactNode;
   action?: ReactNode;
   className?: string;
 }

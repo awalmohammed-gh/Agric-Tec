@@ -4,6 +4,8 @@ import { MobileNavOverlay } from '@/components/layout/mobile-nav-overlay';
 import { PageContainer } from '@/components/layout/page-container';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Topbar } from '@/components/layout/topbar';
+import { MomoFormModal } from '@/components/momo/momo-form-modal';
+import { RecordFormModal } from '@/components/records/record-form-modal';
 import { DataLoader } from '@/components/providers/data-loader';
 
 export default function MainLayout({ children }: { children: ReactNode }) {
@@ -20,6 +22,9 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             <PageContainer>{children}</PageContainer>
           </main>
         </div>
+        {/* App-wide form modals, opened from anywhere through useModalStore. */}
+        <RecordFormModal />
+        <MomoFormModal />
       </DataLoader>
     </>
   );
