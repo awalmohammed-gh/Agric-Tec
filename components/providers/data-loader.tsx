@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,20 +18,30 @@ export function DataLoader({ children }: { children: ReactNode }) {
   const [state, setState] = useState<LoadState>('loading');
   const [attempt, setAttempt] = useState(0);
 
+  const router = useRouter();
+
   useEffect(() => {
     let cancelled = false;
 
-    async function hydrate() {
-      const auth = useAuthStore.getState();
-      // TEMPORARY (Phase 5): fall back to the guest account when there is no session.
-      // Phase 6 replaces this with a redirect to /login.
-      const session = (await auth.init()) ?? (await auth.continueAsGuest());
+    /** Resolves true when the app can render, false when we are redirecting to /login. */
+    async function hydrate(): Promise<boolean> {
+      // getSession() also clears the proxy cookie when no session is stored (e.g. the cookie
+      // survived but localStorage was cleared), so /login won't bounce us back here.
+      const session = await useAuthStore.getState().init();
+      if (!session) return false;
       await loadAllStores(session.userId);
+      return true;
     }
 
     hydrate().then(
-      () => {
-        if (!cancelled) setState('ready');
+      (ready) => {
+        if (cancelled) return;
+        if (ready) {
+          setState('ready');
+        } else {
+          const next = encodeURIComponent(window.location.pathname);
+          router.replace(`/login?next=${next}`); // keep the skeleton while redirecting
+        }
       },
       (error: unknown) => {
         console.error('[DataLoader] Failed to load data', error);
@@ -41,7 +52,7 @@ export function DataLoader({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [attempt, router]);
 
   if (state === 'error') {
     return (
