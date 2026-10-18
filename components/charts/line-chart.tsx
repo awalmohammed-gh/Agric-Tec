@@ -26,6 +26,8 @@ export interface LineChartProps {
   showLegend?: boolean;
   ariaLabel?: string;
   className?: string;
+  formatValue?: (value: number) => string;
+  yAxisTitle?: string;
 }
 
 export function LineChart({
@@ -36,6 +38,8 @@ export function LineChart({
   showLegend = true,
   ariaLabel = 'Line chart',
   className,
+  formatValue,
+  yAxisTitle,
 }: LineChartProps) {
   const { baseOptions } = useChartTheme();
   // Money charts that are never negative should start at 0 (an all-zero chart would otherwise span −1…1).
@@ -65,10 +69,32 @@ export function LineChart({
     plugins: {
       ...baseOptions.plugins,
       legend: { ...baseOptions.plugins.legend, display: showLegend },
+      tooltip: {
+        ...baseOptions.plugins.tooltip,
+        ...(formatValue && {
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${formatValue(context.parsed.y ?? 0)}`,
+          },
+        }),
+      },
     },
     scales: {
       ...baseOptions.scales,
-      y: { ...baseOptions.scales.y, ...(allNonNegative && { min: 0, suggestedMax: 1 }) },
+      y: {
+        ...baseOptions.scales.y,
+        ...(allNonNegative && { min: 0, suggestedMax: 1 }),
+        ...(formatValue && {
+          ticks: { ...baseOptions.scales.y.ticks, callback: (value) => formatValue(Number(value)) },
+        }),
+        ...(yAxisTitle && {
+          title: {
+            display: true,
+            text: yAxisTitle,
+            color: baseOptions.scales.y.ticks.color,
+            font: { size: 10 },
+          },
+        }),
+      },
     },
     interaction: { mode: 'index', intersect: false },
   };

@@ -1,10 +1,28 @@
 import { format, getMonth, getYear, startOfMonth, subMonths } from 'date-fns';
 import { MARKET_PRICES } from '@/data/mock/market-prices';
 import { WEATHER_CONDITIONS } from '@/data/mock/weather';
+import { marketCropKey } from '@/lib/market/data';
 import { delay, sessionStore } from '@/services/storage';
 import type { MarketPrice, PriceTrends, Weather } from '@/types';
 
 const WEATHER_KEY = 'weather';
+
+export interface WeatherSnapshot extends Weather {
+  updatedAt: string;
+}
+
+// A fallback when sessionStorage is unavailable: re-renders still cannot change the weather.
+let tabWeather: WeatherSnapshot | null = null;
+
+function validWeather(value: Weather | null): value is Weather {
+  return Boolean(
+    value &&
+    WEATHER_CONDITIONS.some((condition) => condition.condition === value.condition) &&
+    Number.isFinite(value.temp) &&
+    Number.isFinite(value.humidity) &&
+    Number.isFinite(value.rainChance),
+  );
+}
 
 /** Small, fast seeded PRNG: the same seed always returns the same sequence. */
 function mulberry32(seed: number): () => number {
@@ -30,20 +48,30 @@ function hashString(value: string): number {
 
 export const marketService = {
   /** Picks one weather condition per browser session, so it stays the same until the tab closes. */
-  async getWeather(): Promise<Weather> {
+  async getWeather(): Promise<WeatherSnapshot> {
     await delay();
-    const saved = sessionStore.get<Weather | null>(WEATHER_KEY, null);
-    // Ignore a value saved in an older shape (before icons replaced emoji).
-    if (saved && typeof saved.condition === 'string') return saved;
+    if (tabWeather) return { ...tabWeather };
+    const saved = sessionStore.get<WeatherSnapshot | null>(WEATHER_KEY, null);
+    if (validWeather(saved)) {
+      // Backfill timestamps in histories saved before the market page existed.
+      const updatedAt =
+        saved.updatedAt && Number.isFinite(Date.parse(saved.updatedAt))
+          ? saved.updatedAt
+          : new Date().toISOString();
+      tabWeather = { ...saved, updatedAt };
+      sessionStore.set(WEATHER_KEY, tabWeather);
+      return { ...tabWeather };
+    }
     // The only random pick: once per session, then reused.
     const picked = WEATHER_CONDITIONS[Math.floor(Math.random() * WEATHER_CONDITIONS.length)];
-    sessionStore.set(WEATHER_KEY, picked);
-    return picked;
+    tabWeather = { ...picked, updatedAt: new Date().toISOString() };
+    sessionStore.set(WEATHER_KEY, tabWeather);
+    return { ...tabWeather };
   },
 
   async getPrices(): Promise<MarketPrice[]> {
     await delay();
-    return MARKET_PRICES;
+    return MARKET_PRICES.map((price) => ({ ...price }));
   },
 
   /**
@@ -61,7 +89,8 @@ export const marketService = {
     return {
       labels: monthStarts.map((month) => format(month, 'MMM')),
       series: crops.map((crop) => {
-        const current = MARKET_PRICES.find((p) => p.crop === crop)?.price ?? 100;
+        const current =
+          MARKET_PRICES.find((p) => marketCropKey(p.crop) === marketCropKey(crop))?.price ?? 100;
         const prices = monthStarts.map((month, i) => {
           if (i === months - 1) return current;
           const monthIndex = getYear(month) * 12 + getMonth(month);
