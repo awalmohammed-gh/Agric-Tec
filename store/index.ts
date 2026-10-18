@@ -16,6 +16,7 @@ export async function loadAllStores(userId: string): Promise<void> {
     useProfileStore.getState().load(userId),
     useChatStore.getState().load(userId),
     useSettingsStore.getState().load(userId),
+    useLoanStore.getState().load(userId),
   ]);
 }
 
@@ -31,7 +32,13 @@ export function resetAllStores(): void {
     status: 'idle',
   });
   useUiStore.setState({ sidebarOpen: false });
-  useLoanStore.setState({ lastDraft: null, confirm: null });
+  useLoanStore.setState({
+    userId: null,
+    applications: [],
+    status: 'idle',
+    lastDraft: null,
+    confirm: null,
+  });
 }
 
 /** Ends the session (clears it and the proxy cookie), then wipes the in-memory stores. */

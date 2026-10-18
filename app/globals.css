@@ -172,6 +172,13 @@
   }
 }
 
+/* Score gauge: the arc draws in from empty (its full length is passed as --gauge-len) */
+@keyframes gaugeFill {
+  from {
+    stroke-dashoffset: var(--gauge-len);
+  }
+}
+
 @keyframes shimmer {
   from {
     background-position: 200% 0;

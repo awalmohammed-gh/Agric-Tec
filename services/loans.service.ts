@@ -18,6 +18,12 @@ export const loansService = {
     return LOAN_PARTNERS;
   },
 
+  /** The farmer's submitted applications, newest first. */
+  async listApplications(userId: string): Promise<LoanApplication[]> {
+    await delay();
+    return storage.get<LoanApplication[]>(key(userId), []);
+  },
+
   async submitApplication(userId: string, data: LoanApplicationInput): Promise<LoanApplication> {
     await delay();
     const application: LoanApplication = {

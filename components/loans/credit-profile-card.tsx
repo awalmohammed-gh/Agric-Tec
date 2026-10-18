@@ -1,15 +1,12 @@
 'use client';
 
-import { ScoreFactors } from '@/components/loans/score-factors';
+import Link from 'next/link';
+import { ArrowRight, Target } from 'lucide-react';
+import { FACTORS, SCORE_RANGE, ScoreFactors } from '@/components/loans/score-factors';
 import { Badge, type BadgeColor } from '@/components/ui/badge';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
-import { ScoreRing } from '@/components/ui/score-ring';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { cn } from '@/lib/utils';
-
-const MIN = 300;
-const MAX = 850;
-const pos = (score: number) => ((score - MIN) / (MAX - MIN)) * 100;
 
 const LABEL_COLOR: Record<string, BadgeColor> = {
   Building: 'red',
@@ -18,66 +15,70 @@ const LABEL_COLOR: Record<string, BadgeColor> = {
   Excellent: 'purple',
 };
 
-const BANDS = [
-  { label: 'Building', from: 300 },
-  { label: 'Fair', from: 500 },
-  { label: 'Good', from: 650 },
-  { label: 'Excellent', from: 750 },
-];
+/** Where to send the farmer to improve each factor. */
+const FACTOR_LINKS: Record<string, string> = {
+  paymentHistory: '/records',
+  recordCompleteness: '/records',
+  incomeStability: '/records',
+  momoActivity: '/momo',
+  verification: '/profile',
+};
 
 /**
- * Credit score (the same calculateCreditScore result as the dashboard), a 300–850 scale with
- * a marker, and the five factors.
+ * The factors behind the score (the same calculateCreditScore result as the dashboard),
+ * plus the single change that would add the most points.
  */
 export function CreditProfileCard({ className }: { className?: string }) {
   const { credit, creditLabel } = useFarmStats();
-  const marker = Math.min(100, Math.max(0, pos(credit.score)));
+
+  const opportunities = FACTORS.map((factor) => {
+    const max = Math.round((factor.weight / 100) * SCORE_RANGE);
+    const earned = Math.round((credit[factor.key] / 100) * max);
+    return { ...factor, available: max - earned };
+  }).sort((a, b) => b.available - a.available);
+  const top = opportunities[0];
 
   return (
     <Card className={cn('flex flex-col', className)}>
       <CardHeader>
         <div>
           <CardTitle>Credit Profile</CardTitle>
-          <CardSub>Your AgriCtec credit score</CardSub>
+          <CardSub>What makes up your score</CardSub>
         </div>
         <Badge color={LABEL_COLOR[creditLabel] ?? 'blue'}>{creditLabel}</Badge>
       </CardHeader>
 
-      <div className="flex flex-col items-center">
-        <ScoreRing value={credit.score} max={MAX} label="Credit score" size={156} />
-        <p className="text-text-mute mt-3 text-xs">Scores range from 300 to 850</p>
+      <div className="mb-5 flex items-end gap-2">
+        <span className="text-text text-4xl leading-none font-extrabold tracking-tight">
+          {credit.score}
+        </span>
+        <span className="text-text-mute pb-1 text-sm">/ 850 credit score</span>
       </div>
 
-      {/* 300–850 scale with the farmer's position */}
-      <div className="mt-5" aria-hidden="true">
-        <div className="relative h-2.5 rounded-full bg-linear-to-r from-[#ef4444] via-[#f5c451] to-[#10b981]">
-          <span
-            className="border-bg-1 absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] bg-white shadow"
-            style={{ left: `${marker}%` }}
-          />
-        </div>
-        <div className="text-text-mute relative mt-2 h-4 text-[10px]">
-          {BANDS.map((band) => (
-            <span
-              key={band.label}
-              className={cn(
-                'absolute -translate-x-0',
-                band.label === creditLabel && 'text-text font-semibold',
-              )}
-              style={{ left: `${pos(band.from)}%` }}
-            >
-              {band.label}
-            </span>
-          ))}
-        </div>
-      </div>
+      <ScoreFactors />
 
-      <div className="border-border mt-6 border-t pt-5">
-        <p className="text-text-mute mb-4 text-[11px] font-semibold tracking-wider uppercase">
-          What makes up your score
-        </p>
-        <ScoreFactors />
-      </div>
+      {top && top.available > 0 && (
+        <div className="border-gold/30 bg-gold/10 mt-5 rounded-2xl border p-4">
+          <p className="text-ink-gold flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
+            <Target size={14} aria-hidden="true" /> Biggest opportunity
+          </p>
+          <p className="text-text mt-1 text-sm">
+            <strong>{top.label}</strong> has up to <strong>+{top.available} points</strong> waiting.{' '}
+            {top.help}.
+          </p>
+          <Link
+            href={FACTOR_LINKS[top.key]}
+            className="group text-ink-green mt-2 inline-flex min-h-9 items-center gap-1 text-sm font-semibold"
+          >
+            Improve {top.label.toLowerCase()}
+            <ArrowRight
+              size={14}
+              aria-hidden="true"
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
+        </div>
+      )}
     </Card>
   );
 }

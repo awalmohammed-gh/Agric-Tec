@@ -6,7 +6,7 @@ import type { CreditScoreBreakdown } from '@/types';
 
 type FactorKey = Exclude<keyof CreditScoreBreakdown, 'score'>;
 
-const FACTORS: { key: FactorKey; label: string; weight: number; help: string }[] = [
+export const FACTORS: { key: FactorKey; label: string; weight: number; help: string }[] = [
   {
     key: 'paymentHistory',
     label: 'Payment History',
@@ -39,7 +39,7 @@ const FACTORS: { key: FactorKey; label: string; weight: number; help: string }[]
   },
 ];
 
-const SCORE_RANGE = 550; // 850 − 300
+export const SCORE_RANGE = 550; // 850 − 300
 
 function barTone(value: number): string {
   if (value >= 75) return 'from-[#10b981] to-[#34d399]';
