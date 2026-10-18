@@ -1,6 +1,12 @@
 import { annualizedNetProfit } from '@/lib/calculations/finance';
 import { formatGHS } from '@/lib/format';
-import type { EligibilityResult, FarmRecord, LoanPartner, RepaymentResult } from '@/types';
+import type {
+  EligibilityIssue,
+  EligibilityResult,
+  FarmRecord,
+  LoanPartner,
+  RepaymentResult,
+} from '@/types';
 
 const DEFAULT_MIN_SCORE = 550;
 const MIN_RECORDS = 5;
@@ -38,26 +44,41 @@ export function checkEligibility({
   score: number;
   partner?: LoanPartner;
 }): EligibilityResult {
-  const reasons: string[] = [];
+  const issues: EligibilityIssue[] = [];
   const maxAffordable = Math.max(0, PROFIT_MULTIPLE * annualizedNetProfit(records));
   const minScore = partner?.minScore ?? DEFAULT_MIN_SCORE;
 
   if (records.length < MIN_RECORDS) {
-    reasons.push(`You need at least ${MIN_RECORDS} farm records (you have ${records.length}).`);
+    issues.push({
+      code: 'records',
+      message: `You need at least ${MIN_RECORDS} farm records (you have ${records.length}).`,
+    });
   }
   if (amount > maxAffordable) {
-    reasons.push(
-      `Requested amount is above 3× your yearly profit (max ${formatGHS(maxAffordable)}).`,
-    );
+    issues.push({
+      code: 'affordability',
+      message: `Requested amount is above 3× your yearly profit (max ${formatGHS(maxAffordable)}).`,
+    });
   }
   if (score < minScore) {
-    reasons.push(`Credit score must be at least ${minScore} (yours is ${score}).`);
+    issues.push({
+      code: 'score',
+      message: `Credit score must be at least ${minScore} (yours is ${score}).`,
+    });
   }
   if (partner && amount > partner.maxAmount) {
-    reasons.push(`Above this lender's maximum of ${formatGHS(partner.maxAmount)}.`);
+    issues.push({
+      code: 'lender-max',
+      message: `Above this lender's maximum of ${formatGHS(partner.maxAmount)}.`,
+    });
   }
 
-  return { eligible: reasons.length === 0, reasons, maxAffordable };
+  return {
+    eligible: issues.length === 0,
+    reasons: issues.map((issue) => issue.message),
+    issues,
+    maxAffordable,
+  };
 }
 
 /** How well the user's score matches a lender, from 40% to 98%. */

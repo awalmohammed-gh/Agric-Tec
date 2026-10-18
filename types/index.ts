@@ -142,9 +142,18 @@ export interface YieldResult {
   pricePerTonne: number;
 }
 
+export type EligibilityIssueCode = 'records' | 'affordability' | 'score' | 'lender-max';
+
+export interface EligibilityIssue {
+  code: EligibilityIssueCode;
+  message: string;
+}
+
 export interface EligibilityResult {
   eligible: boolean;
   reasons: string[];
+  /** The same reasons with a machine-readable code, so the UI can offer the right fix. */
+  issues: EligibilityIssue[];
   maxAffordable: number;
 }
 

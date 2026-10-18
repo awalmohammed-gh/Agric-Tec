@@ -2,6 +2,7 @@ import { DEFAULT_SETTINGS } from '@/services/settings.service';
 import { useAuthStore } from '@/store/auth-store';
 import { useChatStore } from '@/store/chat-store';
 import { useFarmStore } from '@/store/farm-store';
+import { useLoanStore } from '@/store/loan-store';
 import { useProfileStore } from '@/store/profile-store';
 import { useSettingsStore } from '@/store/settings-store';
 import { useUiStore } from '@/store/ui-store';
@@ -30,6 +31,7 @@ export function resetAllStores(): void {
     status: 'idle',
   });
   useUiStore.setState({ sidebarOpen: false });
+  useLoanStore.setState({ lastDraft: null, confirm: null });
 }
 
 /** Ends the session (clears it and the proxy cookie), then wipes the in-memory stores. */
