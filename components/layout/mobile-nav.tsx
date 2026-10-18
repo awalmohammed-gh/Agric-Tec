@@ -23,37 +23,37 @@ const gridItemClass =
 const gridLabelClass =
   'text-[10px] leading-tight font-medium [overflow-wrap:break-word] min-[360px]:text-[11px]';
 
-/** Same 48px square for every bar control, so all five icons line up exactly. */
-const barSlotClass =
-  'relative inline-flex size-12 items-center justify-center rounded-2xl focus-visible:outline-2 focus-visible:outline-accent';
+/**
+ * Every bar control has the same layout: a fixed 32×48px icon pill with a small label
+ * stacked underneath (flex column, no absolute positioning), so icons and labels can
+ * never overlap and all five line up exactly.
+ */
+const barItemClass =
+  'flex h-14 w-full flex-col items-center justify-center gap-1 rounded-2xl focus-visible:outline-2 focus-visible:outline-accent';
+const barPillClass =
+  'relative inline-flex h-8 w-12 shrink-0 items-center justify-center rounded-full transition-colors duration-200';
+const barLabelClass =
+  'max-w-full truncate text-[10px] leading-3 font-semibold max-[359px]:tracking-tight';
 
-/** One direct destination in the bottom bar: an icon only, named by aria-label. */
+/** One direct destination in the bottom bar: icon pill with its label underneath. */
 function BarLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
   return (
     <Link
       href={item.href}
-      aria-label={item.label}
       aria-current={active ? 'page' : undefined}
-      className={cn(
-        barSlotClass,
-        'transition-colors duration-200',
-        active ? 'bg-accent/15 text-ink-green' : 'text-text-mute hover:text-text',
-      )}
+      className={cn(barItemClass, active ? 'text-ink-green' : 'text-text-mute hover:text-text')}
     >
-      <Icon size={22} strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
-      {active && (
-        <span
-          aria-hidden="true"
-          className="absolute bottom-1 left-1/2 h-1 w-4 -translate-x-1/2 rounded-full bg-[#10b981]"
-        />
-      )}
+      <span aria-hidden="true" className={cn(barPillClass, active && 'bg-accent/15')}>
+        <Icon size={20} strokeWidth={active ? 2.25 : 1.75} />
+      </span>
+      <span className={barLabelClass}>{item.label}</span>
     </Link>
   );
 }
 
 /**
- * Mobile navigation (below 900px): a floating, icons-only bottom bar with four destinations
+ * Mobile navigation (below 900px): a floating bottom bar (icon + small label) with four destinations
  * and a centre Menu button that opens the remaining pages in a bottom sheet above the bar.
  * The backdrop, Escape key and close-on-navigation live in MobileNavOverlay.
  */
@@ -195,58 +195,61 @@ export function MobileNav() {
         aria-label="Mobile navigation"
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
-        <ul className="border-border bg-bg-2/95 pointer-events-auto mx-auto grid h-16 max-w-md grid-cols-5 place-items-center rounded-3xl border px-1 shadow-[0_-4px_30px_-8px_rgba(0,0,0,0.35)] backdrop-blur-xl *:flex">
+        <ul className="border-border bg-bg-2/95 pointer-events-auto mx-auto grid h-16 max-w-md grid-cols-5 items-center rounded-3xl border px-0.5 shadow-[0_-4px_30px_-8px_rgba(0,0,0,0.35)] backdrop-blur-xl *:flex *:justify-center">
           {MOBILE_PRIMARY_NAV.slice(0, 2).map((item) => (
             <li key={item.href}>
               <BarLink item={item} active={isNavActive(pathname, item.href)} />
             </li>
           ))}
           <li>
-            {/* Same 48px slot as the links; the two icons are stacked in one place and
-                cross-fade, so nothing moves or resizes when the menu opens. */}
+            {/* Same layout as the links. The grid and close icons cross-fade inside the
+                fixed-size pill, and the label sits below it in normal flow, so opening the
+                menu never moves, resizes or overlaps anything. */}
             <button
               ref={menuButtonRef}
               type="button"
               onClick={toggle}
-              aria-label={
-                open
-                  ? 'Close menu'
-                  : activeMenuItem
-                    ? `Open menu (current page: ${activeMenuItem.label})`
-                    : 'Open menu'
-              }
               aria-expanded={open}
               aria-controls={sheetId}
               aria-haspopup="dialog"
               className={cn(
-                barSlotClass,
-                'bg-linear-to-br from-[#34d399] to-[#10b981] text-[#022c22] shadow-[0_8px_20px_-8px_var(--accent-glow)] active:brightness-95',
+                barItemClass,
+                open || activeMenuItem ? 'text-ink-green' : 'text-text-mute',
               )}
             >
-              <Grid2x2
-                size={22}
-                strokeWidth={2.25}
+              <span
                 aria-hidden="true"
                 className={cn(
-                  'absolute transition-[opacity,transform] duration-200',
-                  open ? 'scale-75 rotate-90 opacity-0' : 'scale-100 rotate-0 opacity-100',
+                  barPillClass,
+                  'bg-linear-to-br from-[#34d399] to-[#10b981] text-[#022c22] shadow-[0_6px_16px_-6px_var(--accent-glow)]',
                 )}
-              />
-              <X
-                size={22}
-                strokeWidth={2.5}
-                aria-hidden="true"
-                className={cn(
-                  'absolute transition-[opacity,transform] duration-200',
-                  open ? 'scale-100 rotate-0 opacity-100' : 'scale-75 -rotate-90 opacity-0',
-                )}
-              />
-              {activeMenuItem && !open && (
-                <span
-                  aria-hidden="true"
-                  className="ring-bg-2 absolute top-1 right-1 size-2.5 rounded-full bg-[#f5c451] ring-2"
+              >
+                <Grid2x2
+                  size={20}
+                  strokeWidth={2.25}
+                  className={cn(
+                    'absolute transition-[opacity,transform] duration-200',
+                    open ? 'scale-75 rotate-90 opacity-0' : 'scale-100 rotate-0 opacity-100',
+                  )}
                 />
-              )}
+                <X
+                  size={20}
+                  strokeWidth={2.5}
+                  className={cn(
+                    'absolute transition-[opacity,transform] duration-200',
+                    open ? 'scale-100 rotate-0 opacity-100' : 'scale-75 -rotate-90 opacity-0',
+                  )}
+                />
+                {activeMenuItem && !open && (
+                  <span className="ring-bg-2 absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-[#f5c451] ring-2" />
+                )}
+              </span>
+              <span className={barLabelClass}>
+                {open ? 'Close' : 'Menu'}
+                {!open && activeMenuItem && (
+                  <span className="sr-only">, current page: {activeMenuItem.label}</span>
+                )}
+              </span>
             </button>
           </li>
           {MOBILE_PRIMARY_NAV.slice(2).map((item) => (

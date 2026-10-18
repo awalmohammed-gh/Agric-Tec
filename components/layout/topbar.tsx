@@ -65,11 +65,11 @@ export function Topbar() {
           )}
           <div className="min-w-0">
             {section && (
-              <p className="text-text-mute text-[11px] font-semibold tracking-wider uppercase">
+              <p className="text-text-mute text-[10px] font-semibold tracking-wider uppercase min-[900px]:text-[11px]">
                 {section}
               </p>
             )}
-            <h1 className="font-display text-text truncate text-lg leading-tight font-bold sm:text-xl">
+            <h1 className="font-display text-text truncate text-[15px] leading-tight font-bold min-[900px]:text-xl">
               {title}
             </h1>
             {subtitle && (
