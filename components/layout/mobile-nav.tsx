@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Grid2x2, LogOut, X } from 'lucide-react';
 import { useSignOut } from '@/components/layout/use-sign-out';
-import { Badge } from '@/components/ui/badge';
 import {
   isNavActive,
   MOBILE_MENU_SECTIONS,
@@ -13,19 +12,16 @@ import {
   type NavItem,
 } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useProfileStore } from '@/store';
 import { useUiStore } from '@/store/ui-store';
 
-/** Icon tile tone per menu section, from the app's existing palette. */
-const SECTION_TONES: Record<string, string> = {
-  Main: 'bg-accent/15 text-ink-green',
-  'AI Powered': 'bg-purple/15 text-ink-purple',
-  Finance: 'bg-gold/15 text-ink-gold',
-  Account: 'bg-info/15 text-ink-blue',
-};
+/** The seven pages not in the bottom bar, in sidebar order; Sign Out makes the eighth cell. */
+const MENU_ITEMS = MOBILE_MENU_SECTIONS.flatMap((section) => section.items);
 
-const tileClass =
-  'flex min-h-14 w-full items-center gap-3 rounded-2xl border p-2.5 text-left text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent';
+/** Menu grid cell: icon above a small centred label, no card. At least 64px tall to tap. */
+const gridItemClass =
+  'flex min-h-16 w-full flex-col items-center justify-start gap-1 rounded-xl px-0.5 py-1.5 text-center transition-colors hover:text-text active:bg-glass-strong focus-visible:outline-2 focus-visible:outline-accent';
+const gridLabelClass =
+  'text-[10px] leading-tight font-medium [overflow-wrap:break-word] min-[360px]:text-[11px]';
 
 /** Same 48px square for every bar control, so all five icons line up exactly. */
 const barSlotClass =
@@ -66,8 +62,6 @@ export function MobileNav() {
   const open = useUiStore((s) => s.mobileNavOpen);
   const toggle = useUiStore((s) => s.toggleMobileNav);
   const close = useUiStore((s) => s.closeMobileNav);
-  const session = useAuthStore((s) => s.session);
-  const profile = useProfileStore((s) => s.profile);
   const { signOut, signingOut } = useSignOut();
 
   const sheetId = useId();
@@ -79,8 +73,6 @@ export function MobileNav() {
   const activeMenuItem = MOBILE_MENU_SECTIONS.flatMap((section) => section.items).find((item) =>
     isNavActive(pathname, item.href),
   );
-  const name = profile?.name.trim() || 'New Farmer';
-  const initial = (profile?.name.trim()[0] ?? 'N').toUpperCase();
 
   // Move focus into the sheet when it opens, and back to the Menu button when it closes.
   useEffect(() => {
@@ -125,8 +117,8 @@ export function MobileNav() {
         inert={!open}
         onKeyDown={trapFocus}
         className={cn(
-          'border-border bg-bg-2/95 shadow-glass fixed inset-x-3 z-40 mx-auto max-w-md origin-bottom overflow-y-auto overscroll-contain rounded-3xl border p-4 backdrop-blur-xl',
-          'bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.75rem)] max-h-[min(72dvh,600px)]',
+          'border-border bg-bg-2/95 shadow-glass fixed inset-x-3 z-40 mx-auto max-w-md origin-bottom overflow-y-auto overscroll-contain rounded-3xl border px-3 pt-1 pb-3 backdrop-blur-xl',
+          'bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.75rem)] max-h-[70dvh]',
           'duration-300 ease-out motion-reduce:transition-none',
           // Visible at once on open (so focus can move in); hidden only after the closing slide.
           open
@@ -134,102 +126,67 @@ export function MobileNav() {
             : 'pointer-events-none invisible translate-y-6 scale-95 opacity-0 transition-[transform,opacity,visibility]',
         )}
       >
-        <span
-          aria-hidden="true"
-          className="bg-text-mute/30 mx-auto -mt-1 mb-3 block h-1 w-10 rounded-full"
-        />
-        <div className="mb-4 flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#f5c451] to-[#10b981] text-sm font-bold text-[#022c22]"
-          >
-            {initial}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 id={titleId} className="text-text truncate text-sm font-bold">
-              {name}
-            </h2>
-            <p className="text-text-mute flex items-center gap-1.5 truncate text-xs">
-              {session?.isGuest ? (
-                <>
-                  Guest user <Badge color="gold">Demo</Badge>
-                </>
-              ) : (
-                (session?.email ?? `${profile?.farmType ?? 'Smallholder'} Farmer`)
-              )}
-            </p>
-          </div>
+        {/* Header row: drag handle in the middle, close button on the right */}
+        <div className="relative flex h-10 items-center justify-center">
+          <h2 id={titleId} className="sr-only">
+            More pages
+          </h2>
+          <span aria-hidden="true" className="bg-text-mute/30 block h-1 w-10 rounded-full" />
           <button
             type="button"
             onClick={close}
             aria-label="Close menu"
-            className="text-text-dim hover:bg-glass-strong hover:text-text inline-flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors"
+            className="text-text-dim hover:text-text absolute top-1/2 right-0 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full transition-colors"
           >
-            <X size={18} aria-hidden="true" />
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 
-        <nav aria-label="More pages" className="space-y-4">
-          {MOBILE_MENU_SECTIONS.map((section) => (
-            <section key={section.title}>
-              <h3 className="text-text-mute mb-2 px-1 text-[10px] font-semibold tracking-wider uppercase">
-                {section.title}
-              </h3>
-              <ul className="grid grid-cols-2 gap-2">
-                {section.items.map((item) => {
-                  const active = isNavActive(pathname, item.href);
-                  const Icon = item.icon;
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={close}
-                        aria-current={active ? 'page' : undefined}
-                        className={cn(
-                          tileClass,
-                          active
-                            ? 'border-accent/40 bg-accent/10 text-ink-green'
-                            : 'border-border bg-glass text-text hover:bg-glass-strong',
-                        )}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={cn(
-                            'inline-flex size-9 shrink-0 items-center justify-center rounded-xl',
-                            SECTION_TONES[section.title] ?? SECTION_TONES.Main,
-                          )}
-                        >
-                          <Icon size={18} />
-                        </span>
-                        <span className="min-w-0 leading-tight">{item.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-                {section.title === 'Account' && (
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => void signOut()}
-                      disabled={signingOut}
+        {/* 4 × 2 icon grid: icon on top, small label underneath, no cards */}
+        <nav aria-label="More pages">
+          <ul className="grid grid-cols-4 gap-x-1 gap-y-2">
+            {MENU_ITEMS.map((item) => {
+              const active = isNavActive(pathname, item.href);
+              const Icon = item.icon;
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={close}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(gridItemClass, active ? 'text-ink-green' : 'text-text-dim')}
+                  >
+                    <span
+                      aria-hidden="true"
                       className={cn(
-                        tileClass,
-                        'border-border bg-glass text-ink-red hover:bg-danger/10 disabled:opacity-60',
+                        'inline-flex h-8 w-12 items-center justify-center rounded-full transition-colors',
+                        active && 'bg-accent/15',
                       )}
                     >
-                      <span
-                        aria-hidden="true"
-                        className="bg-danger/15 inline-flex size-9 shrink-0 items-center justify-center rounded-xl"
-                      >
-                        <LogOut size={18} />
-                      </span>
-                      {signingOut ? 'Signing out…' : 'Sign out'}
-                    </button>
-                  </li>
-                )}
-              </ul>
-            </section>
-          ))}
+                      <Icon size={22} strokeWidth={active ? 2.25 : 1.75} />
+                    </span>
+                    <span className={gridLabelClass}>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+            <li>
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                disabled={signingOut}
+                className={cn(gridItemClass, 'text-ink-red disabled:opacity-60')}
+              >
+                <span
+                  aria-hidden="true"
+                  className="inline-flex h-8 w-12 items-center justify-center"
+                >
+                  <LogOut size={22} strokeWidth={1.75} />
+                </span>
+                <span className={gridLabelClass}>{signingOut ? 'Signing out…' : 'Sign Out'}</span>
+              </button>
+            </li>
+          </ul>
         </nav>
       </div>
 
