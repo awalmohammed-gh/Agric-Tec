@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Sparkline } from '@/components/charts/sparkline';
 import { Card } from '@/components/ui/card';
-import { CROP_EMOJI } from '@/constants/crops';
+import { CropLabel } from '@/components/ui/crop-icon';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { formatGHS } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -161,7 +161,7 @@ export function StatsRow() {
                 key={crop}
                 className="border-border bg-glass text-text-dim rounded-full border px-2.5 py-1 text-xs"
               >
-                <span aria-hidden="true">{CROP_EMOJI[crop]}</span> {crop}
+                <CropLabel crop={crop} />
               </li>
             ))}
             {crops.length > 4 && (

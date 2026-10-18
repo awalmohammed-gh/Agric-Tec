@@ -1,6 +1,7 @@
 'use client';
 
 import './register';
+import type { ReactNode } from 'react';
 import type { ChartData, ChartOptions } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useChartTheme } from '@/components/charts/use-chart-theme';
@@ -12,6 +13,10 @@ export interface DoughnutChartProps {
   colors: string[];
   /** Width ÷ height. */
   aspectRatio?: number;
+  /** Hide the built-in legend when the card renders its own. */
+  showLegend?: boolean;
+  /** Content shown in the hole of the doughnut, e.g. the total. */
+  centerLabel?: ReactNode;
   ariaLabel?: string;
   className?: string;
 }
@@ -21,6 +26,8 @@ export function DoughnutChart({
   data,
   colors,
   aspectRatio = 1.4,
+  showLegend = true,
+  centerLabel,
   ariaLabel = 'Doughnut chart',
   className,
 }: DoughnutChartProps) {
@@ -45,7 +52,7 @@ export function DoughnutChart({
     plugins: {
       legend: {
         ...baseOptions.plugins.legend,
-        display: !isEmpty,
+        display: showLegend && !isEmpty,
         position: 'bottom',
       },
       tooltip: { ...baseOptions.plugins.tooltip, enabled: !isEmpty },
@@ -60,6 +67,11 @@ export function DoughnutChart({
         aria-label={isEmpty ? `${ariaLabel}: no data` : ariaLabel}
         role="img"
       />
+      {!isEmpty && centerLabel && (
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+          {centerLabel}
+        </div>
+      )}
       {isEmpty && (
         <p className="text-text-mute pointer-events-none absolute inset-0 flex items-center justify-center text-sm">
           No data

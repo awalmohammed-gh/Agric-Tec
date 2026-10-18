@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { CROP_EMOJI, CROPS } from '@/constants/crops';
+import { CROPS } from '@/constants/crops';
 import { todayISO } from '@/lib/format';
 import { useFarmStore } from '@/store/farm-store';
 import { useModalStore } from '@/store/modal-store';
@@ -167,7 +167,7 @@ function RecordForm({
           <Select id="record-crop" error={Boolean(errors.crop)} {...register('crop')}>
             {CROPS.map((crop) => (
               <option key={crop} value={crop}>
-                {CROP_EMOJI[crop]} {crop}
+                {crop}
               </option>
             ))}
           </Select>

@@ -110,14 +110,15 @@ export interface LoanPartner {
 
 export interface MarketPrice {
   crop: Crop | string;
-  emoji: string;
   unit: string;
   price: number;
   change: number;
 }
 
+export type WeatherCondition = 'sunny' | 'partly-cloudy' | 'showers' | 'storm';
+
 export interface Weather {
-  icon: string;
+  condition: WeatherCondition;
   temp: number;
   description: string;
   humidity: number;

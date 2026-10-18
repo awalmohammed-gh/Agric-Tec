@@ -16,8 +16,12 @@ export interface BarDataset {
 export interface BarChartProps {
   labels: string[];
   datasets: BarDataset[];
-  /** Width ÷ height. */
+  /** Width ÷ height. Ignored when `height` is set. */
   aspectRatio?: number;
+  /** Fixed height in px; the chart then fills the full width at any screen size. */
+  height?: number;
+  /** Hide the built-in legend when the card already explains the colours. */
+  showLegend?: boolean;
   ariaLabel?: string;
   className?: string;
 }
@@ -26,6 +30,8 @@ export function BarChart({
   labels,
   datasets,
   aspectRatio = 2,
+  height,
+  showLegend = true,
   ariaLabel = 'Bar chart',
   className,
 }: BarChartProps) {
@@ -46,12 +52,16 @@ export function BarChart({
 
   const options: ChartOptions<'bar'> = {
     ...baseOptions,
-    aspectRatio,
+    ...(height ? { maintainAspectRatio: false } : { aspectRatio }),
+    plugins: {
+      ...baseOptions.plugins,
+      legend: { ...baseOptions.plugins.legend, display: showLegend },
+    },
     interaction: { mode: 'index', intersect: false },
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={height ? { height, position: 'relative' } : undefined}>
       <Bar data={data} options={options} aria-label={ariaLabel} role="img" />
     </div>
   );

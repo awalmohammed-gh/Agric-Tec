@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { CROP_EMOJI } from '@/constants/crops';
+import { CropLabel } from '@/components/ui/crop-icon';
 import { formatDate, formatGHS, parseISODate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useFarmStore } from '@/store/farm-store';
@@ -25,6 +25,8 @@ type Tone = 'in' | 'out' | 'activity';
 interface ActivityItem {
   id: string;
   label: string;
+  /** Crop for records; undefined for MoMo. */
+  crop?: FarmRecord['crop'];
   meta: string;
   date: string;
   createdAt: string;
@@ -50,7 +52,8 @@ function combine(records: FarmRecord[], momo: MomoTransaction[]): ActivityItem[]
   const fromRecords = records.map<ActivityItem>((r) => ({
     id: r.id,
     label: r.description,
-    meta: `${CROP_EMOJI[r.crop]} ${r.crop}`,
+    crop: r.crop,
+    meta: r.crop,
     date: r.date,
     createdAt: r.createdAt,
     tone: r.type === 'income' ? 'in' : r.type === 'expense' ? 'out' : 'activity',
@@ -119,7 +122,8 @@ export function RecentActivity({ className }: { className?: string }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-text truncate text-sm font-medium">{item.label}</p>
                   <p className="text-text-mute truncate text-xs">
-                    {item.meta} · {friendlyDate(item.date)}
+                    {item.crop ? <CropLabel crop={item.crop} /> : item.meta} ·{' '}
+                    {friendlyDate(item.date)}
                   </p>
                 </div>
                 {item.amount !== null && (

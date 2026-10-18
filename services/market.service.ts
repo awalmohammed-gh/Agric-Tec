@@ -33,7 +33,8 @@ export const marketService = {
   async getWeather(): Promise<Weather> {
     await delay();
     const saved = sessionStore.get<Weather | null>(WEATHER_KEY, null);
-    if (saved) return saved;
+    // Ignore a value saved in an older shape (before icons replaced emoji).
+    if (saved && typeof saved.condition === 'string') return saved;
     // The only random pick: once per session, then reused.
     const picked = WEATHER_CONDITIONS[Math.floor(Math.random() * WEATHER_CONDITIONS.length)];
     sessionStore.set(WEATHER_KEY, picked);

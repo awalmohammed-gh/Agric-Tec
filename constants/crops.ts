@@ -14,18 +14,6 @@ export const CROPS: Crop[] = [
   'Other',
 ];
 
-export const CROP_EMOJI: Record<Crop, string> = {
-  Maize: '🌽',
-  Cassava: '🍠',
-  Rice: '🍚',
-  Cocoa: '🍫',
-  Yam: '🥔',
-  Plantain: '🍌',
-  Groundnut: '🥜',
-  Tomato: '🍅',
-  Other: '🌱',
-};
-
 /** Average yield in tonnes per acre under baseline conditions. */
 export const BASE_YIELD_PER_ACRE: Record<KnownCrop, number> = {
   Maize: 2.5,

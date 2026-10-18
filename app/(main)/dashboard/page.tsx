@@ -17,12 +17,13 @@ export const metadata: Metadata = { title: 'Dashboard' };
 export default function DashboardPage() {
   return (
     <div className="@container space-y-5 sm:space-y-6">
+      <InsightBanner />
+
       <div className="grid grid-cols-1 gap-5 sm:gap-6 @4xl:grid-cols-3">
         <DashboardHero className="@4xl:col-span-2" />
         <LoanReadinessCard />
       </div>
 
-      <InsightBanner />
       <StatsRow />
 
       <div className="grid grid-cols-1 gap-5 sm:gap-6 @4xl:grid-cols-3">

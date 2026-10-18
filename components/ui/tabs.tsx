@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 export interface TabItem<V extends string> {
   value: V;
   label: string;
+  /** Optional count shown as a small pill after the label. */
+  count?: number;
 }
 
 export interface TabsProps<V extends string> {
@@ -65,13 +67,23 @@ export function Tabs<V extends string>({ tabs, value, onChange, label, className
               onClick={() => onChange(tab.value)}
               onKeyDown={(event) => handleKeyDown(event, index)}
               className={cn(
-                'min-h-10 rounded-xl px-4 text-sm font-semibold whitespace-nowrap transition-all duration-200',
+                'inline-flex min-h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold whitespace-nowrap transition-all duration-200',
                 selected
                   ? 'bg-linear-to-br from-[#34d399] to-[#10b981] text-[#022c22] shadow-[0_4px_16px_-4px_var(--accent-glow)]'
                   : 'text-text-dim hover:bg-glass-strong hover:text-text',
               )}
             >
               {tab.label}
+              {tab.count !== undefined && (
+                <span
+                  className={cn(
+                    'min-w-6 rounded-full px-1.5 py-0.5 text-center text-[11px] leading-none font-bold',
+                    selected ? 'bg-[#022c22]/15' : 'bg-glass-strong text-text-mute',
+                  )}
+                >
+                  {tab.count}
+                </span>
+              )}
             </button>
           );
         })}
