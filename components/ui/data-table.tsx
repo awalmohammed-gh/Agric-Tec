@@ -25,10 +25,12 @@ export interface DataTableProps<T> {
   getRowId: (row: T) => string;
   empty?: ReactNode;
   caption?: string;
+  /** Initial sort, e.g. { key: 'date', direction: 'desc' } for newest first. */
+  defaultSort?: SortState;
   className?: string;
 }
 
-interface SortState {
+export interface SortState {
   key: string;
   direction: 'asc' | 'desc';
 }
@@ -59,9 +61,10 @@ export function DataTable<T extends object>({
   getRowId,
   empty,
   caption,
+  defaultSort,
   className,
 }: DataTableProps<T>) {
-  const [sort, setSort] = useState<SortState | null>(null);
+  const [sort, setSort] = useState<SortState | null>(defaultSort ?? null);
 
   const sortColumn = sort ? columns.find((c) => c.key === sort.key) : undefined;
   const sortedRows =

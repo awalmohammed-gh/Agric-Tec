@@ -119,7 +119,7 @@ function MomoForm({
         toast.success('Transaction updated');
       } else {
         await addMomo(input);
-        toast.success('Transaction saved');
+        toast.success('MoMo transaction saved');
       }
       reset();
       onDone();
@@ -149,7 +149,7 @@ function MomoForm({
       >
         <Input
           id="momo-counterparty"
-          placeholder="e.g. Kofi Mensah – Buyer"
+          placeholder="e.g., Buyer name or vendor"
           error={Boolean(errors.counterparty)}
           aria-describedby={describe('momo-counterparty', Boolean(errors.counterparty))}
           {...register('counterparty')}
@@ -191,7 +191,7 @@ function MomoForm({
         >
           <Input
             id="momo-reference"
-            placeholder="MOMO123456"
+            placeholder="Transaction ID"
             autoCapitalize="characters"
             className="font-mono"
             error={Boolean(errors.reference)}

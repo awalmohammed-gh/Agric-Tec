@@ -122,7 +122,7 @@ function RecordForm({
         toast.success('Record updated');
       } else {
         await addRecord(input);
-        toast.success('Record saved');
+        toast.success('Record saved successfully');
       }
       reset();
       onDone();
@@ -155,7 +155,7 @@ function RecordForm({
       >
         <Input
           id="record-description"
-          placeholder="e.g. Sold 10 bags of maize"
+          placeholder="e.g., Sold maize to buyer"
           error={Boolean(errors.description)}
           aria-describedby={describe('record-description', Boolean(errors.description))}
           {...register('description')}

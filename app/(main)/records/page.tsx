@@ -1,18 +1,18 @@
 import type { Metadata } from 'next';
-import { Construction } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
+import { CropDistributionChart } from '@/components/records/crop-distribution-chart';
+import { MonthlyNetChart } from '@/components/records/monthly-net-chart';
+import { RecordsView } from '@/components/records/records-view';
 
 export const metadata: Metadata = { title: 'Farm Records' };
 
 export default function RecordsPage() {
   return (
-    <Card>
-      <EmptyState
-        icon={Construction}
-        title="Coming in Phase 8"
-        description="Add, edit and filter your income, expense and activity records."
-      />
-    </Card>
+    <div className="space-y-6">
+      <RecordsView />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <CropDistributionChart />
+        <MonthlyNetChart />
+      </div>
+    </div>
   );
 }

@@ -65,11 +65,11 @@ export const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   },
   '/records': {
     title: 'Farm Records',
-    subtitle: 'Track your income, expenses and farm activities.',
+    subtitle: 'Track crops, activities, income and expenses.',
   },
   '/momo': {
     title: 'MoMo Transactions',
-    subtitle: 'Log your mobile money payments to strengthen your financial history.',
+    subtitle: 'All your MoMo inflows and outflows.',
   },
   '/reports': {
     title: 'Financial Reports',
