@@ -20,6 +20,12 @@
   --info: #3b82f6;
   --purple: #a855f7;
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  /* Text colours for tinted badges/chips: WCAG AA (≥4.5:1) on this theme's background */
+  --ink-green: #34d399;
+  --ink-red: #f87171;
+  --ink-blue: #60a5fa;
+  --ink-gold: #f5c451;
+  --ink-purple: #c084fc;
   color-scheme: dark;
 }
 
@@ -36,6 +42,11 @@
   --accent-2: #10b981;
   --accent-glow: rgba(5, 150, 105, 0.22);
   --shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+  --ink-green: #047857;
+  --ink-red: #b91c1c;
+  --ink-blue: #1d4ed8;
+  --ink-gold: #92400e;
+  --ink-purple: #7e22ce;
   color-scheme: light;
 }
 
@@ -56,6 +67,11 @@
   --color-warning: var(--warning);
   --color-info: var(--info);
   --color-purple: var(--purple);
+  --color-ink-green: var(--ink-green);
+  --color-ink-red: var(--ink-red);
+  --color-ink-blue: var(--ink-blue);
+  --color-ink-gold: var(--ink-gold);
+  --color-ink-purple: var(--ink-purple);
   --font-sans: var(--font-inter);
   --font-display: var(--font-playfair);
   --radius-card: 20px;
@@ -65,7 +81,7 @@
 /* ---------- Base styles ---------- */
 @layer base {
   body {
-    @apply bg-bg-1 font-sans text-text antialiased;
+    @apply bg-bg-1 text-text font-sans antialiased;
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -73,6 +89,12 @@
   input::placeholder,
   textarea::placeholder {
     color: var(--text-mute);
+  }
+
+  /* Visible keyboard focus everywhere (mouse clicks don't show it) */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 }
 
@@ -131,7 +153,54 @@
   }
 }
 
+/* Score ring: a typed custom property so the conic-gradient can animate from 0 */
+@property --ring-pct {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes ringFill {
+  from {
+    --ring-pct: 0;
+  }
+}
+
+@keyframes progressGrow {
+  from {
+    width: 0;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
 /* ---------- Utility classes ---------- */
+@utility animate-ring-fill {
+  animation: ringFill 1.2s ease-out both;
+}
+
+@utility animate-progress-grow {
+  animation: progressGrow 0.8s ease-out both;
+}
+
+@utility animate-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--glass) 0%,
+    var(--glass-strong) 50%,
+    var(--glass) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
 @utility animate-fade-in {
   animation: fadeIn 0.5s ease-out both;
 }
@@ -160,7 +229,12 @@
 }
 
 @utility text-gradient-brand {
-  background-image: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 45%, var(--gold) 100%);
+  background-image: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent-2) 45%,
+    var(--gold) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
