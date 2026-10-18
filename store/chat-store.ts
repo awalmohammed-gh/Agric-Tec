@@ -1,19 +1,22 @@
 import { create } from 'zustand';
+import { getAssistantReply, type AssistantContext } from '@/lib/ai/assistant-replies';
+import { calculateCreditScore } from '@/lib/calculations/credit-score';
+import { totalExpenses, totalIncome } from '@/lib/calculations/finance';
 import { generateId } from '@/lib/utils';
 import { chatService } from '@/services/chat.service';
-import { delay } from '@/services/storage';
-import type { AssistantReply, ChatMessage, StoreStatus } from '@/types';
+import { useFarmStore } from '@/store/farm-store';
+import { useProfileStore } from '@/store/profile-store';
+import type { ChatMessage, StoreStatus } from '@/types';
 
-const TYPING_DELAY_MS = 700;
+let loadVersion = 0;
 
-/** Temporary reply until the real assistant (lib/ai/assistant-replies.ts) is connected. */
-async function stubReply(text: string): Promise<AssistantReply> {
-  await delay(TYPING_DELAY_MS);
+function welcomeMessage(): ChatMessage {
   return {
-    title: 'AgriCtec Assistant',
-    intro: `You asked: "${text}"`,
-    bullets: ['Detailed farming and finance advice is coming soon.'],
-    tip: 'Keep recording your farm activity to build your financial identity.',
+    id: generateId(),
+    role: 'ai',
+    content:
+      'Akwaaba! 🌱 I’m your AgriCtec AI assistant. I can help with crop advice, pest control, weather, market prices and your farm finances. Ask me a question or choose a quick prompt below!',
+    createdAt: new Date().toISOString(),
   };
 }
 
@@ -34,22 +37,28 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   status: 'idle',
 
   load: async (userId) => {
-    set({ userId, status: 'loading' });
+    const version = ++loadVersion;
+    set({ userId, messages: [], isTyping: false, status: 'loading' });
     try {
-      const messages = await chatService.list(userId);
-      if (get().userId !== userId) return;
+      const history = await chatService.list(userId);
+      if (get().userId !== userId || version !== loadVersion) return;
+      const messages = history.length ? history : [welcomeMessage()];
+      if (!history.length) await chatService.save(userId, messages);
+      if (get().userId !== userId || version !== loadVersion) return;
       set({ messages, status: 'ready' });
     } catch (error) {
+      if (get().userId !== userId || version !== loadVersion) return;
       set({ status: 'error' });
       throw error;
     }
   },
 
   sendMessage: async (text) => {
-    const { userId } = get();
-    const trimmed = text.trim();
-    if (!userId) throw new Error('You need to sign in first');
+    const { userId, isTyping, status } = get();
+    const trimmed = text.trim().slice(0, 500);
     if (!trimmed) return;
+    if (!userId) throw new Error('You need to sign in first');
+    if (isTyping || status !== 'ready') return;
 
     const userMessage: ChatMessage = {
       id: generateId(),
@@ -58,9 +67,40 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       createdAt: new Date().toISOString(),
     };
     set((state) => ({ messages: [...state.messages, userMessage], isTyping: true }));
+    // An in-flight reply must never appear in another session or a reloaded history.
+    const isCurrent = () => get().userId === userId && get().messages.includes(userMessage);
+    const appendError = () =>
+      set((state) => ({
+        messages: [
+          ...state.messages,
+          {
+            id: generateId(),
+            role: 'ai',
+            content: { title: 'Sorry, something went wrong. Please try again.' },
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      }));
 
     try {
-      const reply = await stubReply(trimmed);
+      const farm = useFarmStore.getState();
+      const profileState = useProfileStore.getState();
+      const profile = profileState.userId === userId ? profileState.profile : null;
+      const records = farm.userId === userId ? farm.records : [];
+      const momo = farm.userId === userId ? farm.momo : [];
+      const credit = calculateCreditScore(records, momo, profile);
+      const context: AssistantContext = {
+        farmerName: profile?.name || 'Farmer',
+        region: profile?.region || '',
+        primaryCrops: profile?.primaryCrops ?? [],
+        score: credit.score,
+        income: totalIncome(records),
+        expenses: totalExpenses(records),
+        recordCount: records.length,
+        creditFactors: credit,
+      };
+      const reply = await getAssistantReply(trimmed, context);
+      if (!isCurrent()) return;
       const aiMessage: ChatMessage = {
         id: generateId(),
         role: 'ai',
@@ -69,15 +109,33 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       };
       set((state) => ({ messages: [...state.messages, aiMessage] }));
       await chatService.save(userId, get().messages);
+    } catch {
+      if (!isCurrent()) return;
+      appendError();
+      try {
+        await chatService.save(userId, get().messages);
+      } catch {
+        // Keep the error visible even if persistence is unavailable.
+      }
     } finally {
-      set({ isTyping: false });
+      if (isCurrent()) set({ isTyping: false });
     }
   },
 
   clear: async () => {
-    const { userId } = get();
+    const { userId, isTyping, status } = get();
     if (!userId) throw new Error('You need to sign in first');
-    await chatService.clear(userId);
-    set({ messages: [] });
+    if (isTyping || status !== 'ready') return;
+    const version = loadVersion;
+    set({ status: 'loading' });
+    try {
+      const messages = [welcomeMessage()];
+      // Replace the persisted history atomically with just the welcome message.
+      await chatService.save(userId, messages);
+      if (get().userId !== userId || version !== loadVersion) return;
+      set({ messages, status: 'ready' });
+    } finally {
+      if (get().userId === userId && version === loadVersion) set({ status: 'ready' });
+    }
   },
 }));
