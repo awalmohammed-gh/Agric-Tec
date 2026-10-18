@@ -194,6 +194,18 @@ export function percentChange(current: number, previous: number): number | null 
   return round1(((current - previous) / Math.abs(previous)) * 100);
 }
 
+/** Net (income − expense) for each month of a series. */
+export function netSeries(series: MonthlySeries): number[] {
+  return series.income.map((income, i) => income - series.expense[i]);
+}
+
+/** Profit margin % for each month of a series (0 in months without income). */
+export function marginSeries(series: MonthlySeries): number[] {
+  return series.income.map((income, i) =>
+    income > 0 ? round1(((income - series.expense[i]) / income) * 100) : 0,
+  );
+}
+
 /** Sum of a series, e.g. the total income across a chart's months. */
 export function sumSeries(values: number[]): number {
   return values.reduce((total, value) => total + value, 0);

@@ -17,8 +17,11 @@ export interface LineChartProps {
   datasets: LineDataset[];
   /** Width ÷ height. Ignored when `height` is set. */
   aspectRatio?: number;
-  /** Fixed height in px; the chart then fills the full width at any screen size. */
-  height?: number;
+  /**
+   * Fixed height in px, or 'fill' to take the full height of its parent (give the parent a
+   * height, e.g. flex-1 with a min-height). Either way the chart fills the full width.
+   */
+  height?: number | 'fill';
   /** Hide the built-in legend when the card already shows its own. */
   showLegend?: boolean;
   ariaLabel?: string;
@@ -71,7 +74,16 @@ export function LineChart({
   };
 
   return (
-    <div className={className} style={height ? { height, position: 'relative' } : undefined}>
+    <div
+      className={className}
+      style={
+        height === 'fill'
+          ? { height: '100%', position: 'relative' }
+          : height
+            ? { height, position: 'relative' }
+            : undefined
+      }
+    >
       <Line data={data} options={options} aria-label={ariaLabel} role="img" />
     </div>
   );

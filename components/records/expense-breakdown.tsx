@@ -15,7 +15,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { formatGHS } from '@/lib/format';
 
-const CATEGORY_ICONS: Record<string, LucideIcon> = {
+export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Fertilizer: FlaskConical,
   'Pest control': Bug,
   Seeds: Sprout,

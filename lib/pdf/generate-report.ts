@@ -26,8 +26,13 @@ function pdfSafe(text: string): string {
     .replace(/[^\n\x20-\x7E\xA0-\xFF–—‘’“”•]/g, '?');
 }
 
-/** Builds a branded A4 PDF from ReportData and downloads it. jsPDF is loaded only on demand. */
-export async function generateReportPDF(data: ReportData): Promise<void> {
+/**
+ * Builds a branded A4 PDF and downloads it. Pass one report, or several to get one combined
+ * "complete financial file" (each report starts on a new page). jsPDF is loaded only on demand.
+ */
+export async function generateReportPDF(input: ReportData | ReportData[]): Promise<void> {
+  const reports = Array.isArray(input) ? input : [input];
+  if (reports.length === 0) return;
   // Lazy-load: these libraries are large and only needed when a report is downloaded.
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import('jspdf'),
@@ -67,137 +72,148 @@ export async function generateReportPDF(data: ReportData): Promise<void> {
     y += 5;
   };
 
-  // ---------- Header band ----------
-  doc.setFillColor(...EMERALD);
-  doc.rect(0, 0, PAGE_W, 28, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.text('AgriCtec', MARGIN, 15);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text('Digital Financial Identity Report', MARGIN, 22);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text(pdfSafe(data.title), PAGE_W - MARGIN, 17, { align: 'right' });
+  /** Draws one report, starting at the top of the current page. */
+  const drawReport = (data: ReportData) => {
+    // ---------- Header band ----------
+    doc.setFillColor(...EMERALD);
+    doc.rect(0, 0, PAGE_W, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text('AgriCtec', MARGIN, 15);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Digital Financial Identity Report', MARGIN, 22);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text(pdfSafe(data.title), PAGE_W - MARGIN, 17, { align: 'right' });
 
-  // ---------- Farmer block ----------
-  y = 38;
-  const farmerField = (label: string, value: string, x: number, rowY: number) => {
+    // ---------- Farmer block ----------
+    y = 38;
+    const farmerField = (label: string, value: string, x: number, rowY: number) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...MUTED);
+      doc.text(label.toUpperCase(), x, rowY);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...INK);
+      doc.text(pdfSafe(value), x, rowY + 4.5, { maxWidth: 58 });
+    };
+    farmerField('Farmer', data.farmer.name, MARGIN, y);
+    farmerField('Phone', data.farmer.phone, MARGIN + 64, y);
+    farmerField('Farm', data.farmer.farm, MARGIN, y + 12);
+    farmerField('Acreage', data.farmer.acres, MARGIN + 64, y + 12);
+    farmerField('Region', data.farmer.region, MARGIN, y + 24);
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);
-    doc.text(label.toUpperCase(), x, rowY);
+    doc.text('GENERATED', PAGE_W - MARGIN, y, { align: 'right' });
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(...INK);
-    doc.text(pdfSafe(value), x, rowY + 4.5, { maxWidth: 58 });
-  };
-  farmerField('Farmer', data.farmer.name, MARGIN, y);
-  farmerField('Phone', data.farmer.phone, MARGIN + 64, y);
-  farmerField('Farm', data.farmer.farm, MARGIN, y + 12);
-  farmerField('Acreage', data.farmer.acres, MARGIN + 64, y + 12);
-  farmerField('Region', data.farmer.region, MARGIN, y + 24);
+    doc.text(formatGeneratedAt(data.generatedAt), PAGE_W - MARGIN, y + 4.5, { align: 'right' });
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(...MUTED);
-  doc.text('GENERATED', PAGE_W - MARGIN, y, { align: 'right' });
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...INK);
-  doc.text(formatGeneratedAt(data.generatedAt), PAGE_W - MARGIN, y + 4.5, { align: 'right' });
+    y += 33;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(MARGIN, y, PAGE_W - MARGIN, y);
+    y += 9;
 
-  y += 33;
-  doc.setDrawColor(226, 232, 240);
-  doc.line(MARGIN, y, PAGE_W - MARGIN, y);
-  y += 9;
-
-  // ---------- Summary: label/value pairs, two per row ----------
-  heading('Summary');
-  const pairs: string[][] = [];
-  for (let i = 0; i < data.summary.length; i += 2) {
-    const a = data.summary[i];
-    const b = data.summary[i + 1];
-    pairs.push([
-      pdfSafe(a.label),
-      pdfSafe(a.value),
-      pdfSafe(b?.label ?? ''),
-      pdfSafe(b?.value ?? ''),
-    ]);
-  }
-  table({
-    startY: y,
-    body: pairs,
-    theme: 'grid',
-    styles: {
-      font: 'helvetica',
-      fontSize: 9,
-      cellPadding: 2.6,
-      textColor: INK,
-      lineColor: [226, 232, 240],
-    },
-    columnStyles: {
-      0: { fillColor: LABEL_FILL, textColor: MUTED, cellWidth: CONTENT_W * 0.22 },
-      1: { fontStyle: 'bold', cellWidth: CONTENT_W * 0.28 },
-      2: { fillColor: LABEL_FILL, textColor: MUTED, cellWidth: CONTENT_W * 0.22 },
-      3: { fontStyle: 'bold', cellWidth: CONTENT_W * 0.28 },
-    },
-  });
-
-  // ---------- Line items ----------
-  if (data.table) {
-    const { title, headers, rows, align, totalRow } = data.table;
-    heading(title);
-    const columnStyles = Object.fromEntries(
-      align.map((a, i) => [i, { halign: a === 'right' ? ('right' as const) : ('left' as const) }]),
-    );
+    // ---------- Summary: label/value pairs, two per row ----------
+    heading('Summary');
+    const pairs: string[][] = [];
+    for (let i = 0; i < data.summary.length; i += 2) {
+      const a = data.summary[i];
+      const b = data.summary[i + 1];
+      pairs.push([
+        pdfSafe(a.label),
+        pdfSafe(a.value),
+        pdfSafe(b?.label ?? ''),
+        pdfSafe(b?.value ?? ''),
+      ]);
+    }
     table({
       startY: y,
-      head: [headers.map(pdfSafe)],
-      body: rows.length
-        ? rows.map((row) => row.map(pdfSafe))
-        : [
-            [
-              {
-                content: 'No entries recorded yet.',
-                colSpan: headers.length,
-                styles: { halign: 'center', textColor: MUTED },
-              },
-            ],
-          ],
-      foot: totalRow ? [totalRow.map(pdfSafe)] : undefined,
-      showHead: 'everyPage', // repeat the header row when the table flows onto a new page
-      showFoot: 'lastPage',
-      theme: 'striped',
-      styles: { font: 'helvetica', fontSize: 9, cellPadding: 2.4, textColor: INK },
-      headStyles: { fillColor: EMERALD, textColor: [255, 255, 255], fontStyle: 'bold' },
-      footStyles: { fillColor: [209, 250, 229], textColor: INK, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: LIGHT_ROW },
-      columnStyles,
-      didParseCell: (cell) => {
-        // Align header/footer cells with their column (e.g. amounts on the right).
-        if (cell.section !== 'body' && align[cell.column.index] === 'right') {
-          cell.cell.styles.halign = 'right';
-        }
+      body: pairs,
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 9,
+        cellPadding: 2.6,
+        textColor: INK,
+        lineColor: [226, 232, 240],
+      },
+      columnStyles: {
+        0: { fillColor: LABEL_FILL, textColor: MUTED, cellWidth: CONTENT_W * 0.22 },
+        1: { fontStyle: 'bold', cellWidth: CONTENT_W * 0.28 },
+        2: { fillColor: LABEL_FILL, textColor: MUTED, cellWidth: CONTENT_W * 0.22 },
+        3: { fontStyle: 'bold', cellWidth: CONTENT_W * 0.28 },
       },
     });
-  }
 
-  // ---------- Narrative sections ----------
-  for (const section of data.sections ?? []) {
-    heading(section.heading);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    const lines: string[] = doc.splitTextToSize(pdfSafe(section.body), CONTENT_W);
-    for (const line of lines) {
-      ensureSpace(5);
-      doc.text(line, MARGIN, y);
-      y += 4.6;
+    // ---------- Line items ----------
+    if (data.table) {
+      const { title, headers, rows, align, totalRow } = data.table;
+      heading(title);
+      const columnStyles = Object.fromEntries(
+        align.map((a, i) => [
+          i,
+          { halign: a === 'right' ? ('right' as const) : ('left' as const) },
+        ]),
+      );
+      table({
+        startY: y,
+        head: [headers.map(pdfSafe)],
+        body: rows.length
+          ? rows.map((row) => row.map(pdfSafe))
+          : [
+              [
+                {
+                  content: 'No entries recorded yet.',
+                  colSpan: headers.length,
+                  styles: { halign: 'center', textColor: MUTED },
+                },
+              ],
+            ],
+        foot: totalRow ? [totalRow.map(pdfSafe)] : undefined,
+        showHead: 'everyPage', // repeat the header row when the table flows onto a new page
+        showFoot: 'lastPage',
+        theme: 'striped',
+        styles: { font: 'helvetica', fontSize: 9, cellPadding: 2.4, textColor: INK },
+        headStyles: { fillColor: EMERALD, textColor: [255, 255, 255], fontStyle: 'bold' },
+        footStyles: { fillColor: [209, 250, 229], textColor: INK, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: LIGHT_ROW },
+        columnStyles,
+        didParseCell: (cell) => {
+          // Align header/footer cells with their column (e.g. amounts on the right).
+          if (cell.section !== 'body' && align[cell.column.index] === 'right') {
+            cell.cell.styles.halign = 'right';
+          }
+        },
+      });
     }
-    y += 5;
-  }
+
+    // ---------- Narrative sections ----------
+    for (const section of data.sections ?? []) {
+      heading(section.heading);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(51, 65, 85);
+      const lines: string[] = doc.splitTextToSize(pdfSafe(section.body), CONTENT_W);
+      for (const line of lines) {
+        ensureSpace(5);
+        doc.text(line, MARGIN, y);
+        y += 4.6;
+      }
+      y += 5;
+    }
+  };
+
+  reports.forEach((data, i) => {
+    if (i > 0) doc.addPage();
+    drawReport(data);
+  });
 
   // ---------- Footer on every page ----------
   const pages = doc.getNumberOfPages();
@@ -216,6 +232,7 @@ export async function generateReportPDF(data: ReportData): Promise<void> {
     );
   }
 
-  const name = data.title.replace(/\s+/g, '_');
-  doc.save(`AgriCtec_${name}_${format(new Date(data.generatedAt), 'yyyy-MM-dd')}.pdf`);
+  const name =
+    reports.length === 1 ? reports[0].title.replace(/\s+/g, '_') : 'Complete_Financial_File';
+  doc.save(`AgriCtec_${name}_${format(new Date(reports[0].generatedAt), 'yyyy-MM-dd')}.pdf`);
 }
