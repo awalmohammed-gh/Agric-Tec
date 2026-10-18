@@ -1,18 +1,20 @@
 import type { Metadata } from 'next';
-import { Construction } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
+import { Wheat } from 'lucide-react';
+import { AiBanner } from '@/components/ui/ai-banner';
+import { YieldForm } from '@/components/yield-predictor/yield-form';
 
 export const metadata: Metadata = { title: 'AI Yield Predictor' };
 
 export default function YieldPredictorPage() {
   return (
-    <Card>
-      <EmptyState
-        icon={Construction}
-        title="Coming in Phase 12"
-        description="Estimate your harvest range and expected revenue."
+    <div className="@container space-y-6">
+      <AiBanner
+        icon={Wheat}
+        title="AgriCtec AI Yield Predictor"
+        subtitle="Plan your next harvest with a repeatable yield estimate, an indicative revenue range and tips for your crop."
+        className="rounded-3xl"
       />
-    </Card>
+      <YieldForm />
+    </div>
   );
 }

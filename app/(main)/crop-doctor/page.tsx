@@ -1,18 +1,20 @@
 import type { Metadata } from 'next';
-import { Construction } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
+import { ScanLine } from 'lucide-react';
+import { CropDoctorView } from '@/components/crop-doctor/crop-doctor-view';
+import { AiBanner } from '@/components/ui/ai-banner';
 
 export const metadata: Metadata = { title: 'AI Crop Doctor' };
 
 export default function CropDoctorPage() {
   return (
-    <Card>
-      <EmptyState
-        icon={Construction}
-        title="Coming in Phase 12"
-        description="Upload a crop photo to detect diseases and get treatment advice."
+    <div className="@container space-y-6">
+      <AiBanner
+        icon={ScanLine}
+        title="AgriCtec AI Crop Doctor"
+        subtitle="Explore a sample crop diagnosis and treatment guide. Results are simulated; confirm crop problems with your extension officer."
+        className="rounded-3xl"
       />
-    </Card>
+      <CropDoctorView />
+    </div>
   );
 }

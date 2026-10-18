@@ -27,7 +27,7 @@ const TYPE_OPTIONS = [
   { value: 'activity', label: 'Activity (no money)' },
 ] as const;
 
-function toFormValues(record?: FarmRecord): RecordFormInput {
+function toFormValues(record?: FarmRecord, defaults?: Partial<NewRecordInput>): RecordFormInput {
   return record
     ? {
         type: record.type,
@@ -37,13 +37,22 @@ function toFormValues(record?: FarmRecord): RecordFormInput {
         date: record.date,
         notes: record.notes ?? '',
       }
-    : { type: 'income', description: '', crop: 'Maize', amount: '', date: todayISO(), notes: '' };
+    : {
+        type: 'income',
+        description: '',
+        crop: 'Maize',
+        amount: '',
+        date: todayISO(),
+        notes: '',
+        ...defaults,
+      };
 }
 
 /** App-wide add/edit record modal. Open it with useModalStore().openModal('record', id?). */
 export function RecordFormModal() {
   const modal = useModalStore((s) => s.modal);
   const editingId = useModalStore((s) => s.editingId);
+  const recordDefaults = useModalStore((s) => s.recordDefaults);
   const closeModal = useModalStore((s) => s.closeModal);
   const editing = useFarmStore((s) =>
     editingId ? s.records.find((r) => r.id === editingId) : undefined,
@@ -72,6 +81,7 @@ export function RecordFormModal() {
         key={editing?.id ?? 'new'}
         formId={formId}
         editing={editing}
+        defaults={recordDefaults}
         onDone={closeModal}
         onSavingChange={setSaving}
       />
@@ -82,11 +92,13 @@ export function RecordFormModal() {
 function RecordForm({
   formId,
   editing,
+  defaults,
   onDone,
   onSavingChange,
 }: {
   formId: string;
   editing?: FarmRecord;
+  defaults?: Partial<NewRecordInput>;
   onDone: () => void;
   onSavingChange: (saving: boolean) => void;
 }) {
@@ -101,7 +113,7 @@ function RecordForm({
     formState: { errors },
   } = useForm<RecordFormInput, unknown, RecordFormValues>({
     resolver: zodResolver(recordSchema),
-    defaultValues: toFormValues(editing),
+    defaultValues: toFormValues(editing, defaults),
   });
 
   const type = useWatch({ control, name: 'type' });

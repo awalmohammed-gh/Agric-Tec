@@ -27,6 +27,7 @@ interface FarmState {
   updateMomo: (id: string, patch: Partial<NewMomoInput>) => Promise<MomoTransaction>;
   deleteMomo: (id: string) => Promise<void>;
   addDiagnosis: (input: NewDiagnosisInput) => Promise<Diagnosis>;
+  deleteDiagnosis: (id: string) => Promise<void>;
   loadSampleData: () => Promise<void>;
   clearAll: () => Promise<void>;
 }
@@ -106,9 +107,20 @@ export const useFarmStore = create<FarmState>()((set, get) => {
     },
 
     addDiagnosis: async (input) => {
-      const diagnosis = await diagnosesService.create(requireUser(), input);
-      set((state) => ({ diagnoses: [diagnosis, ...state.diagnoses].slice(0, 10) }));
+      const userId = requireUser();
+      const diagnosis = await diagnosesService.create(userId, input);
+      if (get().userId === userId) {
+        set((state) => ({ diagnoses: [diagnosis, ...state.diagnoses].slice(0, 10) }));
+      }
       return diagnosis;
+    },
+
+    deleteDiagnosis: async (id) => {
+      const userId = requireUser();
+      await diagnosesService.remove(userId, id);
+      if (get().userId === userId) {
+        set((state) => ({ diagnoses: state.diagnoses.filter((diagnosis) => diagnosis.id !== id) }));
+      }
     },
 
     loadSampleData: async () => {
