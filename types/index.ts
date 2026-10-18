@@ -2,15 +2,7 @@
 
 export type RecordType = 'income' | 'expense' | 'activity';
 export type Crop =
-  | 'Maize'
-  | 'Cassava'
-  | 'Rice'
-  | 'Cocoa'
-  | 'Yam'
-  | 'Plantain'
-  | 'Groundnut'
-  | 'Tomato'
-  | 'Other';
+  'Maize' | 'Cassava' | 'Rice' | 'Cocoa' | 'Yam' | 'Plantain' | 'Groundnut' | 'Tomato' | 'Other';
 
 export interface FarmRecord {
   id: string; // crypto.randomUUID(), never Date.now()
