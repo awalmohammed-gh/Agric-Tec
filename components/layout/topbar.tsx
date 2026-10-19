@@ -47,8 +47,10 @@ export function Topbar() {
   const t = useT();
   const { title, subtitle, section, icon: Icon } = pageInfo(pathname);
 
+  // Both breakpoints in px so Tailwind orders them (it cannot sort rem md: against px 900px):
+  // full-bleed below 900px, inset from the edges from 900px.
   return (
-    <header className="sticky top-0 z-30 -mx-5 mb-6 min-[900px]:top-3 min-[900px]:mx-0 md:-mx-8">
+    <header className="sticky top-0 z-30 -mx-5 mb-6 min-[768px]:-mx-8 min-[900px]:top-3 min-[900px]:mx-0">
       <div
         className={cn(
           'border-border bg-bg-2 flex items-center gap-2 border-b px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 sm:gap-3',
