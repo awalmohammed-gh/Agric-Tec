@@ -14,30 +14,32 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
       <div
         aria-hidden="true"
         className={cn(
-          'inline-flex size-8 shrink-0 items-center justify-center rounded-xl text-white sm:size-9',
-          isUser ? 'bg-emerald-700' : 'bg-linear-to-br from-purple-600 to-blue-600',
+          'inline-flex size-8 shrink-0 items-center justify-center rounded-xl border sm:size-9',
+          isUser
+            ? 'border-emerald-600/30 bg-emerald-700 text-white'
+            : 'border-purple/20 bg-purple/10 text-ink-purple',
         )}
       >
         <Icon size={17} />
       </div>
-      <div className="max-w-[85%] min-w-0 flex-1 sm:flex-none">
+      <div className="max-w-[85%] min-w-0">
         <span className="sr-only">{isUser ? 'You' : 'AgriCtec assistant'}</span>
         <div
           className={cn(
-            'rounded-2xl px-4 py-3 text-sm leading-relaxed [overflow-wrap:anywhere]',
+            'rounded-2xl px-4 py-3.5 text-[13px] leading-relaxed [overflow-wrap:anywhere]',
             isUser
-              ? 'rounded-tr-none bg-linear-to-br from-emerald-700 to-emerald-800 text-white'
-              : 'glass text-text rounded-tl-none',
+              ? 'rounded-tr-sm bg-linear-to-br from-emerald-700 to-emerald-800 text-white shadow-sm'
+              : 'border-border bg-glass text-text rounded-tl-sm border',
           )}
         >
-          <MessageContent content={message.content} />
+          <MessageContent content={message.content} isAssistant={!isUser} />
         </div>
         <time
           dateTime={message.createdAt}
           title={new Date(message.createdAt).toLocaleString('en-GH')}
           className={cn('text-text-mute mt-1.5 block px-1 text-[10px]', isUser && 'text-right')}
         >
-          {timeFormat.format(new Date(message.createdAt))}
+          {isUser ? 'You' : 'AgriCtec'} · {timeFormat.format(new Date(message.createdAt))}
         </time>
       </div>
     </div>

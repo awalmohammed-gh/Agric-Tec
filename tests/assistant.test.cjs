@@ -74,22 +74,23 @@ const ctx = {
 
 test('all eleven topics return structured content and quick prompts route correctly', async () => {
   const cases = [
-    ['  🌽 MAIZE planting  ', '🌽 Maize Planting in Ghana'],
-    ['🐛 Pest control', '🐛 Fall Armyworm Control'],
-    ['💳 Credit tips', '💳 Improve Your Credit Score'],
-    ['💰 Cocoa prices', '💰 Cocoa Prices'],
-    ['🌦️ Weather', '🌦️ Weather Intelligence'],
-    ['fertiliser NPK', '🧪 Fertilizer Guide'],
-    ['📊 My finances', '📊 Your Farm Finances'],
-    ['cassava', '🍠 Cassava Tips'],
-    ['hello', '👋 Akwaaba, Ama!'],
-    ['thank you', '🌱 You’re welcome!'],
-    ['something unfamiliar', '🌱 Let me help'],
+    ['  MAIZE planting  ', 'Maize Planting in Ghana'],
+    ['Pest control', 'Fall Armyworm Control'],
+    ['Credit tips', 'Improve Your Credit Score'],
+    ['Cocoa prices', 'Cocoa Prices'],
+    ['Weather', 'Weather Intelligence'],
+    ['fertiliser NPK', 'Fertilizer Guide'],
+    ['My finances', 'Your Farm Finances'],
+    ['cassava', 'Cassava Tips'],
+    ['hello', 'Akwaaba, Ama!'],
+    ['thank you', 'You’re welcome!'],
+    ['something unfamiliar', 'Let me help'],
   ];
   const replies = await Promise.all(
     cases.map(async ([message, title]) => {
       const reply = await getAssistantReply(message, ctx);
       assert.equal(reply.title, title);
+      assert.doesNotMatch(JSON.stringify(reply), /\p{Extended_Pictographic}/u);
       assert.ok(
         Object.keys(reply).every((key) => ['title', 'intro', 'bullets', 'tip'].includes(key)),
       );
@@ -113,7 +114,7 @@ test('first-match routing, personal finances and zero-income handling', async ()
     getAssistantReply('what are my profits', ctx),
     getAssistantReply('income and expenses', { ...ctx, income: 0, expenses: 200, recordCount: 1 }),
   ]);
-  assert.equal(first.title, '🌽 Maize Planting in Ghana');
+  assert.equal(first.title, 'Maize Planting in Ghana');
   assert.deepEqual(finance.bullets, [
     'Total income: GHS 4,500.',
     'Total expenses: GHS 1,500.',
@@ -156,8 +157,25 @@ test('React escapes both user text and every structured reply field', () => {
   );
   assert.doesNotMatch(structured, /<b>|<script>/);
   assert.match(structured, /<ul/);
-  assert.match(structured, /<li>/);
+  assert.match(structured, /<li\b/);
   assert.match(structured, /Tip:/);
+});
+
+test('saved assistant emoji prefixes render as icons while user text stays intact', () => {
+  const content = {
+    title: '\u{1F33D} Maize Planting in Ghana',
+    intro: 'Growing advice \u{1F331}',
+    tip: '\u{1F4A1} Test your soil.',
+  };
+  const rendered = renderToStaticMarkup(createElement(MessageContent, { content }));
+  assert.doesNotMatch(rendered, /\p{Extended_Pictographic}/u);
+  assert.match(rendered, /lucide-sprout/);
+  assert.match(rendered, /lucide-lightbulb/);
+  assert.match(rendered, /Maize Planting in Ghana/);
+  const user = renderToStaticMarkup(
+    createElement(MessageContent, { content: 'My maize \u{1F33D}', isAssistant: false }),
+  );
+  assert.match(user, /My maize \u{1F33D}/u);
 });
 
 test('chat uses current farm data, blocks overlapping sends, persists, reloads and clears', async () => {
@@ -264,7 +282,7 @@ test('reply or save failure leaves a friendly message, resets typing and allows 
     chatService.save = originalSave;
   }
   await useChatStore.getState().sendMessage('thanks');
-  assert.equal(useChatStore.getState().messages.at(-1).content.title, '🌱 You’re welcome!');
+  assert.equal(useChatStore.getState().messages.at(-1).content.title, 'You’re welcome!');
 });
 
 test('an old reply cannot leak into another user or reset their typing state', async () => {
@@ -275,6 +293,6 @@ test('an old reply cannot leak into another user or reset their typing state', a
   assert.equal(useChatStore.getState().isTyping, true);
   await nextPending;
   assert.equal(useChatStore.getState().messages.length, 3);
-  assert.equal(useChatStore.getState().messages.at(-1).content.title, '👋 Akwaaba, Farmer!');
+  assert.equal(useChatStore.getState().messages.at(-1).content.title, 'Akwaaba, Farmer!');
   assert.equal(useChatStore.getState().isTyping, false);
 });

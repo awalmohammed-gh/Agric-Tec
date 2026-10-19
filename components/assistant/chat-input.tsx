@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Send } from 'lucide-react';
+import { ArrowUp, CornerDownLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useChatStore } from '@/store/chat-store';
@@ -31,8 +31,13 @@ export function ChatInput() {
   }
 
   return (
-    <form onSubmit={send} className="mt-4">
-      <div className="flex items-center gap-2">
+    <form onSubmit={send}>
+      <div className="border-border bg-bg-2/60 focus-within:border-accent/50 focus-within:ring-accent/10 flex items-center gap-2 rounded-2xl border p-2 transition-shadow focus-within:ring-2">
+        <Sparkles
+          size={17}
+          aria-hidden="true"
+          className="text-text-mute ml-1 hidden shrink-0 sm:block"
+        />
         <Input
           ref={inputRef}
           aria-label="Message the assistant"
@@ -41,6 +46,7 @@ export function ChatInput() {
           value={text}
           maxLength={500}
           disabled={disabled}
+          className="min-w-0 border-0 bg-transparent px-2 focus:shadow-none"
           onChange={(event) => setText(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && (event.shiftKey || event.nativeEvent.isComposing)) {
@@ -50,22 +56,27 @@ export function ChatInput() {
         />
         <Button
           type="submit"
-          icon={Send}
+          icon={ArrowUp}
           aria-label="Send message"
           disabled={disabled || !text.trim()}
-          className="shrink-0 px-3 sm:px-5"
+          className="size-10 min-h-10 shrink-0 rounded-xl px-0"
         >
-          <span className="hidden sm:inline">Send</span>
+          <span className="sr-only">Send</span>
         </Button>
       </div>
-      {text.length > 400 && (
-        <p
-          id="chat-character-count"
-          className="text-text-mute mt-1.5 text-right text-xs tabular-nums"
-        >
-          {text.length}/500 characters
-        </p>
-      )}
+      <div className="text-text-mute mt-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px]">
+        <p>Guidance for your farm. Confirm local conditions.</p>
+        {text.length > 400 ? (
+          <p id="chat-character-count" className="tabular-nums">
+            {text.length}/500 characters
+          </p>
+        ) : (
+          <span className="hidden items-center gap-1 sm:inline-flex">
+            <CornerDownLeft size={11} aria-hidden="true" />
+            Enter to send
+          </span>
+        )}
+      </div>
     </form>
   );
 }

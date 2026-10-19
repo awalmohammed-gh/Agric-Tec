@@ -72,7 +72,7 @@ export async function getAssistantReply(
   if (has(/\bmaize\b/) && has(/\b(plant\w*|when|season\w*)\b/)) {
     const northern = /northern|savannah|north east|upper east|upper west/i.test(region);
     return {
-      title: '🌽 Maize Planting in Ghana',
+      title: 'Maize Planting in Ghana',
       intro: `Here are the usual planting windows, ${name}. Wait for reliable rains before sowing.`,
       bullets: [
         'Major season: March–April in the forest and transitional zones.',
@@ -88,7 +88,7 @@ export async function getAssistantReply(
 
   if (has(/\b(armyworms?|pests?|insects?)\b/)) {
     return {
-      title: '🐛 Fall Armyworm Control',
+      title: 'Fall Armyworm Control',
       intro:
         'Scout maize regularly and act while larvae are small. Confirm the pest before treating.',
       bullets: [
@@ -104,7 +104,7 @@ export async function getAssistantReply(
   if (has(/\b(credit|scores?|loans?)\b/)) {
     const { weakest, steps } = creditSteps({ ...ctx, farmerName: name });
     return {
-      title: '💳 Improve Your Credit Score',
+      title: 'Improve Your Credit Score',
       intro: `Your score is ${ctx.score} (${scoreLabel(ctx.score)}). ${weakest ? `Your weakest factor is ${weakest}. Start with the first step below.` : 'These five steps help build your farm financial history.'}`,
       bullets: steps,
       tip: 'This is your AgriCtec farm score. Lenders make their own decisions; improving it does not guarantee a loan.',
@@ -115,7 +115,7 @@ export async function getAssistantReply(
     const prices = await marketService.getPrices();
     const cocoa = prices.find((price) => price.crop === 'Cocoa');
     return {
-      title: '💰 Cocoa Prices',
+      title: 'Cocoa Prices',
       intro:
         'These are indicative mock prices from the app’s market data, not a live buying quote.',
       bullets: [
@@ -132,7 +132,7 @@ export async function getAssistantReply(
   if (has(/\b(weather|rain\w*)\b/)) {
     const weather = await marketService.getWeather();
     return {
-      title: '🌦️ Weather Intelligence',
+      title: 'Weather Intelligence',
       intro: `Today’s app weather: ${weather.description}, ${weather.temp}°C, ${weather.humidity}% humidity and ${weather.rainChance}% chance of rain. This is simulated weather, not a live forecast for ${region}.`,
       bullets: [
         weather.rainChance >= 60
@@ -149,7 +149,7 @@ export async function getAssistantReply(
 
   if (has(/\b(fertiliz\w*|fertilis\w*|npk)\b/)) {
     return {
-      title: '🧪 Fertilizer Guide',
+      title: 'Fertilizer Guide',
       intro:
         'Match nutrients to the crop, soil and growth stage. Your extension officer can confirm the formulation and rate.',
       bullets: [
@@ -168,7 +168,7 @@ export async function getAssistantReply(
         ? `${((profit / ctx.income) * 100).toFixed(1)}%`
         : 'not available (no income recorded)';
     return {
-      title: '📊 Your Farm Finances',
+      title: 'Your Farm Finances',
       intro: `${name}, here is your all-time summary from ${ctx.recordCount} farm records. MoMo transfers are excluded to avoid double-counting.`,
       bullets: [
         `Total income: ${formatGHS(ctx.income)}.`,
@@ -187,7 +187,7 @@ export async function getAssistantReply(
 
   if (has(/\bcassava\b/)) {
     return {
-      title: '🍠 Cassava Tips',
+      title: 'Cassava Tips',
       intro: `These four practices can help with your cassava crop in ${region}.`,
       bullets: CROP_TIPS.Cassava,
       tip: 'Ask your local MoFA extension officer which improved varieties suit your soil and market.',
@@ -196,7 +196,7 @@ export async function getAssistantReply(
 
   if (has(/\b(hello|hi|akwaaba|good morning)\b/)) {
     return {
-      title: `👋 Akwaaba, ${name}!`,
+      title: `Akwaaba, ${name}!`,
       intro:
         'I’m your AgriCtec AI assistant. Ask me a farming or farm-finance question in plain English.',
       bullets: [
@@ -210,13 +210,13 @@ export async function getAssistantReply(
 
   if (has(/\bthank\w*\b/)) {
     return {
-      title: '🌱 You’re welcome!',
+      title: 'You’re welcome!',
       intro: `Happy farming, ${name}! I’m here when you need a hand.`,
     };
   }
 
   return {
-    title: '🌱 Let me help',
+    title: 'Let me help',
     intro: 'For advice specific to this issue, contact your local MoFA extension officer.',
     bullets: [
       'Maize planting seasons and cassava tips.',

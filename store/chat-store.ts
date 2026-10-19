@@ -15,7 +15,7 @@ function welcomeMessage(): ChatMessage {
     id: generateId(),
     role: 'ai',
     content:
-      'Akwaaba! 🌱 I’m your AgriCtec AI assistant. I can help with crop advice, pest control, weather, market prices and your farm finances. Ask me a question or choose a quick prompt below!',
+      'Akwaaba! I’m your AgriCtec AI assistant. I can help with crop advice, pest control, weather, market prices and your farm finances. Ask me a question or choose a quick prompt below!',
     createdAt: new Date().toISOString(),
   };
 }

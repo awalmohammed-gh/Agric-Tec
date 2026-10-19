@@ -1,32 +1,108 @@
 'use client';
 
+import {
+  ArrowUpRight,
+  Bug,
+  ChartNoAxesCombined,
+  CloudSun,
+  ShieldCheck,
+  Sprout,
+  TrendingUp,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useChatStore } from '@/store/chat-store';
 
 const prompts = [
-  '🌽 Maize planting',
-  '🐛 Pest control',
-  '💳 Credit tips',
-  '💰 Cocoa prices',
-  '📊 My finances',
-  '🌦️ Weather',
+  {
+    label: 'Maize planting',
+    description: 'Find the right time to sow',
+    icon: Sprout,
+    tone: 'bg-accent/10 text-ink-green',
+  },
+  {
+    label: 'Pest control',
+    description: 'Protect what you’re growing',
+    icon: Bug,
+    tone: 'bg-gold/10 text-ink-gold',
+  },
+  {
+    label: 'Credit tips',
+    description: 'Build your financial identity',
+    icon: ShieldCheck,
+    tone: 'bg-purple/10 text-ink-purple',
+  },
+  {
+    label: 'Cocoa prices',
+    description: 'Make a more informed sale',
+    icon: TrendingUp,
+    tone: 'bg-gold/10 text-ink-gold',
+  },
+  {
+    label: 'My finances',
+    description: 'See how your farm is doing',
+    icon: ChartNoAxesCombined,
+    tone: 'bg-info/10 text-ink-blue',
+  },
+  {
+    label: 'Weather',
+    description: 'Plan your next day in the field',
+    icon: CloudSun,
+    tone: 'bg-info/10 text-ink-blue',
+  },
 ];
 
-export function QuickPrompts() {
+export function QuickPrompts({ variant = 'compact' }: { variant?: 'compact' | 'starter' }) {
   const isTyping = useChatStore((state) => state.isTyping);
   const status = useChatStore((state) => state.status);
   const sendMessage = useChatStore((state) => state.sendMessage);
+  const starter = variant === 'starter';
 
   return (
-    <div role="group" aria-label="Quick prompts" className="mt-4 flex flex-wrap gap-2">
-      {prompts.map((prompt) => (
+    <div
+      role="group"
+      aria-label="Quick prompts"
+      className={cn(
+        starter ? 'grid grid-cols-2 gap-2.5 @md:grid-cols-3' : 'mb-3 flex flex-wrap gap-1.5',
+      )}
+    >
+      {prompts.map(({ label, description, icon: Icon, tone }) => (
         <button
-          key={prompt}
+          key={label}
           type="button"
           disabled={isTyping || status !== 'ready'}
-          onClick={() => void sendMessage(prompt)}
-          className="glass text-text-dim hover:bg-glass-strong hover:text-text min-h-9 rounded-full px-3 py-2 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
+          onClick={() => void sendMessage(label)}
+          className={cn(
+            'group border-border bg-glass hover:border-accent/40 hover:bg-glass-strong text-left transition-all duration-200 disabled:pointer-events-none disabled:opacity-50',
+            starter
+              ? 'rounded-2xl border p-3 sm:p-3.5'
+              : 'text-text-dim flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px]',
+          )}
         >
-          {prompt}
+          {starter ? (
+            <>
+              <span className="flex items-center justify-between gap-2">
+                <span
+                  className={cn('inline-flex size-8 items-center justify-center rounded-xl', tone)}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                </span>
+                <ArrowUpRight
+                  size={14}
+                  aria-hidden="true"
+                  className="text-text-mute group-hover:text-ink-green transition-colors"
+                />
+              </span>
+              <span className="text-text mt-2 block text-xs font-semibold">{label}</span>
+              <span className="text-text-mute mt-1 hidden text-[11px] leading-relaxed sm:block">
+                {description}
+              </span>
+            </>
+          ) : (
+            <>
+              <Icon size={13} aria-hidden="true" className="text-ink-green" />
+              {label}
+            </>
+          )}
         </button>
       ))}
     </div>
