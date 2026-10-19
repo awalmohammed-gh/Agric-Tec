@@ -1,31 +1,47 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { MomoTable } from '@/components/momo/momo-table';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
-import { Tabs } from '@/components/ui/tabs';
+import {
+  activeMomoFilterCount,
+  DEFAULT_MOMO_FILTERS,
+  filterMomo,
+  type DirectionFilter,
+  type MomoFilters,
+} from '@/components/momo/momo-filters';
+import { MomoList } from '@/components/momo/momo-list';
+import { MomoToolbar } from '@/components/momo/momo-toolbar';
+import { Card } from '@/components/ui/card';
+import { useDebounce } from '@/hooks/use-debounce';
 import { downloadFile, toCSV } from '@/lib/export/csv';
 import { todayISO } from '@/lib/format';
 import { useFarmStore } from '@/store/farm-store';
 import { useModalStore } from '@/store/modal-store';
 
-type DirectionFilter = 'all' | 'in' | 'out';
-
-/** The transactions card: filter, export, new, and the table. */
+/** The transactions card: owns the filters shared by the toolbar and the list. */
 export function MomoView() {
   const momo = useFarmStore((s) => s.momo);
   const openModal = useModalStore((s) => s.openModal);
-  const [filter, setFilter] = useState<DirectionFilter>('all');
+  const [filters, setFilters] = useState<MomoFilters>(DEFAULT_MOMO_FILTERS);
+  const query = useDebounce(filters.query, 200);
 
-  const rows = filter === 'all' ? momo : momo.filter((t) => t.direction === filter);
-  const received = momo.filter((t) => t.direction === 'in').length;
+  const update = (patch: Partial<MomoFilters>) => setFilters((f) => ({ ...f, ...patch }));
+  const clear = () => setFilters(DEFAULT_MOMO_FILTERS);
+
+  // Network, period and search apply to every tab; the tab then narrows by direction.
+  const base = filterMomo(momo, { ...filters, query });
+  const rows =
+    filters.direction === 'all' ? base : base.filter((t) => t.direction === filters.direction);
+  const counts: Record<DirectionFilter, number> = {
+    all: base.length,
+    in: base.filter((t) => t.direction === 'in').length,
+    out: base.filter((t) => t.direction === 'out').length,
+  };
+  const activeFilters = activeMomoFilterCount(filters);
 
   function exportCsv() {
     if (rows.length === 0) {
-      toast.info('There are no transactions to export with this filter.');
+      toast.info('There are no transactions to export with these filters.');
       return;
     }
     const csv = toCSV(rows, [
@@ -41,40 +57,45 @@ export function MomoView() {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex-col sm:flex-row">
-        <div>
-          <CardTitle>Mobile Money Transactions</CardTitle>
-          <CardSub>All your MoMo inflows and outflows</CardSub>
+    <Card className="@container rounded-3xl" padding="none">
+      <div className="border-border border-b p-4 sm:p-5">
+        <div className="mb-4">
+          <h2 className="text-text text-[15px] font-bold">Transactions</h2>
+          <p className="text-text-mute text-xs">Every mobile money payment in and out</p>
         </div>
-        <div className="flex w-full gap-2 sm:w-auto">
-          <Button
-            variant="ghost"
-            icon={Download}
-            onClick={exportCsv}
-            className="flex-1 sm:flex-none"
+        <MomoToolbar
+          filters={filters}
+          onChange={update}
+          counts={counts}
+          onExport={exportCsv}
+          onNew={() => openModal('momo')}
+        />
+      </div>
+
+      <div className="text-text-mute flex items-center justify-between gap-3 px-4 pt-4 text-xs sm:px-5">
+        <span aria-live="polite">
+          Showing <strong className="text-text">{rows.length}</strong> of {momo.length} transaction
+          {momo.length === 1 ? '' : 's'}
+        </span>
+        {activeFilters > 0 && (
+          <button
+            type="button"
+            onClick={clear}
+            className="text-ink-green min-h-9 font-semibold hover:underline"
           >
-            Export CSV
-          </Button>
-          <Button icon={Plus} onClick={() => openModal('momo')} className="flex-1 sm:flex-none">
-            New Transaction
-          </Button>
-        </div>
-      </CardHeader>
+            Clear {activeFilters} filter{activeFilters === 1 ? '' : 's'}
+          </button>
+        )}
+      </div>
 
-      <Tabs
-        label="Filter by direction"
-        className="mb-4"
-        value={filter}
-        onChange={setFilter}
-        tabs={[
-          { value: 'all', label: `All (${momo.length})` },
-          { value: 'in', label: `Received (${received})` },
-          { value: 'out', label: `Sent (${momo.length - received})` },
-        ]}
-      />
-
-      <MomoTable rows={rows} isFiltered={momo.length > 0} />
+      <div className="p-2 sm:p-3">
+        <MomoList
+          rows={rows}
+          hasAny={momo.length > 0}
+          hasActiveFilters={activeFilters > 0}
+          onClearFilters={clear}
+        />
+      </div>
     </Card>
   );
 }

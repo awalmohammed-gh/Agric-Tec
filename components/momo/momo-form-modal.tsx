@@ -2,7 +2,8 @@
 
 import { useId, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
   generateMomoReference,
@@ -11,17 +12,38 @@ import {
   type MomoFormInput,
   type MomoFormValues,
 } from '@/components/momo/momo-schema';
+import { NETWORK_STYLES } from '@/components/momo/momo-filters';
 import { Button } from '@/components/ui/button';
 import { FormField, fieldErrorId, fieldHintId } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
-import { Select } from '@/components/ui/select';
 import { todayISO } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { useFarmStore } from '@/store/farm-store';
 import { useModalStore } from '@/store/modal-store';
 import type { MomoTransaction, NewMomoInput } from '@/types';
 
-function toFormValues(transaction?: MomoTransaction): MomoFormInput {
+const DIRECTIONS = [
+  {
+    value: 'in',
+    label: 'Received',
+    hint: 'Money in',
+    icon: ArrowDownLeft,
+    tone: 'border-accent/50 bg-accent/10 text-ink-green',
+  },
+  {
+    value: 'out',
+    label: 'Sent',
+    hint: 'Money out',
+    icon: ArrowUpRight,
+    tone: 'border-danger/50 bg-danger/10 text-ink-red',
+  },
+] as const;
+
+function toFormValues(
+  transaction?: MomoTransaction,
+  defaults?: Partial<NewMomoInput>,
+): MomoFormInput {
   return transaction
     ? {
         direction: transaction.direction,
@@ -32,12 +54,12 @@ function toFormValues(transaction?: MomoTransaction): MomoFormInput {
         date: transaction.date,
       }
     : {
-        direction: 'in',
-        counterparty: '',
-        amount: '',
-        reference: '',
-        network: 'MTN',
-        date: todayISO(),
+        direction: defaults?.direction ?? 'in',
+        counterparty: defaults?.counterparty ?? '',
+        amount: defaults?.amount ?? '',
+        reference: defaults?.reference ?? '',
+        network: defaults?.network ?? 'MTN',
+        date: defaults?.date ?? todayISO(),
       };
 }
 
@@ -46,6 +68,7 @@ export function MomoFormModal() {
   const modal = useModalStore((s) => s.modal);
   const editingId = useModalStore((s) => s.editingId);
   const closeModal = useModalStore((s) => s.closeModal);
+  const defaults = useModalStore((s) => s.momoDefaults);
   const editing = useFarmStore((s) =>
     editingId ? s.momo.find((t) => t.id === editingId) : undefined,
   );
@@ -69,9 +92,10 @@ export function MomoFormModal() {
       }
     >
       <MomoForm
-        key={editing?.id ?? 'new'}
+        key={editing?.id ?? `new-${defaults?.direction ?? 'any'}`}
         formId={formId}
         editing={editing}
+        defaults={defaults}
         onDone={closeModal}
         onSavingChange={setSaving}
       />
@@ -82,11 +106,13 @@ export function MomoFormModal() {
 function MomoForm({
   formId,
   editing,
+  defaults,
   onDone,
   onSavingChange,
 }: {
   formId: string;
   editing?: MomoTransaction;
+  defaults?: Partial<NewMomoInput>;
   onDone: () => void;
   onSavingChange: (saving: boolean) => void;
 }) {
@@ -97,11 +123,14 @@ function MomoForm({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<MomoFormInput, unknown, MomoFormValues>({
     resolver: zodResolver(momoSchema),
-    defaultValues: toFormValues(editing),
+    defaultValues: toFormValues(editing, defaults),
   });
+  const direction = useWatch({ control, name: 'direction' });
+  const network = useWatch({ control, name: 'network' });
 
   async function onSubmit(values: MomoFormValues) {
     const input: NewMomoInput = {
@@ -135,12 +164,37 @@ function MomoForm({
 
   return (
     <form id={formId} noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <FormField label="Direction" htmlFor="momo-direction" error={errors.direction?.message}>
-        <Select id="momo-direction" error={Boolean(errors.direction)} {...register('direction')}>
-          <option value="in">Received (Inflow)</option>
-          <option value="out">Sent (Outflow)</option>
-        </Select>
-      </FormField>
+      <fieldset>
+        <legend className="text-text-dim mb-1.5 text-xs font-semibold tracking-wide uppercase">
+          Direction
+        </legend>
+        <div className="grid grid-cols-2 gap-2">
+          {DIRECTIONS.map(({ value, label, hint, icon: Icon, tone }) => (
+            <label key={value} className="relative">
+              <input
+                type="radio"
+                value={value}
+                className="peer sr-only"
+                {...register('direction')}
+              />
+              <span
+                className={cn(
+                  'peer-focus-visible:outline-accent flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border px-3 transition-colors peer-focus-visible:outline-2',
+                  direction === value
+                    ? tone
+                    : 'border-border bg-bg-2 text-text-dim hover:text-text',
+                )}
+              >
+                <Icon size={18} aria-hidden="true" className="shrink-0" />
+                <span>
+                  <span className="block text-sm font-semibold">{label}</span>
+                  <span className="text-text-mute block text-[11px]">{hint}</span>
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       <FormField
         label="Counterparty"
@@ -156,7 +210,7 @@ function MomoForm({
         />
       </FormField>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         <FormField label="Amount (GHS)" htmlFor="momo-amount" error={errors.amount?.message}>
           <Input
             id="momo-amount"
@@ -171,15 +225,37 @@ function MomoForm({
           />
         </FormField>
 
-        <FormField label="Network" htmlFor="momo-network" error={errors.network?.message}>
-          <Select id="momo-network" error={Boolean(errors.network)} {...register('network')}>
-            {MOMO_NETWORKS.map((network) => (
-              <option key={network} value={network}>
-                {network}
-              </option>
+        <fieldset>
+          <legend className="text-text-dim mb-1.5 text-xs font-semibold tracking-wide uppercase">
+            Network
+          </legend>
+          <div className="grid grid-cols-3 gap-1.5">
+            {MOMO_NETWORKS.map((option) => (
+              <label key={option} className="relative">
+                <input
+                  type="radio"
+                  value={option}
+                  className="peer sr-only"
+                  {...register('network')}
+                />
+                <span
+                  className={cn(
+                    'peer-focus-visible:outline-accent flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-1 text-xs font-semibold transition-colors peer-focus-visible:outline-2',
+                    network === option
+                      ? NETWORK_STYLES[option].chip
+                      : 'border-border bg-bg-2 text-text-dim hover:text-text',
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn('size-2 shrink-0 rounded-full', NETWORK_STYLES[option].dot)}
+                  />
+                  {option}
+                </span>
+              </label>
             ))}
-          </Select>
-        </FormField>
+          </div>
+        </fieldset>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
