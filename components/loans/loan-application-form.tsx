@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  Calculator,
   Droplets,
   LandPlot,
   ShieldCheck,
@@ -13,18 +14,18 @@ import {
 } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { EligibilityResult } from '@/components/loans/eligibility-result';
+import { defaultOfferId, rankOffers } from '@/components/loans/loan-offers';
 import {
   findPartner,
-  lendersForPeriod,
   loanSchema,
   MIN_LOAN,
   type LoanFormInput,
   type LoanFormValues,
 } from '@/components/loans/loan-schema';
+import { OfferPicker } from '@/components/loans/offer-picker';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { FormField, fieldErrorId } from '@/components/ui/form-field';
-import { Select } from '@/components/ui/select';
 import { LOAN_PERIODS, LOAN_PURPOSES } from '@/constants/loan-partners';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { checkEligibility, monthlyRepayment } from '@/lib/calculations/loan';
@@ -53,97 +54,15 @@ const PURPOSE_ICONS: Record<string, LucideIcon> = {
   'Storage & Processing': Warehouse,
 };
 
-/** Live estimate shown beside the form: updates on every keystroke. */
-function LivePreview({
-  amount,
-  months,
-  partner,
-  isCheapest,
-}: {
-  amount: number;
-  months: number;
-  partner: LoanPartner | undefined;
-  isCheapest: boolean;
-}) {
-  const valid = amount >= MIN_LOAN && partner !== undefined;
-  const repayment = valid ? monthlyRepayment(amount, partner.rate, months) : null;
-  const interestShare =
-    repayment && repayment.total > 0 ? (repayment.interest / repayment.total) * 100 : 0;
+const stepLabel = 'text-text-dim mb-2 text-xs font-semibold tracking-wide uppercase';
 
-  return (
-    <aside
-      aria-live="polite"
-      className="border-accent/30 from-accent/15 via-accent/5 flex flex-col rounded-2xl border bg-linear-to-br to-transparent p-5"
-    >
-      <p className="text-text-mute text-[11px] font-semibold tracking-wider uppercase">
-        Live estimate
-      </p>
-      <p className="text-text-dim mt-2 text-xs">Monthly payment</p>
-      <p className="text-ink-green text-3xl font-extrabold tracking-tight tabular-nums">
-        {repayment ? formatGHS(repayment.monthly) : 'GHS –'}
-      </p>
-      <p className="text-text-mute mt-1 text-xs">
-        {!partner
-          ? `No lender offers ${months} months`
-          : isCheapest
-            ? `Lowest rate for ${months} months: ${partner.rate}% (${partner.name})`
-            : `${partner.name} at ${partner.rate}% p.a.`}
-      </p>
-
-      {repayment && (
-        <>
-          <div className="my-5 flex flex-col items-center gap-4">
-            <div
-              aria-hidden="true"
-              className="relative size-20 shrink-0 rounded-full"
-              style={{
-                background: `conic-gradient(var(--gold) ${interestShare}%, var(--accent) 0)`,
-              }}
-            >
-              <div className="bg-bg-2 text-text-dim absolute inset-2 flex items-center justify-center rounded-full text-[10px] font-semibold">
-                {Math.round(interestShare)}% int.
-              </div>
-            </div>
-            <dl className="w-full space-y-1 text-xs [&_dd]:whitespace-nowrap">
-              <div className="flex justify-between gap-2">
-                <dt className="text-text-dim flex items-center gap-1.5">
-                  <span className="bg-accent size-2 rounded-full" aria-hidden="true" /> Principal
-                </dt>
-                <dd className="text-text font-semibold tabular-nums">{formatGHS(amount)}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-text-dim flex items-center gap-1.5">
-                  <span className="bg-gold size-2 rounded-full" aria-hidden="true" /> Interest
-                </dt>
-                <dd className="text-text font-semibold tabular-nums">
-                  {formatGHS(repayment.interest)}
-                </dd>
-              </div>
-              <div className="border-border flex justify-between gap-2 border-t pt-1">
-                <dt className="text-text-dim">Total</dt>
-                <dd className="text-text font-bold tabular-nums">{formatGHS(repayment.total)}</dd>
-              </div>
-            </dl>
-          </div>
-          <p className="text-text-mute mt-auto text-[11px]">
-            Estimates only. The lender sets final terms.
-          </p>
-        </>
-      )}
-      {!repayment && partner && (
-        <p className="text-text-mute mt-4 text-xs">
-          Enter at least {formatGHS(MIN_LOAN)} to see your payment.
-        </p>
-      )}
-    </aside>
-  );
-}
-
-/** Loan builder: amount slider, purpose chips, term, lender, live estimate and eligibility. */
+/**
+ * Loan builder: amount, purpose and term on one side; every lender priced for that loan on
+ * the other, so choosing a lender is comparing them. Then an eligibility check and apply.
+ */
 export function LoanApplicationForm({ className }: { className?: string }) {
   const records = useFarmStore((s) => s.records);
   const { credit, annualizedProfit } = useFarmStats();
-  const setLastDraft = useLoanStore((s) => s.setLastDraft);
   const openConfirm = useLoanStore((s) => s.openConfirm);
   const [result, setResult] = useState<CheckResult | null>(null);
   const maxAffordable = Math.max(0, 3 * annualizedProfit);
@@ -165,28 +84,14 @@ export function LoanApplicationForm({ className }: { className?: string }) {
   });
   const amount = Number(amountRaw) || 0;
   const period = Number(monthsRaw);
-  const lenders = lendersForPeriod(period);
-  const selected = lenders.find((p) => p.id === partnerId);
-  const cheapest = lenders.reduce<LoanPartner | undefined>(
-    (low, p) => (!low || p.rate < low.rate ? p : low),
-    undefined,
-  );
+  const offers = rankOffers(amount, period, credit.score);
+  const selected = offers.find((o) => o.partner.id === partnerId && o.offersTerm);
 
-  // If the chosen lender doesn't offer the new period, clear the choice.
+  // Keep a lender picked: the best offer by default, and again when the term rules one out.
+  const fallbackId = defaultOfferId(offers);
   useEffect(() => {
-    if (partnerId && !lendersForPeriod(period).some((p) => p.id === partnerId)) {
-      setValue('partnerId', '');
-    }
-  }, [period, partnerId, setValue]);
-
-  // Share the builder's live values so lender cards price the same loan.
-  useEffect(() => {
-    setLastDraft(
-      amount >= MIN_LOAN
-        ? { amount, months: period, purpose: String(purpose), partnerId: String(partnerId ?? '') }
-        : null,
-    );
-  }, [amount, period, purpose, partnerId, setLastDraft]);
+    if (!selected && fallbackId) setValue('partnerId', fallbackId);
+  }, [selected, fallbackId, setValue]);
 
   function onSubmit(values: LoanFormValues) {
     const partner = findPartner(values.partnerId);
@@ -217,27 +122,26 @@ export function LoanApplicationForm({ className }: { className?: string }) {
   const trackStyle: CSSProperties = {
     background: `linear-gradient(to right, color-mix(in oklab, var(--accent) 55%, transparent) ${limitPct}%, var(--glass-strong) ${limitPct}%)`,
   };
+  const valid = amount >= MIN_LOAN && selected !== undefined;
 
   return (
-    <Card id="apply" className={cn('@container scroll-mt-28', className)}>
+    <Card id="apply" className={cn('@container scroll-mt-28 rounded-3xl', className)}>
       <CardHeader>
         <div>
-          <CardTitle>Loan Builder</CardTitle>
-          <CardSub>Adjust the amount and term. Your payment updates instantly.</CardSub>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator size={17} aria-hidden="true" className="text-ink-green" />
+            Build your loan
+          </CardTitle>
+          <CardSub>Set the amount and term, then pick the offer that suits you.</CardSub>
         </div>
       </CardHeader>
 
-      {/*
-        Wide card: fields | live estimate side by side, button underneath both.
-        Narrow card: fields, then the estimate, then the button (the payment is seen before checking).
-      */}
       <form
         noValidate
         onSubmit={handleSubmit(onSubmit)}
-        className="grid grid-cols-1 gap-6 @xl:grid-cols-[minmax(0,1fr)_240px]"
+        className="grid grid-cols-1 gap-6 @3xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]"
       >
         <div className="@container min-w-0 space-y-6">
-          {/* Amount: number input + slider */}
           <FormField
             label="How much do you need?"
             htmlFor="loan-amount"
@@ -328,11 +232,8 @@ export function LoanApplicationForm({ className }: { className?: string }) {
             </div>
           </FormField>
 
-          {/* Purpose as icon chips */}
           <fieldset>
-            <legend className="text-text-dim mb-2 text-xs font-semibold tracking-wide uppercase">
-              What is it for?
-            </legend>
+            <legend className={stepLabel}>What is it for?</legend>
             <div className="grid grid-cols-2 gap-2 @md:grid-cols-3 @2xl:grid-cols-5">
               {LOAN_PURPOSES.map((p) => {
                 const Icon = PURPOSE_ICONS[p] ?? Sprout;
@@ -354,11 +255,8 @@ export function LoanApplicationForm({ className }: { className?: string }) {
             </div>
           </fieldset>
 
-          {/* Term */}
           <fieldset>
-            <legend className="text-text-dim mb-2 text-xs font-semibold tracking-wide uppercase">
-              Repayment period
-            </legend>
+            <legend className={stepLabel}>Repayment period</legend>
             <div className="grid grid-cols-4 gap-2">
               {LOAN_PERIODS.map((m) => (
                 <label key={m} className="relative">
@@ -376,36 +274,65 @@ export function LoanApplicationForm({ className }: { className?: string }) {
               ))}
             </div>
           </fieldset>
-
-          <FormField
-            label="Lender"
-            htmlFor="loan-partner"
-            error={errors.partnerId?.message}
-            hint={`${lenders.length} of 4 lenders offer ${period}-month loans`}
-          >
-            <Select id="loan-partner" error={Boolean(errors.partnerId)} {...register('partnerId')}>
-              <option value="">Choose a lender</option>
-              {lenders.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} · {p.rate}% p.a.
-                </option>
-              ))}
-            </Select>
-          </FormField>
         </div>
 
-        <div className="@xl:sticky @xl:top-28 @xl:self-start">
-          <LivePreview
-            amount={amount}
+        {/* Offers + summary: beside the fields when wide, under them on phones */}
+        <div id="offers" className="scroll-mt-28 space-y-4 @3xl:sticky @3xl:top-28 @3xl:self-start">
+          <OfferPicker
+            offers={offers}
             months={period}
-            partner={selected ?? cheapest}
-            isCheapest={!selected}
+            selectedId={String(partnerId ?? '')}
+            registration={register('partnerId')}
+            error={errors.partnerId?.message}
           />
-        </div>
 
-        <Button type="submit" icon={ShieldCheck} className="w-full @xl:col-span-2">
-          Check Eligibility
-        </Button>
+          <div
+            aria-live="polite"
+            className="border-accent/30 from-accent/15 via-accent/5 rounded-2xl border bg-linear-to-br to-transparent p-4"
+          >
+            <p className="text-text-mute text-[11px] font-semibold tracking-wider uppercase">
+              Your loan
+            </p>
+            {valid ? (
+              <>
+                <p className="text-ink-green mt-1 text-3xl font-extrabold tracking-tight tabular-nums">
+                  {formatGHS(selected.repayment.monthly)}
+                  <span className="text-text-mute text-sm font-semibold"> /month</span>
+                </p>
+                <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <dt className="text-text-mute">Borrow</dt>
+                    <dd className="text-text font-semibold tabular-nums">{formatGHS(amount)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-text-mute">Interest</dt>
+                    <dd className="text-text font-semibold tabular-nums">
+                      {formatGHS(selected.repayment.interest)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-text-mute">Total</dt>
+                    <dd className="text-text font-bold tabular-nums">
+                      {formatGHS(selected.repayment.total)}
+                    </dd>
+                  </div>
+                </dl>
+              </>
+            ) : (
+              <p className="text-text-mute mt-1 text-sm">
+                {amount < MIN_LOAN
+                  ? `Enter at least ${formatGHS(MIN_LOAN)} to see your payment.`
+                  : `No lender offers ${period}-month loans. Try another period.`}
+              </p>
+            )}
+            <Button type="submit" icon={ShieldCheck} className="mt-4 w-full">
+              Check eligibility
+            </Button>
+            <p className="text-text-mute mt-2 text-center text-[11px]">
+              Estimates only. The lender sets final terms.
+            </p>
+          </div>
+        </div>
       </form>
 
       {result && (

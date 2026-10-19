@@ -40,7 +40,7 @@ export function resetAllStores(): void {
     userId: null,
     applications: [],
     status: 'idle',
-    lastDraft: null,
+    tab: 'apply',
     confirm: null,
   });
 }

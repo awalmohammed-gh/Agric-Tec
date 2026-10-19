@@ -88,9 +88,19 @@ function ApplyContent({ draft, onClose }: { draft: LoanDraft; onClose: () => voi
           <li>2. They may call to verify your farm and identity.</li>
           <li>3. Keep recording sales to strengthen your file.</li>
         </ol>
-        <Button className="mt-6" onClick={onClose}>
-          Done
-        </Button>
+        <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+          <Button
+            onClick={() => {
+              onClose();
+              useLoanStore.getState().setTab('applications');
+            }}
+          >
+            Track application
+          </Button>
+          <Button variant="ghost" onClick={onClose}>
+            Done
+          </Button>
+        </div>
       </div>
     );
   }

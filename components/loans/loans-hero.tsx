@@ -4,8 +4,8 @@ import {
   BadgePercent,
   Building2,
   Calculator,
+  Gauge,
   ListChecks,
-  Scale,
   Sparkles,
   type LucideIcon,
 } from 'lucide-react';
@@ -14,6 +14,7 @@ import { LOAN_PARTNERS } from '@/constants/loan-partners';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { formatGHS } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { useLoanStore, type LoanTab } from '@/store/loan-store';
 
 function status(score: number): { label: string; tone: string } {
   if (score >= 650)
@@ -44,6 +45,15 @@ export function LoansHero() {
   const matched = LOAN_PARTNERS.filter((p) => credit.score >= p.minScore).length;
   const best = LOAN_PARTNERS.reduce((low, p) => (p.rate < low.rate ? p : low));
   const { label, tone } = status(credit.score);
+  const setTab = useLoanStore((s) => s.setTab);
+
+  /** Opens a tab of the loan workspace and brings it into view. */
+  function openTab(tab: LoanTab) {
+    setTab(tab);
+    document
+      .getElementById('loan-workspace')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   return (
     <section
@@ -87,18 +97,20 @@ export function LoansHero() {
           </p>
 
           <div className="mt-6 flex flex-col gap-3 @md:flex-row">
-            <a
-              href="#apply"
+            <button
+              type="button"
+              onClick={() => openTab('apply')}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-linear-to-br from-[#34d399] to-[#10b981] px-5 text-sm font-semibold text-[#022c22] shadow-[0_8px_24px_-6px_var(--accent-glow)] transition-transform hover:-translate-y-0.5"
             >
               <Calculator size={16} aria-hidden="true" /> Build my loan
-            </a>
-            <a
-              href="#lenders"
+            </button>
+            <button
+              type="button"
+              onClick={() => openTab('credit')}
               className="glass text-text hover:bg-glass-strong inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition-colors"
             >
-              <Scale size={16} aria-hidden="true" /> Compare lenders
-            </a>
+              <Gauge size={16} aria-hidden="true" /> See my credit score
+            </button>
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-3 @lg:grid-cols-3">

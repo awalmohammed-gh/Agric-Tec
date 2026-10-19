@@ -16,9 +16,18 @@ export interface TabsProps<V extends string> {
   onChange: (value: V) => void;
   label?: string;
   className?: string;
+  /** When set, tabs get ids and aria-controls pointing at `${idPrefix}-panel-${value}`. */
+  idPrefix?: string;
 }
 
-export function Tabs<V extends string>({ tabs, value, onChange, label, className }: TabsProps<V>) {
+export function Tabs<V extends string>({
+  tabs,
+  value,
+  onChange,
+  label,
+  className,
+  idPrefix,
+}: TabsProps<V>) {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -62,6 +71,8 @@ export function Tabs<V extends string>({ tabs, value, onChange, label, className
               }}
               type="button"
               role="tab"
+              id={idPrefix ? `${idPrefix}-tab-${tab.value}` : undefined}
+              aria-controls={idPrefix ? `${idPrefix}-panel-${tab.value}` : undefined}
               aria-selected={selected}
               tabIndex={selected ? 0 : -1}
               onClick={() => onChange(tab.value)}

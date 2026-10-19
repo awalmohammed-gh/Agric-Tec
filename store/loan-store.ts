@@ -3,6 +3,9 @@ import { loansService } from '@/services/loans.service';
 import { useAuthStore } from '@/store/auth-store';
 import type { LoanApplication, LoanApplicationInput, StoreStatus } from '@/types';
 
+/** The three tabs of the Loans & Credit page. */
+export type LoanTab = 'apply' | 'credit' | 'applications';
+
 export interface LoanDraft {
   amount: number;
   purpose: string;
@@ -15,15 +18,12 @@ interface LoanState {
   /** Submitted applications, newest first. */
   applications: LoanApplication[];
   status: StoreStatus;
-  /**
-   * The loan builder's current values, kept live so lender cards can price the same loan.
-   * Null until the farmer enters a valid amount.
-   */
-  lastDraft: LoanDraft | null;
+  /** Open tab; in the store so the hero and journey can switch it. */
+  tab: LoanTab;
   /** When set, the apply-confirmation modal is open for this draft. */
   confirm: LoanDraft | null;
   load: (userId: string) => Promise<void>;
-  setLastDraft: (draft: LoanDraft | null) => void;
+  setTab: (tab: LoanTab) => void;
   openConfirm: (draft: LoanDraft) => void;
   closeConfirm: () => void;
   submit: (input: LoanApplicationInput) => Promise<LoanApplication>;
@@ -33,7 +33,7 @@ export const useLoanStore = create<LoanState>()((set, get) => ({
   userId: null,
   applications: [],
   status: 'idle',
-  lastDraft: null,
+  tab: 'apply',
   confirm: null,
 
   load: async (userId) => {
@@ -48,7 +48,7 @@ export const useLoanStore = create<LoanState>()((set, get) => ({
     }
   },
 
-  setLastDraft: (lastDraft) => set({ lastDraft }),
+  setTab: (tab) => set({ tab }),
   openConfirm: (confirm) => set({ confirm }),
   closeConfirm: () => set({ confirm: null }),
 

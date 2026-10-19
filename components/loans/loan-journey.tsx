@@ -18,6 +18,7 @@ interface Step {
 export function LoanJourney() {
   const { recordCount, credit, annualizedProfit } = useFarmStats();
   const applications = useLoanStore((s) => s.applications);
+  const setTab = useLoanStore((s) => s.setTab);
 
   const steps: Step[] = [
     {
@@ -100,7 +101,21 @@ export function LoanJourney() {
                   </span>
                 </p>
                 <p className="text-text-mute text-xs">{step.detail}</p>
-                {isCurrent && (
+                {isCurrent && step.action.href === '#apply' && (
+                  <button
+                    type="button"
+                    onClick={() => setTab('apply')}
+                    className="group text-ink-green mt-1 inline-flex min-h-8 items-center gap-1 text-xs font-semibold"
+                  >
+                    {step.action.label}
+                    <ArrowRight
+                      size={13}
+                      aria-hidden="true"
+                      className="transition-transform group-hover:translate-x-0.5"
+                    />
+                  </button>
+                )}
+                {isCurrent && step.action.href !== '#apply' && (
                   <Link
                     href={step.action.href}
                     className="group text-ink-green mt-1 inline-flex min-h-8 items-center gap-1 text-xs font-semibold"
