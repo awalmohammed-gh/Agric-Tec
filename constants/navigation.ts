@@ -18,6 +18,8 @@ export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** Path prefix that counts as this item being active, when wider than `href`. */
+  match?: string;
 }
 
 export interface NavSection {
@@ -53,8 +55,9 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Account',
     items: [
-      // Profile is a page inside Settings (/profile redirects to /settings/profile).
-      { label: 'Profile & Settings', href: '/settings', icon: UserCog },
+      // Links straight to the first settings page: /settings is only a redirect, and
+      // following it cost a second navigation. Active on every /settings/* page.
+      { label: 'Profile & Settings', href: '/settings/profile', match: '/settings', icon: UserCog },
     ],
   },
 ];
@@ -105,6 +108,10 @@ export const PAGE_META: Record<string, { title: string; subtitle: string }> = {
 /** True when `pathname` is the item's page or one of its nested routes. */
 export const isNavActive = (pathname: string, href: string) =>
   pathname === href || pathname.startsWith(`${href}/`);
+
+/** Whether a nav item is the current section (its `match` prefix, or else its `href`). */
+export const isItemActive = (pathname: string, item: NavItem) =>
+  isNavActive(pathname, item.match ?? item.href);
 
 /** Mobile bottom bar: four direct destinations; the Menu button sits in the middle. */
 export const MOBILE_PRIMARY_NAV: NavItem[] = [

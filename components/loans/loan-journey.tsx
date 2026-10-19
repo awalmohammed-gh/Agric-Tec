@@ -56,7 +56,7 @@ export function LoanJourney() {
   return (
     <nav
       aria-label="Your path to a loan"
-      className="border-border bg-glass @container rounded-3xl border p-5 backdrop-blur-xl sm:p-6"
+      className="border-border bg-glass @container rounded-3xl border p-5 sm:p-6"
     >
       <p className="text-text-mute mb-4 text-[11px] font-semibold tracking-wider uppercase">
         Your path to a loan

@@ -5,7 +5,7 @@ import { Bell, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { GlobalSearch } from '@/components/layout/global-search';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
-import { isNavActive, NAV_SECTIONS, PAGE_META } from '@/constants/navigation';
+import { isItemActive, NAV_SECTIONS, PAGE_META } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
 import { navKey, useT } from '@/lib/i18n';
 
@@ -22,9 +22,9 @@ interface PageInfo {
 /** Title, subtitle, nav section and icon for the current route (works for nested routes too). */
 function pageInfo(pathname: string): PageInfo {
   for (const section of NAV_SECTIONS) {
-    const item = section.items.find((i) => isNavActive(pathname, i.href));
+    const item = section.items.find((i) => isItemActive(pathname, i));
     if (item) {
-      const meta = PAGE_META[item.href];
+      const meta = PAGE_META[item.match ?? item.href];
       return {
         title: meta?.title ?? item.label,
         subtitle: meta?.subtitle ?? '',

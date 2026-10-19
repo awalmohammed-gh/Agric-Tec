@@ -70,7 +70,7 @@ export function MomoHero() {
           />
 
           <div className="relative flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
               <Smartphone size={13} aria-hidden="true" /> MoMo Wallet
             </span>
             <span className="text-xs text-white/70">
@@ -94,7 +94,7 @@ export function MomoHero() {
           </div>
 
           <dl className="relative mt-6 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-white/10 p-3 backdrop-blur">
+            <div className="rounded-2xl bg-white/10 p-3">
               <dt className="flex items-center gap-1.5 text-xs text-white/75">
                 <span className="inline-flex size-6 items-center justify-center rounded-full bg-[#34d399] text-[#022c22]">
                   <ArrowDownLeft size={13} aria-hidden="true" />
@@ -103,7 +103,7 @@ export function MomoHero() {
               </dt>
               <dd className="mt-1.5 text-lg font-bold tabular-nums">{formatGHS(momo.inflow)}</dd>
             </div>
-            <div className="rounded-2xl bg-white/10 p-3 backdrop-blur">
+            <div className="rounded-2xl bg-white/10 p-3">
               <dt className="flex items-center gap-1.5 text-xs text-white/75">
                 <span className="inline-flex size-6 items-center justify-center rounded-full bg-[#fca5a5] text-[#450a0a]">
                   <ArrowUpRight size={13} aria-hidden="true" />
@@ -134,7 +134,7 @@ export function MomoHero() {
 
         <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2 @4xl:grid-cols-1">
           {/* This month */}
-          <div className="border-border bg-glass rounded-3xl border p-5 backdrop-blur-xl">
+          <div className="border-border bg-glass rounded-3xl border p-5">
             <p className="text-text-mute text-[11px] font-semibold tracking-wider uppercase">
               This month
             </p>
@@ -161,7 +161,7 @@ export function MomoHero() {
           </div>
 
           {/* Network mix + credit progress */}
-          <div className="border-border bg-glass space-y-5 rounded-3xl border p-5 backdrop-blur-xl">
+          <div className="border-border bg-glass space-y-5 rounded-3xl border p-5">
             <div>
               <p className="text-text-mute flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase">
                 <Signal size={12} aria-hidden="true" /> Network mix

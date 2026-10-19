@@ -128,16 +128,6 @@
   }
 }
 
-@keyframes bgShift {
-  0%,
-  100% {
-    filter: hue-rotate(0deg);
-  }
-  50% {
-    filter: hue-rotate(20deg);
-  }
-}
-
 @keyframes pulse {
   0%,
   100% {
@@ -247,27 +237,11 @@
   animation: pageIn 0.16s ease-out both;
 }
 
-@utility animate-bg-shift {
-  animation: bgShift 20s ease-in-out infinite;
-}
-
-/* Desktop top bar: glass that turns more solid over the first 24px of scroll.
-   A scroll-driven animation, so there is no scroll listener and no React re-render. */
-@keyframes topbarSolid {
-  to {
-    background-color: var(--glass-strong);
-    box-shadow: var(--shadow);
-  }
-}
-
+/* Desktop top bar: one fixed look. A scroll-linked effect (even opacity-only) made Chrome
+   recalculate styles on every scroll frame; a static bar costs nothing while scrolling. */
 @utility topbar-glass {
-  background-color: var(--glass);
+  background-color: var(--glass-strong);
   box-shadow: 0 8px 30px -12px rgba(0, 0, 0, 0.35);
-  @supports (animation-timeline: scroll()) {
-    animation: topbarSolid linear both;
-    animation-timeline: scroll(root);
-    animation-range: 0 24px;
-  }
 }
 
 @utility animate-pulse-soft {
@@ -297,10 +271,11 @@
   animation: typing 1.4s ease-in-out infinite;
 }
 
+/* Glass surface: tint + border. No backdrop blur here: content scrolls, and a blurred element
+   over moving content is re-blurred every frame (measured: the main cause of scroll jank).
+   Fixed chrome that sits over the page (sidebar, top bar, mobile bar) adds its own blur. */
 @utility glass {
   background: var(--glass);
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
   border: 1px solid var(--border);
 }
 

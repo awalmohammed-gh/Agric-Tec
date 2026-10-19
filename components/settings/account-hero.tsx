@@ -56,7 +56,7 @@ export function AccountHero() {
   return (
     <section
       aria-labelledby="account-hero-name"
-      className="border-border bg-glass shadow-glass @container relative overflow-hidden rounded-3xl border p-5 backdrop-blur-xl sm:p-7"
+      className="border-border bg-glass shadow-glass @container relative overflow-hidden rounded-3xl border p-5 sm:p-7"
     >
       <div
         aria-hidden="true"

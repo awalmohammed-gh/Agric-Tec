@@ -18,6 +18,7 @@ export interface ChartTheme {
   baseOptions: {
     responsive: true;
     maintainAspectRatio: true;
+    animation: { duration: number };
     plugins: {
       legend: { labels: { color: string; font: { size: number }; boxWidth: number } };
       tooltip: { titleFont: { size: number }; bodyFont: { size: number } };
@@ -94,6 +95,9 @@ export function useChartTheme(): ChartTheme {
     baseOptions: {
       responsive: true,
       maintainAspectRatio: true,
+      // Half the 1s default: each animation frame redraws the chart, which competes with
+      // the rest of the page on arrival.
+      animation: { duration: 500 },
       plugins: {
         legend: { labels: { color: textColor, font: { size: FONT_SIZE }, boxWidth: 12 } },
         tooltip: { titleFont: { size: FONT_SIZE + 1 }, bodyFont: { size: FONT_SIZE } },

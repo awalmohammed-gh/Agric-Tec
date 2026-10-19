@@ -30,7 +30,7 @@ function GrowthVisual() {
   return (
     <div aria-hidden="true" className="relative mx-auto h-56 w-64">
       <div className="absolute inset-0 rounded-[2rem] bg-[radial-gradient(circle,rgba(245,196,81,0.22),transparent_70%)]" />
-      <div className="border-border bg-bg-2/70 absolute inset-x-4 inset-y-5 overflow-hidden rounded-3xl border p-4 backdrop-blur">
+      <div className="border-border bg-bg-2/70 absolute inset-x-4 inset-y-5 overflow-hidden rounded-3xl border p-4">
         <div className="flex h-full items-end gap-1.5">
           {BARS.map((height, i) => (
             <span
@@ -75,7 +75,7 @@ export function YieldHero() {
   return (
     <section
       aria-labelledby="yield-title"
-      className="border-border bg-glass shadow-glass @container relative overflow-hidden rounded-3xl border p-6 backdrop-blur-xl sm:p-8"
+      className="border-border bg-glass shadow-glass @container relative overflow-hidden rounded-3xl border p-6 sm:p-8"
     >
       <div
         aria-hidden="true"

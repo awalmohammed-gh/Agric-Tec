@@ -99,7 +99,7 @@ export function ReportsHero() {
   return (
     <section
       aria-labelledby="reports-hero-title"
-      className="group border-border bg-glass shadow-glass @container relative overflow-hidden rounded-3xl border p-6 backdrop-blur-xl sm:p-8"
+      className="group border-border bg-glass shadow-glass @container relative overflow-hidden rounded-3xl border p-6 sm:p-8"
     >
       <div
         aria-hidden="true"

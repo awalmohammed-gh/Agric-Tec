@@ -58,7 +58,7 @@ export function LoansHero() {
   return (
     <section
       aria-labelledby="loans-hero-title"
-      className="border-border bg-glass shadow-glass @container relative overflow-hidden rounded-3xl border p-6 backdrop-blur-xl sm:p-8"
+      className="border-border bg-glass shadow-glass @container relative overflow-hidden rounded-3xl border p-6 sm:p-8"
     >
       <div
         aria-hidden="true"

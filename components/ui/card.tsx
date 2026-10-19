@@ -18,7 +18,7 @@ export function Card({ padding = 'md', className, children, ...props }: CardProp
   return (
     <div
       className={cn(
-        'rounded-card border-border bg-glass shadow-glass relative overflow-hidden border backdrop-blur-xl',
+        'rounded-card border-border bg-glass shadow-glass relative overflow-hidden border',
         // 1px gradient highlight line along the top edge
         'before:via-accent/40 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:to-transparent',
         paddings[padding],

@@ -8,6 +8,7 @@ import {
   Focus,
   Grid3x3,
   Hand,
+  HelpCircle,
   Leaf,
   ScanLine,
   ShieldCheck,
@@ -22,6 +23,7 @@ import { DiagnosisHistory } from '@/components/crop-doctor/diagnosis-history';
 import { ImagePreview } from '@/components/crop-doctor/image-preview';
 import { UploadZone } from '@/components/crop-doctor/upload-zone';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
+import { Select } from '@/components/ui/select';
 import { CROP_TONES, CropIcon } from '@/components/ui/crop-icon';
 import { CROPS } from '@/constants/crops';
 import { diagnoseCrop } from '@/lib/ai/crop-diagnosis';
@@ -46,9 +48,6 @@ const CHECKS: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: Grid3x3, title: 'Viral mosaic', text: 'Yellow patterns and curled leaves' },
   { icon: Leaf, title: 'Healthy tissue', text: 'Confirms when no issue is found' },
 ];
-
-const chipClass =
-  'inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-xs font-semibold whitespace-nowrap transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-accent';
 
 export function CropDoctorView() {
   const router = useRouter();
@@ -163,63 +162,39 @@ export function CropDoctorView() {
             </div>
           </CardHeader>
 
-          <fieldset className="mb-5" disabled={busy}>
-            <legend className="text-text-dim mb-2 text-xs font-semibold tracking-wide uppercase">
+          <div className="mb-5">
+            <label
+              htmlFor="diagnosis-crop"
+              className="text-text-dim mb-2 block text-xs font-semibold tracking-wide uppercase"
+            >
               1. Which crop is this?
-            </legend>
-            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-              <label className="relative">
-                <input
-                  type="radio"
-                  name="diagnosis-crop"
-                  value=""
-                  checked={crop === ''}
-                  onChange={() => chooseCrop('')}
-                  className="peer sr-only"
-                />
-                <span
-                  className={cn(
-                    chipClass,
-                    crop === ''
-                      ? 'border-accent/50 bg-accent/15 text-ink-green'
-                      : 'border-border bg-glass text-text-dim hover:text-text',
-                  )}
-                >
-                  Not sure
-                </span>
-              </label>
-              {CROPS.filter((c) => c !== 'Other').map((option) => {
-                const active = crop === option;
-                return (
-                  <label key={option} className="relative">
-                    <input
-                      type="radio"
-                      name="diagnosis-crop"
-                      value={option}
-                      checked={active}
-                      onChange={() => chooseCrop(option)}
-                      className="peer sr-only"
-                    />
-                    <span
-                      className={cn(
-                        chipClass,
-                        active
-                          ? 'border-accent/50 bg-accent/15 text-ink-green'
-                          : 'border-border bg-glass text-text-dim hover:text-text',
-                      )}
-                    >
-                      <CropIcon
-                        crop={option}
-                        size={15}
-                        className={active ? undefined : CROP_TONES[option].split(' ')[1]}
-                      />
-                      {option}
-                    </span>
-                  </label>
-                );
-              })}
+            </label>
+            <div className="relative">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'pointer-events-none absolute top-1/2 left-2 z-10 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-lg',
+                  crop ? CROP_TONES[crop] : 'bg-glass-strong text-text-mute',
+                )}
+              >
+                {crop ? <CropIcon crop={crop} size={15} /> : <HelpCircle size={15} />}
+              </span>
+              <Select
+                id="diagnosis-crop"
+                value={crop}
+                disabled={busy}
+                onChange={(event) => chooseCrop(event.target.value as Crop | '')}
+                className="pl-11"
+              >
+                <option value="">Not sure (detect from photo)</option>
+                {CROPS.filter((c) => c !== 'Other').map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </Select>
             </div>
-          </fieldset>
+          </div>
 
           <p className="text-text-dim mb-2 text-xs font-semibold tracking-wide uppercase">
             2. Add a photo

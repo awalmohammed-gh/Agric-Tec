@@ -25,7 +25,7 @@ function Kpi({
   seriesLabel: string;
 }) {
   return (
-    <div className="border-border bg-glass flex min-w-0 flex-col rounded-2xl border p-3 backdrop-blur-xl transition-transform duration-200 hover:-translate-y-0.5 sm:p-4">
+    <div className="border-border bg-glass flex min-w-0 flex-col rounded-2xl border p-3 transition-transform duration-200 hover:-translate-y-0.5 sm:p-4">
       <div className="flex items-center gap-2.5">
         <span
           className={cn('inline-flex size-9 shrink-0 items-center justify-center rounded-xl', tone)}

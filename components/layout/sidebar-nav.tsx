@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { NAV_SECTIONS } from '@/constants/navigation';
+import { isItemActive, NAV_SECTIONS } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
 import { navKey, useT } from '@/lib/i18n';
 
@@ -19,7 +19,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           </p>
           <ul className="space-y-1">
             {section.items.map((item) => {
-              const active = pathname.startsWith(item.href);
+              const active = isItemActive(pathname, item);
               const Icon = item.icon;
               return (
                 <li key={item.href}>

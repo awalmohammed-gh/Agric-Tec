@@ -22,7 +22,7 @@ function SummaryTile({
   valueClass?: string;
 }) {
   return (
-    <div className="border-border bg-glass flex items-center gap-3 rounded-2xl border p-3 backdrop-blur-xl sm:p-4">
+    <div className="border-border bg-glass flex items-center gap-3 rounded-2xl border p-3 sm:p-4">
       <span
         // Icons hide on phones so two tiles fit side by side.
         className={cn(
