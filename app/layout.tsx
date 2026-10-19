@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Playfair_Display } from 'next/font/google';
+import { Inter, Outfit } from 'next/font/google';
 import { AppProviders } from '@/components/providers/app-providers';
 import './globals.css';
 
@@ -9,10 +9,10 @@ const inter = Inter({
   display: 'swap',
 });
 
-const playfair = Playfair_Display({
-  variable: '--font-playfair',
+/** Outfit for headings and large numbers (font-display); Inter for everything else. */
+const outfit = Outfit({
+  variable: '--font-outfit',
   subsets: ['latin'],
-  weight: ['600', '700', '900'],
   display: 'swap',
 });
 
@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${outfit.variable}`}>
       {/* Browser extensions (e.g. Grammarly) add attributes to <body> before React hydrates. */}
       <body suppressHydrationWarning>
         <AppProviders>{children}</AppProviders>

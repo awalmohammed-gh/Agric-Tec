@@ -23,3 +23,9 @@ ChartJS.register(
   Tooltip,
   Legend,
 );
+
+// Canvas text can't use CSS variables, so read the Inter family that next/font registered.
+if (typeof document !== 'undefined') {
+  const inter = getComputedStyle(document.documentElement).getPropertyValue('--font-inter').trim();
+  if (inter) ChartJS.defaults.font.family = `${inter}, system-ui, sans-serif`;
+}

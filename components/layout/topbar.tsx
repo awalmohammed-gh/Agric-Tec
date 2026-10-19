@@ -56,7 +56,7 @@ export function Topbar() {
         )}
       >
         {/* key={pathname}: the whole block fades in again whenever the route changes */}
-        <div key={pathname} className="animate-fade-in flex min-w-0 flex-1 items-center gap-3">
+        <div key={pathname} className="animate-page-in flex min-w-0 flex-1 items-center gap-3">
           {Icon && (
             <span
               aria-hidden="true"
