@@ -78,6 +78,12 @@
   --shadow-glass: var(--shadow);
 }
 
+/* Not inline: also emitted as a CSS variable, because the sidebar uses var(--spacing-header).
+   The desktop top bar and the sidebar logo row share this height, so their edges line up. */
+@theme {
+  --spacing-header: 4.75rem;
+}
+
 /* ---------- Base styles ---------- */
 @layer base {
   body {

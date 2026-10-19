@@ -92,8 +92,8 @@ function AppSkeleton() {
           <Skeleton key={i} className="h-10 w-full" />
         ))}
       </div>
-      <div className="min-w-0 flex-1 px-5 py-6 min-[900px]:ml-[272px] md:px-8">
-        <div className="glass mb-6 flex h-16 items-center gap-3 rounded-2xl px-3">
+      <div className="min-w-0 flex-1 px-5 py-6 min-[768px]:px-8 min-[900px]:ml-[272px] min-[900px]:pt-3">
+        <div className="glass min-[900px]:h-header mb-6 flex h-16 items-center gap-3 rounded-2xl px-3">
           <Skeleton className="size-10" />
           <Skeleton className="h-5 w-48" />
         </div>

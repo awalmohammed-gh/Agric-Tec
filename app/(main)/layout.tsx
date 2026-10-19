@@ -18,8 +18,9 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           <Sidebar />
           <MobileNavOverlay />
           {/* 900px matches the sidebar; 272px = 12px inset + 260px floating sidebar.
-              Below 900px the bottom padding clears the mobile bar and the device safe area. */}
-          <main className="min-w-0 flex-1 px-5 pb-[calc(6.5rem+env(safe-area-inset-bottom))] min-[900px]:ml-[272px] min-[900px]:pt-6 min-[900px]:pb-16 md:px-8">
+              Below 900px the bottom padding clears the mobile bar and the device safe area.
+              pt-3 = the top bar's sticky offset, so it starts level with the sidebar. */}
+          <main className="min-w-0 flex-1 px-5 pb-[calc(6.5rem+env(safe-area-inset-bottom))] min-[900px]:ml-[272px] min-[900px]:pt-3 min-[900px]:pb-16 md:px-8">
             <Topbar />
             <PageContainer>{children}</PageContainer>
           </main>

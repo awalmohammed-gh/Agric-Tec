@@ -12,7 +12,11 @@ export function Sidebar() {
       aria-label="Sidebar"
       className="glass shadow-glass fixed inset-y-3 left-3 z-40 hidden w-[260px] flex-col overflow-hidden rounded-3xl min-[900px]:flex"
     >
-      <BrandLogo subtitle="Digital Identity" className="border-border border-b px-5 py-5" />
+      <BrandLogo
+        subtitle="Digital Identity"
+        // 1px less than the top bar: the aside's own border already adds 1px above this row.
+        className="border-border h-[calc(var(--spacing-header)-1px)] shrink-0 border-b px-5"
+      />
 
       <SidebarNav />
 
