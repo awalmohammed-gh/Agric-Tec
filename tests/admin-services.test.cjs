@@ -118,10 +118,7 @@ test('first admin login seeds ~60 farmers across all 16 regions', async () => {
   await adminAuthService.changePassword(DEMO_PASSWORDS.superAdmin, NEW_SUPER_PASSWORD);
 
   const farmers = await farmersService.list();
-  assert.ok(
-    farmers.length >= 55 && farmers.length <= 65,
-    `about 60 farmers (got ${farmers.length})`,
-  );
+  assert.equal(farmers.length, 60, 'exactly 60 seeded farmers');
   const regions = new Set(farmers.map((f) => f.profile.region));
   assert.deepEqual([...regions].sort(), [...REGIONS].sort(), 'all 16 regions present');
 

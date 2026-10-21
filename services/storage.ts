@@ -56,6 +56,18 @@ export const storage = {
     }
   },
 
+  /**
+   * Roughly how much of the browser's storage the app uses, in bytes: the characters of every
+   * app key and value, counted as UTF-16 (two bytes each), which is how browsers measure the quota.
+   */
+  usageBytes(): number {
+    if (!isBrowser()) return 0;
+    let chars = 0;
+    for (const key of this.keys())
+      chars += PREFIX.length + key.length + (this.getRaw(key)?.length ?? 0);
+    return chars * 2;
+  },
+
   /** The stored JSON text of a key, unparsed, or null. */
   getRaw(key: string): string | null {
     if (!isBrowser()) return null;

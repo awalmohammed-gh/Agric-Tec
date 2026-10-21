@@ -3,9 +3,11 @@
 
 import { differenceInCalendarDays, format, isSameMonth, startOfMonth, subMonths } from 'date-fns';
 import { REGIONS } from '@/constants/regions';
+import { DEFAULT_CREDIT_CONFIG } from '@/lib/admin/defaults';
 import { percentChange } from '@/lib/calculations/finance';
 import { APPROVED_LOAN_STATUSES, LOAN_STATUSES, LOAN_STATUS_LABELS } from '@/lib/admin/loan-status';
 import type {
+  CreditConfig,
   FarmerAccount,
   LoanApplication,
   LoanStatus,
@@ -96,18 +98,34 @@ export function farmersByRegion(farmers: FarmerAccount[]): { region: string; cou
     .sort((a, b) => b.count - a.count || a.region.localeCompare(b.region));
 }
 
-export const SCORE_BUCKETS = [
-  { label: '300–499', min: 300, max: 499 },
-  { label: '500–649', min: 500, max: 649 },
-  { label: '650–749', min: 650, max: 749 },
-  { label: '750–850', min: 750, max: 850 },
-] as const;
+export interface ScoreBucket {
+  /** Building, Fair, Good or Excellent. */
+  band: string;
+  /** e.g. "300–499". */
+  label: string;
+  min: number;
+  max: number;
+}
+
+/** The four score bands from the admin's credit rules (default 300–499, 500–649, 650–749, 750–850). */
+export function scoreBuckets(
+  bands: CreditConfig['bands'] = DEFAULT_CREDIT_CONFIG.bands,
+): ScoreBucket[] {
+  const edges = [300, bands.fair, bands.good, bands.excellent, 851];
+  return ['Building', 'Fair', 'Good', 'Excellent'].map((band, i) => ({
+    band,
+    label: `${edges[i]}–${edges[i + 1] - 1}`,
+    min: edges[i],
+    max: edges[i + 1] - 1,
+  }));
+}
 
 export function scoreDistribution(
   farmers: FarmerAccount[],
-): { label: string; min: number; max: number; count: number }[] {
+  bands?: CreditConfig['bands'],
+): (ScoreBucket & { count: number })[] {
   const people = registered(farmers);
-  return SCORE_BUCKETS.map((bucket) => ({
+  return scoreBuckets(bands).map((bucket) => ({
     ...bucket,
     count: people.filter((f) => f.stats.score >= bucket.min && f.stats.score <= bucket.max).length,
   }));

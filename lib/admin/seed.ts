@@ -94,8 +94,8 @@ export function createRandom(seed: number): Random {
 
 /** 60 farmers: every region at least twice, weighted towards Ashanti, Eastern, Bono, Northern and Volta. */
 const FARMERS_PER_REGION: Record<string, number> = {
-  Ashanti: 10,
-  Eastern: 8,
+  Ashanti: 9,
+  Eastern: 7,
   Bono: 6,
   Northern: 6,
   Volta: 6,
@@ -702,6 +702,17 @@ export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
             },
           ]
         : [];
+    // Two of the three suspended farmers have appealed (the overview's "needs attention" list).
+    const suspendedSoFar = farmers.filter((f) => f.user.status === 'suspended').length;
+    if (accountStatus === 'suspended' && suspendedSoFar < 2) {
+      tags.push('appeal');
+      adminNotes.unshift({
+        id: `${userId}-note-2`,
+        text: 'The farmer appealed the suspension by phone and asked for a review.',
+        by: 'Kofi Adjei',
+        at: at(Math.max(0, Math.min(3, signupDaysAgo)), 15),
+      });
+    }
 
     const user: StoredUser = {
       id: userId,
@@ -944,6 +955,9 @@ export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
 }
 
 // ---------- Writing ----------
+
+/** When the demo platform was last seeded (or reset), or null if never. */
+export const seededAt = (): string | null => storage.get<string | null>(PLATFORM_KEYS.seeded, null);
 
 export const isSeeded = (): boolean =>
   storage.get<string | null>(PLATFORM_KEYS.seeded, null) !== null;

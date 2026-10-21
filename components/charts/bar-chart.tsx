@@ -24,6 +24,10 @@ export interface BarChartProps {
   showLegend?: boolean;
   ariaLabel?: string;
   className?: string;
+  /** Bars run left to right, with the category labels down the side. */
+  horizontal?: boolean;
+  /** Called with a bar's index when it is clicked (the cursor becomes a pointer over bars). */
+  onBarClick?: (index: number) => void;
 }
 
 export function BarChart({
@@ -34,6 +38,8 @@ export function BarChart({
   showLegend = true,
   ariaLabel = 'Bar chart',
   className,
+  horizontal = false,
+  onBarClick,
 }: BarChartProps) {
   const { baseOptions } = useChartTheme();
 
@@ -58,6 +64,18 @@ export function BarChart({
       legend: { ...baseOptions.plugins.legend, display: showLegend },
     },
     interaction: { mode: 'index', intersect: false },
+    ...(horizontal && { indexAxis: 'y' as const }),
+    ...(onBarClick && {
+      onClick: (_event, elements) => {
+        if (elements[0]) onBarClick(elements[0].index);
+      },
+      onHover: (event, elements) => {
+        const target = event.native?.target;
+        if (target instanceof HTMLElement) {
+          target.style.cursor = elements.length ? 'pointer' : 'default';
+        }
+      },
+    }),
   };
 
   return (

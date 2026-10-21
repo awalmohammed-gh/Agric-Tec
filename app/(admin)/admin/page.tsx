@@ -1,19 +1,14 @@
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
+import { AdminOverview } from '@/components/admin/overview/admin-overview';
 
 export const metadata: Metadata = { title: 'Overview' };
 
-/** Guarded by overview.view. Built in phase A6. */
+/** The admin overview dashboard. Guarded by overview.view (every staff role has it). */
 export default function AdminOverviewPage() {
   return (
-    <AdminPlaceholder
-      permission="overview.view"
-      phase="A6"
-      features={[
-        'Platform KPIs: farmers, activity, income tracked, credit scores',
-        'Sign-ups, regions, score bands and the loan funnel as charts',
-        'Queues that need attention, with links',
-      ]}
-    />
+    <RequirePermission permission="overview.view">
+      <AdminOverview />
+    </RequirePermission>
   );
 }

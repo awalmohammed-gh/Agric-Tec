@@ -8,6 +8,8 @@ export interface KpiCardProps {
   label: string;
   /** Already formatted, e.g. "GHS 1.2M" or "64". */
   value: string;
+  /** A short line under the value, e.g. "+8 in 30 days" or "68% of farmers". */
+  hint?: string;
   icon?: LucideIcon;
   /** % change vs the last period; null when there is nothing to compare with. */
   delta?: number | null;
@@ -26,6 +28,7 @@ export interface KpiCardProps {
 export function KpiCard({
   label,
   value,
+  hint,
   icon: Icon,
   delta,
   deltaLabel = 'vs last period',
@@ -52,6 +55,7 @@ export function KpiCard({
         )}
       </div>
       <p className="font-display text-text text-2xl leading-none font-bold tabular-nums">{value}</p>
+      {hint && <p className="text-text-dim -mt-1.5 text-xs">{hint}</p>}
       <div className="flex min-h-5 items-end justify-between gap-2">
         {hasDelta ? (
           <p
