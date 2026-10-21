@@ -45,6 +45,7 @@ function startSession(user: StoredUser): Session {
     userId: user.id,
     email: user.email,
     isGuest: user.isGuest,
+    role: 'farmer',
     startedAt: new Date().toISOString(),
   };
   storage.set(SESSION_KEY, session);
@@ -104,11 +105,16 @@ export const authService = {
 
   async getSession(): Promise<Session | null> {
     await delay();
-    const session = storage.get<Session | null>(SESSION_KEY, null);
+    const stored = storage.get<(Omit<Session, 'role'> & { role?: Session['role'] }) | null>(
+      SESSION_KEY,
+      null,
+    );
     // Keep the proxy cookie in sync with the stored session (e.g. after the cookie expired).
-    if (session) setSessionCookie();
+    if (stored) setSessionCookie();
     else clearSessionCookie();
-    return session;
+    // Sessions saved before roles existed have no role. Farmer-app sessions are always 'farmer',
+    // whatever is stored: admins sign in separately (A4), so this store never grants admin access.
+    return stored ? { ...stored, role: 'farmer' } : null;
   },
 
   async signOut(): Promise<void> {

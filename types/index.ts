@@ -1,5 +1,9 @@
 // ---------- Core domain types (spec Section 4) ----------
 
+import type { AccountStatus, Role } from '@/types/admin';
+
+export type { AccountStatus, Role } from '@/types/admin';
+
 export type RecordType = 'income' | 'expense' | 'activity';
 export type Crop =
   'Maize' | 'Cassava' | 'Rice' | 'Cocoa' | 'Yam' | 'Plantain' | 'Groundnut' | 'Tomato' | 'Other';
@@ -89,6 +93,8 @@ export interface User {
   id: string;
   email: string;
   isGuest: boolean;
+  role: Role;
+  status: AccountStatus;
   createdAt: string;
 }
 
@@ -96,6 +102,8 @@ export interface Session {
   userId: string;
   email: string;
   isGuest: boolean;
+  /** Always 'farmer' for farmer-app sessions. A farmer session never grants admin access. */
+  role: Role;
   startedAt: string;
 }
 
