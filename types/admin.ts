@@ -1,6 +1,6 @@
 // ---------- Admin console types (admin spec Section 4) ----------
 
-import type { AssistantReply, Crop, Profile } from '@/types';
+import type { AssistantReply, Crop, DiagnosisResult, LoanPartner, Profile } from '@/types';
 
 export type AdminRole = 'analyst' | 'support' | 'admin' | 'super_admin';
 export type Role = 'farmer' | AdminRole;
@@ -209,4 +209,81 @@ export interface AuditEntry {
   before?: unknown;
   after?: unknown;
   createdAt: string;
+}
+
+// ---------- Phase A2: service and content types ----------
+
+/** The signed-in admin, as returned by admin-auth.service. */
+export interface AdminSession {
+  admin: AdminUser;
+  startedAt: string;
+}
+
+/** A lending partner the admin manages. Only active lenders are shown to farmers. */
+export interface Lender extends LoanPartner {
+  active: boolean;
+  createdAt: string;
+}
+
+export type LenderInput = Omit<Lender, 'id' | 'createdAt'>;
+
+export type KnownCrop = Exclude<Crop, 'Other'>;
+
+/** Editable crop data. The seed defaults come from constants/crops.ts. */
+export interface CropContent {
+  crop: KnownCrop;
+  emoji: string;
+  /** Tonnes per acre under baseline conditions. */
+  yieldPerAcre: number;
+  /** Farm-gate price in GHS per tonne. */
+  pricePerTonne: number;
+  tips: string[];
+}
+
+/** A crop doctor result the admin can edit or switch off. */
+export interface DiagnosisContent extends DiagnosisResult {
+  id: string;
+  active: boolean;
+}
+
+export type CreditConfigInput = Omit<CreditConfig, 'version' | 'updatedAt' | 'updatedBy'>;
+
+export interface VerificationFilter {
+  status?: VerificationRequest['status'];
+  kind?: VerificationKind;
+  userId?: string;
+}
+
+export interface LoanApplicationFilter {
+  status?: LoanStatus;
+  partnerId?: string;
+  userId?: string;
+}
+
+export interface RiskFlagFilter {
+  status?: RiskFlag['status'];
+  severity?: RiskFlag['severity'];
+  rule?: RiskRuleId;
+  userId?: string;
+}
+
+export interface AuditFilter {
+  actorId?: string;
+  /** Exact action, or a prefix ending in '.' such as 'farmer.'. */
+  action?: string;
+  targetType?: AuditEntry['targetType'];
+  targetId?: string;
+  /** Inclusive ISO date or timestamp bounds. */
+  from?: string;
+  to?: string;
+  /** Matched against the summary, actor name and target ID. */
+  search?: string;
+}
+
+export interface Paged<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
 }

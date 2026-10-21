@@ -4,17 +4,22 @@
 
 import { generateId } from '@/lib/utils';
 import { delay, storage } from '@/services/storage';
-import type { Session } from '@/types';
+import type { AccountStatus, Session } from '@/types';
 
-interface StoredUser {
+/** A farmer account in "agrictec:users". Exported for the admin services, which manage these. */
+export interface StoredUser {
   id: string;
   email: string;
   passwordHash: string;
   isGuest: boolean;
   createdAt: string;
+  /** Set by the admin console. Missing means 'active' (accounts created before roles existed). */
+  status?: AccountStatus;
+  suspendedReason?: string;
+  lastActiveAt?: string;
 }
 
-const USERS_KEY = 'users';
+export const USERS_KEY = 'users';
 const SESSION_KEY = 'session';
 const GUEST_ID_KEY = 'guestId';
 const GUEST_EMAIL = 'guest@agrictec.demo';
@@ -22,7 +27,7 @@ const SESSION_COOKIE = 'agrictec_session';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(password: string): Promise<string> {
   const bytes = new TextEncoder().encode(password);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');

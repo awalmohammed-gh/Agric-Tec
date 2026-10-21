@@ -41,6 +41,31 @@ export const storage = {
     }
   },
 
+  /** Every app key, without the "agrictec:" prefix (used by the admin platform backup). */
+  keys(): string[] {
+    if (!isBrowser()) return [];
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        if (key?.startsWith(PREFIX)) keys.push(key.slice(PREFIX.length));
+      }
+      return keys;
+    } catch {
+      return [];
+    }
+  },
+
+  /** The stored JSON text of a key, unparsed, or null. */
+  getRaw(key: string): string | null {
+    if (!isBrowser()) return null;
+    try {
+      return window.localStorage.getItem(PREFIX + key);
+    } catch {
+      return null;
+    }
+  },
+
   /** Removes every key that belongs to one user: "agrictec:<userId>:*". */
   clearUser(userId: string): void {
     if (!isBrowser()) return;
@@ -56,6 +81,37 @@ export const storage = {
       throw new Error(
         'Could not delete your data. Check your browser storage settings and try again.',
       );
+    }
+  },
+
+  /**
+   * Replaces every app key except those `keep` protects with `entries`, restoring the previous
+   * values if a write fails (used by the admin platform import).
+   */
+  replaceKeys(entries: Record<string, unknown>, keep: (key: string) => boolean): void {
+    if (!isBrowser()) throw new Error('Data import is only available in your browser.');
+    const area = window.localStorage;
+    const previous = new Map<string, string>();
+    for (const key of this.keys()) {
+      const raw = area.getItem(PREFIX + key);
+      if (raw !== null) previous.set(key, raw);
+    }
+    const replaceable = [...previous.keys()].filter((key) => !keep(key));
+    try {
+      replaceable.forEach((key) => area.removeItem(PREFIX + key));
+      for (const [key, value] of Object.entries(entries)) {
+        if (!keep(key)) area.setItem(PREFIX + key, JSON.stringify(value));
+      }
+    } catch {
+      try {
+        this.keys()
+          .filter((key) => !keep(key))
+          .forEach((key) => area.removeItem(PREFIX + key));
+        replaceable.forEach((key) => area.setItem(PREFIX + key, previous.get(key)!));
+      } catch {
+        throw new Error('Storage is unavailable. Your backup file is unchanged.');
+      }
+      throw new Error('Import failed. The previous data has been restored.');
     }
   },
 

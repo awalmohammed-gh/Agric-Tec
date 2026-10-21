@@ -1,0 +1,204 @@
+// Validation for everything an admin can save or import. Services parse with these before writing,
+// so a bad form or a hand-edited backup file can never corrupt what farmers see.
+
+import { z } from 'zod';
+import { CROPS } from '@/constants/crops';
+import { REGIONS } from '@/constants/regions';
+
+const text = (max: number) => z.string().trim().min(1).max(max);
+const timestamp = z.iso.datetime({ offset: true });
+const percent = z.number().int().min(0).max(100);
+const score = z.number().int().min(300).max(850);
+const knownCrop = z.enum([
+  'Maize',
+  'Cassava',
+  'Rice',
+  'Cocoa',
+  'Yam',
+  'Plantain',
+  'Groundnut',
+  'Tomato',
+]);
+
+export const creditConfigInputSchema = z
+  .object({
+    weights: z.object({
+      paymentHistory: percent,
+      recordCompleteness: percent,
+      incomeStability: percent,
+      momoActivity: percent,
+      verification: percent,
+    }),
+    targets: z.object({
+      recordsForFull: z.number().int().min(1).max(1000),
+      momoForFull: z.number().int().min(1).max(1000),
+      monthsWindow: z.number().int().min(1).max(24),
+    }),
+    bands: z.object({ fair: score, good: score, excellent: score }),
+    eligibility: z.object({
+      minRecords: z.number().int().min(0).max(1000),
+      minScore: score,
+      maxProfitMultiplier: z.number().min(0.5).max(20),
+    }),
+  })
+  .superRefine((config, ctx) => {
+    const total = Object.values(config.weights).reduce((a, b) => a + b, 0);
+    if (total !== 100) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['weights'],
+        message: `Weights must add up to 100 (they add up to ${total}).`,
+      });
+    }
+    const { fair, good, excellent } = config.bands;
+    if (!(fair < good && good < excellent)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['bands'],
+        message: 'Bands must rise: Fair < Good < Excellent.',
+      });
+    }
+  });
+
+export const creditConfigSchema = z.intersection(
+  creditConfigInputSchema,
+  z.object({ version: z.number().int().min(1), updatedAt: timestamp, updatedBy: z.string() }),
+);
+
+export const featureFlagsSchema = z.object({
+  signupOpen: z.boolean(),
+  guestMode: z.boolean(),
+  aiAssistant: z.boolean(),
+  cropDoctor: z.boolean(),
+  yieldPredictor: z.boolean(),
+  loans: z.boolean(),
+  market: z.boolean(),
+  pdfReports: z.boolean(),
+  maintenanceMode: z.boolean(),
+  maintenanceMessage: z.string().trim().max(300),
+});
+
+export const plansSchema = z
+  .array(
+    z.object({
+      id: z.enum(['free', 'premium']),
+      name: text(40),
+      priceGHS: z.number().min(0).max(10000),
+      features: z.array(text(80)).max(12),
+      active: z.boolean(),
+    }),
+  )
+  .refine(
+    (plans) => new Set(plans.map((p) => p.id)).size === plans.length,
+    'Each plan appears once.',
+  );
+
+export const lenderInputSchema = z
+  .object({
+    name: text(80),
+    rate: z.number().min(0).max(100),
+    maxAmount: z.number().positive().max(10_000_000),
+    minMonths: z.number().int().min(1).max(120),
+    maxMonths: z.number().int().min(1).max(120),
+    minScore: score,
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a hex colour such as #10b981.'),
+    active: z.boolean(),
+  })
+  .refine((l) => l.maxMonths >= l.minMonths, {
+    path: ['maxMonths'],
+    message: 'Maximum months must be at least the minimum.',
+  });
+
+export const lenderSchema = z.intersection(
+  lenderInputSchema,
+  z.object({ id: text(80), createdAt: timestamp }),
+);
+
+export const marketPricesSchema = z.array(
+  z.object({
+    crop: text(40),
+    unit: text(30),
+    price: z.number().min(0).max(1_000_000),
+    change: z.number().min(-100).max(1000),
+  }),
+);
+
+export const weatherSchema = z.object({
+  condition: z.enum(['sunny', 'partly-cloudy', 'showers', 'storm']),
+  temp: z.number().min(-10).max(60),
+  description: text(80),
+  humidity: percent,
+  rainChance: percent,
+});
+
+export const cropContentSchema = z.array(
+  z.object({
+    crop: knownCrop,
+    emoji: z.string().trim().min(1).max(8),
+    yieldPerAcre: z.number().positive().max(1000),
+    pricePerTonne: z.number().positive().max(1_000_000),
+    tips: z.array(text(240)).max(10),
+  }),
+);
+
+const assistantReplySchema = z.object({
+  title: text(120),
+  intro: z.string().trim().max(600).optional(),
+  bullets: z.array(text(400)).max(10).optional(),
+  tip: z.string().trim().max(400).optional(),
+});
+
+export const assistantKbSchema = z.array(
+  z.object({
+    id: text(80),
+    keywords: z.array(z.string().trim().toLowerCase().min(1).max(60)).min(1).max(30),
+    reply: assistantReplySchema,
+    active: z.boolean(),
+    priority: z.number().int().min(0).max(1000),
+  }),
+);
+
+export const diagnosesContentSchema = z.array(
+  z.object({
+    id: text(80),
+    disease: text(80),
+    severity: z.enum(['None', 'Moderate', 'High']),
+    confidence: z.number().min(0).max(100),
+    treatment: text(1000),
+    crop: z.enum(CROPS).optional(),
+    active: z.boolean(),
+  }),
+);
+
+export const announcementInputSchema = z
+  .object({
+    title: text(80),
+    message: text(500),
+    type: z.enum(['info', 'success', 'warning', 'critical']),
+    audience: z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('all') }),
+      z.object({ kind: z.literal('region'), regions: z.array(z.enum(REGIONS)).min(1) }),
+      z.object({ kind: z.literal('crop'), crops: z.array(z.enum(CROPS)).min(1) }),
+    ]),
+    startsAt: timestamp,
+    endsAt: timestamp.optional(),
+    active: z.boolean(),
+    dismissible: z.boolean(),
+  })
+  .refine((a) => !a.endsAt || a.endsAt > a.startsAt, {
+    path: ['endsAt'],
+    message: 'The end must be after the start.',
+  });
+
+/** Readable message from the first zod issue, for toasts. */
+export function firstIssue(error: z.ZodError): string {
+  const issue = error.issues[0];
+  return issue ? issue.message : 'Invalid data.';
+}
+
+/** Parses or throws an Error with a readable message. */
+export function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
+  const result = schema.safeParse(value);
+  if (!result.success) throw new Error(firstIssue(result.error));
+  return result.data;
+}
