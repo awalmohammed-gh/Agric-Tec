@@ -1,16 +1,37 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 // ⚠️ DEMO ONLY — NOT REAL SECURITY.
-// The `agrictec_session` cookie is just a "logged-in" flag set by the browser (services/auth.service.ts)
-// so that we can redirect before a page renders. Anyone can set it by hand, and the data itself
-// lives in localStorage. A real backend must issue a signed, httpOnly session cookie and verify
-// it on the server for every request.
+// These cookies are just "signed-in" flags set by the browser (services/auth.service.ts and
+// services/admin/admin-auth.service.ts) so we can redirect before a page renders. Anyone can set
+// them by hand, and the data itself lives in localStorage. They are UX redirects only: a real
+// backend must issue signed, httpOnly session cookies and enforce roles on EVERY request.
 
 const SESSION_COOKIE = 'agrictec_session';
+const ADMIN_COOKIE = 'agrictec_admin';
 const AUTH_PAGES = ['/login', '/signup'];
+const ADMIN_LOGIN = '/admin-login';
+
+const isAdminPath = (pathname: string) => pathname === '/admin' || pathname.startsWith('/admin/');
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // ---- Admin console: its own cookie. A farmer session never grants access. ----
+  const hasAdmin = request.cookies.has(ADMIN_COOKIE);
+  if (isAdminPath(pathname)) {
+    if (!hasAdmin) {
+      const url = new URL(ADMIN_LOGIN, request.url);
+      url.searchParams.set('next', pathname);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+  if (pathname === ADMIN_LOGIN) {
+    // Open without any farmer session; an admin who is already signed in goes to the console.
+    return hasAdmin ? NextResponse.redirect(new URL('/admin', request.url)) : NextResponse.next();
+  }
+
+  // ---- Farmer app (unchanged) ----
   const hasSession = request.cookies.has(SESSION_COOKIE);
   const isAuthPage = AUTH_PAGES.some((p) => pathname.startsWith(p));
 

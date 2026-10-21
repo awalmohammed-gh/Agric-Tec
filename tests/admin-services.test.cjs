@@ -322,7 +322,7 @@ test('five failed logins lock the console for five minutes', async () => {
   }
   await assert.rejects(
     () => adminAuthService.signIn(SUPER_ADMIN_EMAIL, 'wrong'),
-    /Try again in 5 minutes/,
+    /Too many attempts\. Try again in [45]:\d\d/,
   );
   await assert.rejects(
     () => adminAuthService.signIn(SUPER_ADMIN_EMAIL, NEW_SUPER_PASSWORD),

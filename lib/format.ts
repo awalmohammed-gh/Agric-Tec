@@ -40,3 +40,9 @@ export function formatGPS(lat: number, lng: number): string {
 export function todayISO(): string {
   return format(new Date(), 'yyyy-MM-dd');
 }
+
+/** formatCountdown(299000) → "4:59" (minutes:seconds, never negative). */
+export function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}

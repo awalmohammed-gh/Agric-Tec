@@ -4,8 +4,14 @@ export function makeTempPassword(): string {
   return `Temp-${10000 + (value % 90000)}`;
 }
 
+export const ADMIN_PASSWORD_MIN_LENGTH = 10;
+
+/** The admin password policy. The change-password form shows these as a live checklist. */
 export const ADMIN_PASSWORD_RULES = [
-  { test: (p: string) => p.length >= 8, label: 'At least 8 characters' },
+  {
+    test: (p: string) => p.length >= ADMIN_PASSWORD_MIN_LENGTH,
+    label: `At least ${ADMIN_PASSWORD_MIN_LENGTH} characters`,
+  },
   { test: (p: string) => /[A-Z]/.test(p), label: 'An uppercase letter' },
   { test: (p: string) => /[a-z]/.test(p), label: 'A lowercase letter' },
   { test: (p: string) => /\d/.test(p), label: 'A number' },
