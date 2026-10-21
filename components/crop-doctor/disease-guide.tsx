@@ -5,11 +5,13 @@ import { SEVERITY_COLORS } from '@/components/crop-doctor/diagnosis-card';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { CropTile } from '@/components/ui/crop-icon';
-import { MOCK_DIAGNOSES } from '@/data/mock/diagnoses';
+import { usePlatformStore } from '@/store/platform-store';
 
 /** Common crop problems in Ghana, with their treatments, as expandable cards. */
 export function DiseaseGuide() {
-  const diseases = MOCK_DIAGNOSES.filter((d) => d.severity !== 'None');
+  // The admin's active diagnoses (defaults: the original guide).
+  const catalog = usePlatformStore((s) => s.diagnoses);
+  const diseases = catalog.filter((d) => d.active && d.severity !== 'None');
 
   return (
     <Card className="@container rounded-3xl">
@@ -24,7 +26,7 @@ export function DiseaseGuide() {
       </CardHeader>
       <ul className="grid grid-cols-1 gap-3 @2xl:grid-cols-2">
         {diseases.map((d) => (
-          <li key={d.disease}>
+          <li key={d.id}>
             <details className="group border-border bg-glass open:border-accent/40 rounded-2xl border">
               <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 p-3.5 [&::-webkit-details-marker]:hidden">
                 <CropTile crop={d.crop ?? 'Other'} size="sm" />

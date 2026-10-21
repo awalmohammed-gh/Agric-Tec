@@ -39,6 +39,17 @@ export function reaches(
   }
 }
 
+const SEVERITY: Record<Announcement['type'], number> = {
+  critical: 0,
+  warning: 1,
+  success: 2,
+  info: 3,
+};
+
+/** Critical first, then warning, success, info; newest first within each. */
+export const bySeverity = (a: Announcement, b: Announcement) =>
+  SEVERITY[a.type] - SEVERITY[b.type] || b.startsAt.localeCompare(a.startsAt);
+
 const inputOf = (a: Announcement): AnnouncementInput => ({
   title: a.title,
   message: a.message,
@@ -148,18 +159,20 @@ export const announcementsService = {
     );
   },
 
-  /** Live announcements for one farmer, most severe first. Called by the farmer app. */
-  async activeFor(profile: Pick<Profile, 'region' | 'primaryCrops'>): Promise<Announcement[]> {
+  /**
+   * Every live announcement, most severe first, for any audience. The farmer app filters these
+   * with reaches() against the current profile, so a region change applies at once.
+   */
+  async listLive(): Promise<Announcement[]> {
     await delay();
-    const order: Record<Announcement['type'], number> = {
-      critical: 0,
-      warning: 1,
-      success: 2,
-      info: 3,
-    };
     const now = new Date();
     return read()
-      .filter((a) => isLive(a, now) && reaches(a, profile))
-      .sort((a, b) => order[a.type] - order[b.type] || b.startsAt.localeCompare(a.startsAt));
+      .filter((a) => isLive(a, now))
+      .sort(bySeverity);
+  },
+
+  /** Live announcements for one farmer, most severe first. */
+  async activeFor(profile: Pick<Profile, 'region' | 'primaryCrops'>): Promise<Announcement[]> {
+    return (await announcementsService.listLive()).filter((a) => reaches(a, profile));
   },
 };

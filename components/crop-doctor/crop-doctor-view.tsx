@@ -27,6 +27,7 @@ import { Select } from '@/components/ui/select';
 import { CROP_TONES, CropIcon } from '@/components/ui/crop-icon';
 import { CROPS } from '@/constants/crops';
 import { diagnoseCrop } from '@/lib/ai/crop-diagnosis';
+import { usePlatformStore } from '@/store/platform-store';
 import { todayISO } from '@/lib/format';
 import { compressImage } from '@/lib/image/compress';
 import { cn } from '@/lib/utils';
@@ -84,7 +85,11 @@ export function CropDoctorView() {
     setSaved(false);
     setAnalyzing(true);
     try {
-      const diagnosis = await diagnoseCrop(image, selectedCrop || undefined);
+      const diagnosis = await diagnoseCrop(
+        image,
+        selectedCrop || undefined,
+        usePlatformStore.getState().diagnoses,
+      );
       if (request.current === version) setResult(diagnosis);
     } catch (error) {
       if (request.current === version)

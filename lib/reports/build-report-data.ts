@@ -155,13 +155,19 @@ function loanReadiness({
   stats,
 }: ReportSource): Omit<ReportData, 'type' | 'title' | 'generatedAt' | 'farmer'> {
   const { credit, creditLabel } = stats;
-  const maxLoan = Math.max(0, 3 * stats.annualizedProfit);
+  const weights = stats.creditConfig.weights;
+  const maxLoan = stats.borrowingPower;
   const farmerName = profile?.name.trim();
   // Sentence start vs mid-sentence, so a missing name never reads 'GHS 25,406, This farmer…'.
   const name = farmerName || 'This farmer';
   const nameMid = farmerName || 'this farmer';
   // amount 0: only the history and score rules apply here.
-  const eligibility = checkEligibility({ amount: 0, records, score: credit.score });
+  const eligibility = checkEligibility({
+    amount: 0,
+    records,
+    score: credit.score,
+    rules: stats.loanRules,
+  });
   const strong = stats.profit > 0 && eligibility.eligible;
 
   const assessment = strong
@@ -192,11 +198,15 @@ function loanReadiness({
       title: 'Credit score factors',
       headers: ['Factor', 'Score', 'Weight'],
       rows: [
-        ['Payment history (active months)', `${credit.paymentHistory}%`, '30%'],
-        ['Record completeness', `${credit.recordCompleteness}%`, '25%'],
-        ['Income stability', `${credit.incomeStability}%`, '25%'],
-        ['MoMo activity', `${credit.momoActivity}%`, '10%'],
-        ['Verification', `${credit.verification}%`, '10%'],
+        [
+          'Payment history (active months)',
+          `${credit.paymentHistory}%`,
+          `${weights.paymentHistory}%`,
+        ],
+        ['Record completeness', `${credit.recordCompleteness}%`, `${weights.recordCompleteness}%`],
+        ['Income stability', `${credit.incomeStability}%`, `${weights.incomeStability}%`],
+        ['MoMo activity', `${credit.momoActivity}%`, `${weights.momoActivity}%`],
+        ['Verification', `${credit.verification}%`, `${weights.verification}%`],
       ],
       align: ['left', 'right', 'right'],
     },

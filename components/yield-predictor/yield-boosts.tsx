@@ -8,6 +8,7 @@ import {
 } from '@/components/yield-predictor/yield-options';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { predictYield } from '@/lib/calculations/yield';
+import { usePlatformStore } from '@/store/platform-store';
 import { formatGHS } from '@/lib/format';
 import type { YieldInput, YieldResult } from '@/types';
 
@@ -27,6 +28,7 @@ const labelOf = <T extends string>(options: { value: T; label: string }[], value
 
 /** "What if" upgrades: each input switched to its best option, with the extra harvest it adds. */
 export function YieldBoosts({ input, result }: { input: YieldInput; result: YieldResult }) {
+  const crops = usePlatformStore((s) => s.crops);
   const candidates: (Omit<Upgrade, 'extraTonnes' | 'extraRevenue'> & { next: YieldInput })[] = [];
   if (input.irrigation !== 'drip') {
     candidates.push({
@@ -61,7 +63,7 @@ export function YieldBoosts({ input, result }: { input: YieldInput; result: Yiel
 
   const upgrades: Upgrade[] = candidates
     .map(({ next, ...rest }) => {
-      const better = predictYield(next);
+      const better = predictYield(next, crops);
       return {
         ...rest,
         extraTonnes: better.expected - result.expected,
@@ -70,7 +72,10 @@ export function YieldBoosts({ input, result }: { input: YieldInput; result: Yiel
     })
     .sort((a, b) => b.extraRevenue - a.extraRevenue);
 
-  const all = predictYield({ ...input, irrigation: 'drip', fertilizer: 'both', season: 'major' });
+  const all = predictYield(
+    { ...input, irrigation: 'drip', fertilizer: 'both', season: 'major' },
+    crops,
+  );
 
   return (
     <Card className="animate-fade-in rounded-3xl">

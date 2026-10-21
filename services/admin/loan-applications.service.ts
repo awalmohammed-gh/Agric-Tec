@@ -19,6 +19,19 @@ export interface NewLoanApplication {
   scoreAtApplication: number;
 }
 
+/** An application as the farmer app stored it before the admin console (phases 1–15). */
+export interface LegacyApplication {
+  id: string;
+  userId: string;
+  reference: string;
+  partnerId: string;
+  amount: number;
+  months: number;
+  purpose: string;
+  monthly: number;
+  createdAt: string;
+}
+
 const read = () => storage.get<LoanApplication[]>(PLATFORM_KEYS.loanApplications, []);
 const write = (items: LoanApplication[]) => storage.set(PLATFORM_KEYS.loanApplications, items);
 
@@ -66,6 +79,39 @@ export const loanApplicationsService = {
     return read()
       .filter((a) => a.userId === userId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  /**
+   * One-time move of applications a farmer saved before the admin console existed. They join
+   * the pipeline as submitted. Applications already on the platform (same ID) are skipped.
+   */
+  async adoptLegacy(
+    userId: string,
+    legacy: LegacyApplication[],
+    scoreAtApplication: number,
+  ): Promise<void> {
+    const existing = read();
+    const known = new Set(existing.map((a) => a.id));
+    const lenders = await lendersService.list({ includeInactive: true });
+    const by = readProfile(userId).name || 'Farmer';
+    const adopted = legacy
+      .filter((old) => !known.has(old.id))
+      .map((old): LoanApplication => ({
+        id: old.id,
+        reference: old.reference,
+        userId,
+        partnerId: old.partnerId,
+        amount: old.amount,
+        months: old.months,
+        purpose: old.purpose,
+        rate: lenders.find((l) => l.id === old.partnerId)?.rate ?? 0,
+        monthly: old.monthly,
+        scoreAtApplication,
+        status: 'submitted',
+        history: [{ status: 'submitted', by, at: old.createdAt }],
+        createdAt: old.createdAt,
+      }));
+    if (adopted.length) write([...adopted, ...existing]);
   },
 
   /** Called by the farmer app. The rate comes from the lender, which must be active. */

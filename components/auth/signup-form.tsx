@@ -22,6 +22,7 @@ import { FormField, fieldErrorId, fieldHintId } from '@/components/ui/form-field
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
+import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
 
 const STRENGTH_STYLE: Record<PasswordStrength, { bar: string; text: string; width: string }> = {
@@ -47,6 +48,8 @@ export function SignupForm() {
 
   const password = useWatch({ control, name: 'password' });
   const strength = password ? passwordStrength(password) : null;
+  // The admin can close sign-ups and guest mode (auth.service enforces both too).
+  const { signupOpen, guestMode } = usePlatformStore((s) => s.flags);
 
   async function onSubmit(values: SignupValues) {
     setFormError(null);
@@ -66,6 +69,23 @@ export function SignupForm() {
 
   const describedBy = (id: string, hasError: boolean, hint?: string) =>
     hasError ? fieldErrorId(id) : hint;
+
+  if (!signupOpen) {
+    return (
+      <div className="space-y-4 text-center">
+        <h1 className="font-display text-text text-2xl font-bold">Sign-ups are closed</h1>
+        <p className="text-text-dim text-sm">
+          New accounts can&apos;t be created right now. Please check back soon.
+        </p>
+        <p className="text-text-dim text-sm">
+          Already have an account?{' '}
+          <Link href="/login" className="text-ink-green font-semibold hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -160,8 +180,12 @@ export function SignupForm() {
         </Button>
       </form>
 
-      <AuthDivider />
-      <GuestButton />
+      {guestMode && (
+        <>
+          <AuthDivider />
+          <GuestButton />
+        </>
+      )}
 
       <p className="text-text-dim text-center text-sm">
         Already have an account?{' '}

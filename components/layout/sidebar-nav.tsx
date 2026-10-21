@@ -2,17 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { isItemActive, NAV_SECTIONS } from '@/constants/navigation';
+import { enabledNavSections, isItemActive } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
 import { navKey, useT } from '@/lib/i18n';
+import { usePlatformStore } from '@/store/platform-store';
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const t = useT();
+  // Pages the admin has switched off are hidden.
+  const flags = usePlatformStore((s) => s.flags);
 
   return (
     <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-4">
-      {NAV_SECTIONS.map((section) => (
+      {enabledNavSections(flags).map((section) => (
         <div key={section.title} className="mb-5 last:mb-0">
           <p className="text-text-mute mb-2 px-3 text-[10px] font-semibold tracking-wider uppercase">
             {t(`nav.section.${section.title}`)}

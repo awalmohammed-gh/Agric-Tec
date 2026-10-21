@@ -3,6 +3,7 @@
 // Replace this module with calls to a real authentication API before going to production.
 
 import { generateId } from '@/lib/utils';
+import { readFlags } from '@/services/admin/config.service';
 import { delay, storage } from '@/services/storage';
 import type { AccountStatus, Session } from '@/types';
 
@@ -25,6 +26,8 @@ const GUEST_ID_KEY = 'guestId';
 const GUEST_EMAIL = 'guest@agrictec.demo';
 const SESSION_COOKIE = 'agrictec_session';
 
+export const SUSPENDED_MESSAGE = 'Your account is suspended. Contact support.';
+
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 export async function hashPassword(password: string): Promise<string> {
@@ -36,6 +39,12 @@ export async function hashPassword(password: string): Promise<string> {
 const readUsers = () => storage.get<StoredUser[]>(USERS_KEY, []);
 const writeUsers = (users: StoredUser[]) => storage.set(USERS_KEY, users);
 
+/** Records when the farmer last used the app (shown to admins as "last active"). */
+function markActive(userId: string): void {
+  const now = new Date().toISOString();
+  writeUsers(readUsers().map((u) => (u.id === userId ? { ...u, lastActiveAt: now } : u)));
+}
+
 /** The cookie is only a flag for proxy.ts; the session itself lives in localStorage. */
 function setSessionCookie(): void {
   document.cookie = `${SESSION_COOKIE}=1; path=/; max-age=2592000; SameSite=Lax`;
@@ -46,6 +55,8 @@ function clearSessionCookie(): void {
 }
 
 function startSession(user: StoredUser): Session {
+  if (user.status === 'suspended') throw new Error(SUSPENDED_MESSAGE);
+  markActive(user.id);
   const session: Session = {
     userId: user.id,
     email: user.email,
@@ -59,8 +70,10 @@ function startSession(user: StoredUser): Session {
 }
 
 export const authService = {
+  /** Blocked while the admin has closed sign-ups. */
   async signUp(email: string, password: string): Promise<Session> {
     await delay();
+    if (!readFlags().signupOpen) throw new Error('New sign-ups are closed right now.');
     const normalized = normalizeEmail(email);
     const users = readUsers();
     if (users.some((u) => !u.isGuest && u.email === normalized)) {
@@ -90,6 +103,7 @@ export const authService = {
   /** There is only ever one guest: its ID is created once and reused, so demo data never vanishes. */
   async continueAsGuest(): Promise<Session> {
     await delay();
+    if (!readFlags().guestMode) throw new Error('Guest mode is turned off right now.');
     const users = readUsers();
     const guestId = storage.get<string | null>(GUEST_ID_KEY, null);
 
@@ -120,6 +134,19 @@ export const authService = {
     // Sessions saved before roles existed have no role. Farmer-app sessions are always 'farmer',
     // whatever is stored: admins sign in separately (A4), so this store never grants admin access.
     return stored ? { ...stored, role: 'farmer' } : null;
+  },
+
+  /**
+   * The account's current status, checked each time the app loads, so a farmer suspended by an
+   * admin is signed out of an already-open session. Also records the visit as activity.
+   */
+  async checkAccount(userId: string): Promise<AccountStatus | 'deleted'> {
+    await delay(0);
+    const user = readUsers().find((u) => u.id === userId);
+    // An admin can delete an account permanently; its open session must end too.
+    if (!user) return 'deleted';
+    if (user.status !== 'suspended') markActive(userId);
+    return user.status ?? 'active';
   },
 
   async signOut(): Promise<void> {

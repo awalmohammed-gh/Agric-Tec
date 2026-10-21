@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LOAN_PARTNERS, LOAN_PERIODS, LOAN_PURPOSES } from '@/constants/loan-partners';
+import { LOAN_PERIODS, LOAN_PURPOSES } from '@/constants/loan-partners';
 import type { LoanPartner } from '@/types';
 
 export const MIN_LOAN = 500;
@@ -18,6 +18,7 @@ export const loanSchema = z.object({
 export type LoanFormInput = z.input<typeof loanSchema>;
 export type LoanFormValues = z.output<typeof loanSchema>;
 
-export function findPartner(id: string): LoanPartner | undefined {
-  return LOAN_PARTNERS.find((p) => p.id === id);
+/** A lender from the admin's list (pass the active lenders from the platform store). */
+export function findPartner(id: string, lenders: LoanPartner[]): LoanPartner | undefined {
+  return lenders.find((p) => p.id === id);
 }

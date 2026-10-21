@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getAssistantReply, type AssistantContext } from '@/lib/ai/assistant-replies';
 import { calculateCreditScore } from '@/lib/calculations/credit-score';
+import { usePlatformStore } from '@/store/platform-store';
 import { totalExpenses, totalIncome } from '@/lib/calculations/finance';
 import { generateId } from '@/lib/utils';
 import { chatService } from '@/services/chat.service';
@@ -88,7 +89,8 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       const profile = profileState.userId === userId ? profileState.profile : null;
       const records = farm.userId === userId ? farm.records : [];
       const momo = farm.userId === userId ? farm.momo : [];
-      const credit = calculateCreditScore(records, momo, profile);
+      const platform = usePlatformStore.getState();
+      const credit = calculateCreditScore(records, momo, profile, platform.creditConfig);
       const context: AssistantContext = {
         farmerName: profile?.name || 'Farmer',
         region: profile?.region || '',
@@ -98,8 +100,12 @@ export const useChatStore = create<ChatState>()((set, get) => ({
         expenses: totalExpenses(records),
         recordCount: records.length,
         creditFactors: credit,
+        bands: platform.creditConfig.bands,
       };
-      const reply = await getAssistantReply(trimmed, context);
+      const reply = await getAssistantReply(trimmed, context, {
+        knowledge: platform.knowledge,
+        crops: platform.crops,
+      });
       if (!isCurrent()) return;
       const aiMessage: ChatMessage = {
         id: generateId(),

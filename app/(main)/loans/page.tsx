@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { FeatureGate } from '@/components/shared/feature-gate';
 import { ApplyConfirmModal } from '@/components/loans/apply-confirm-modal';
 import { LoansHero } from '@/components/loans/loans-hero';
 import { LoanWorkspace } from '@/components/loans/loan-workspace';
@@ -11,10 +12,12 @@ export const metadata: Metadata = { title: 'Loans & Credit' };
  */
 export default function LoansPage() {
   return (
-    <div className="@container space-y-6">
-      <LoansHero />
-      <LoanWorkspace />
-      <ApplyConfirmModal />
-    </div>
+    <FeatureGate flag="loans">
+      <div className="@container space-y-6">
+        <LoansHero />
+        <LoanWorkspace />
+        <ApplyConfirmModal />
+      </div>
+    </FeatureGate>
   );
 }

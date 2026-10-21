@@ -1,26 +1,35 @@
-import { BASE_YIELD_PER_ACRE, PRICE_PER_TONNE, YIELD_MULTIPLIERS } from '@/constants/crops';
+import { YIELD_MULTIPLIERS } from '@/constants/crops';
+import { DEFAULT_CROP_CONTENT } from '@/lib/admin/defaults';
 import type { YieldInput, YieldResult } from '@/types';
+import type { CropContent } from '@/types/admin';
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
-function baseYield(crop: YieldInput['crop']): number {
-  return crop === 'Other' ? 0 : BASE_YIELD_PER_ACRE[crop];
-}
+/** The admin's data for a crop, or undefined (for 'Other' or a crop with no data). */
+export const findCrop = (crop: YieldInput['crop'], crops: CropContent[] = DEFAULT_CROP_CONTENT) =>
+  crops.find((c) => c.crop === crop);
 
-function pricePerTonne(crop: YieldInput['crop']): number {
-  return crop === 'Other' ? 0 : PRICE_PER_TONNE[crop];
-}
+/** Tonnes per acre under baseline conditions (0 when unknown). */
+export const baseYield = (crop: YieldInput['crop'], crops?: CropContent[]) =>
+  findCrop(crop, crops)?.yieldPerAcre ?? 0;
 
-/** Deterministic yield prediction: the same input always gives the same output. */
-export function predictYield(input: YieldInput): YieldResult {
+/** Farm-gate price in GHS per tonne (0 when unknown). */
+export const pricePerTonne = (crop: YieldInput['crop'], crops?: CropContent[]) =>
+  findCrop(crop, crops)?.pricePerTonne ?? 0;
+
+/**
+ * Deterministic yield prediction: the same input always gives the same output.
+ * Yields and prices come from the admin's crop content (defaults: constants/crops.ts).
+ */
+export function predictYield(input: YieldInput, crops?: CropContent[]): YieldResult {
   const { fertilizer, irrigation, season } = YIELD_MULTIPLIERS;
   const perAcre =
-    baseYield(input.crop) *
+    baseYield(input.crop, crops) *
     fertilizer[input.fertilizer] *
     irrigation[input.irrigation] *
     season[input.season];
   const expected = perAcre * input.acres;
-  const price = pricePerTonne(input.crop);
+  const price = pricePerTonne(input.crop, crops);
 
   return {
     low: round2(expected * 0.9),
@@ -33,8 +42,12 @@ export function predictYield(input: YieldInput): YieldResult {
 }
 
 /** One line of advice: praise strong management, or name the single biggest improvement. */
-export function yieldInsight(input: YieldInput, result: YieldResult): string {
-  const base = baseYield(input.crop);
+export function yieldInsight(
+  input: YieldInput,
+  result: YieldResult,
+  crops?: CropContent[],
+): string {
+  const base = baseYield(input.crop, crops);
   if (base === 0) {
     return 'We do not have baseline yield data for this crop yet. Record your harvests to build your own benchmark.';
   }

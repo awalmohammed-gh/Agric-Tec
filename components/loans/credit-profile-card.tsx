@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowRight, Target } from 'lucide-react';
-import { FACTORS, SCORE_RANGE, ScoreFactors } from '@/components/loans/score-factors';
+import { factorsFor, SCORE_RANGE, ScoreFactors } from '@/components/loans/score-factors';
 import { Badge, type BadgeColor } from '@/components/ui/badge';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { useFarmStats } from '@/hooks/use-farm-stats';
@@ -29,13 +29,15 @@ const FACTOR_LINKS: Record<string, string> = {
  * plus the single change that would add the most points.
  */
 export function CreditProfileCard({ className }: { className?: string }) {
-  const { credit, creditLabel } = useFarmStats();
+  const { credit, creditLabel, creditConfig } = useFarmStats();
 
-  const opportunities = FACTORS.map((factor) => {
-    const max = Math.round((factor.weight / 100) * SCORE_RANGE);
-    const earned = Math.round((credit[factor.key] / 100) * max);
-    return { ...factor, available: max - earned };
-  }).sort((a, b) => b.available - a.available);
+  const opportunities = factorsFor(creditConfig)
+    .map((factor) => {
+      const max = Math.round((factor.weight / 100) * SCORE_RANGE);
+      const earned = Math.round((credit[factor.key] / 100) * max);
+      return { ...factor, available: max - earned };
+    })
+    .sort((a, b) => b.available - a.available);
   const top = opportunities[0];
 
   return (

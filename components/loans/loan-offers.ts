@@ -1,4 +1,3 @@
-import { LOAN_PARTNERS } from '@/constants/loan-partners';
 import { matchPercentage, monthlyRepayment } from '@/lib/calculations/loan';
 import type { LoanPartner, RepaymentResult } from '@/types';
 
@@ -22,8 +21,13 @@ export interface LoanOffer {
  * Every lender priced for the same loan, best first: lenders that qualify, then those that
  * offer the term, then the rest; cheapest monthly payment first within each group.
  */
-export function rankOffers(amount: number, months: number, score: number): LoanOffer[] {
-  const offers = LOAN_PARTNERS.map((partner) => {
+export function rankOffers(
+  amount: number,
+  months: number,
+  score: number,
+  lenders: LoanPartner[],
+): LoanOffer[] {
+  const offers = lenders.map((partner) => {
     const offersTerm = months >= partner.minMonths && months <= partner.maxMonths;
     const overMax = amount > partner.maxAmount;
     const scoreGap = Math.max(0, partner.minScore - score);

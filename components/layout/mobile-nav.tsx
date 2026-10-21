@@ -5,13 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Grid2x2, LogOut, X } from 'lucide-react';
 import { useSignOut } from '@/components/layout/use-sign-out';
-import {
-  isNavActive,
-  MOBILE_MENU_ITEMS,
-  MOBILE_PRIMARY_NAV,
-  type NavItem,
-} from '@/constants/navigation';
+import { isNavActive, mobileNavFor, type NavItem } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
+import { usePlatformStore } from '@/store/platform-store';
 import { useUiStore } from '@/store/ui-store';
 
 /** Menu grid cell: icon above a small centred label, no card. At least 64px tall to tap. */
@@ -60,6 +56,8 @@ export function MobileNav() {
   const toggle = useUiStore((s) => s.toggleMobileNav);
   const close = useUiStore((s) => s.closeMobileNav);
   const { signOut, signingOut } = useSignOut();
+  // Pages the admin has switched off are left out of the bar and the menu.
+  const { primary: primaryNav, menu: menuItems } = mobileNavFor(usePlatformStore((s) => s.flags));
 
   const sheetId = useId();
   const titleId = useId();
@@ -67,7 +65,7 @@ export function MobileNav() {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
 
-  const activeMenuItem = MOBILE_MENU_ITEMS.find((item) => isNavActive(pathname, item.href));
+  const activeMenuItem = menuItems.find((item) => isNavActive(pathname, item.href));
 
   // Move focus into the sheet when it opens, and back to the Menu button when it closes.
   useEffect(() => {
@@ -140,7 +138,7 @@ export function MobileNav() {
         {/* 4 × 2 icon grid: icon on top, small label underneath, no cards */}
         <nav aria-label="More pages">
           <ul className="grid grid-cols-4 gap-x-1 gap-y-2">
-            {MOBILE_MENU_ITEMS.map((item) => {
+            {menuItems.map((item) => {
               const active = isNavActive(pathname, item.href);
               const Icon = item.icon;
               return (
@@ -191,7 +189,7 @@ export function MobileNav() {
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <ul className="border-border bg-bg-2/95 pointer-events-auto mx-auto grid h-16 max-w-md grid-cols-5 items-center rounded-3xl border px-0.5 shadow-[0_-4px_30px_-8px_rgba(0,0,0,0.35)] backdrop-blur-xl *:flex *:justify-center">
-          {MOBILE_PRIMARY_NAV.slice(0, 2).map((item) => (
+          {primaryNav.slice(0, 2).map((item) => (
             <li key={item.href}>
               <BarLink item={item} active={isNavActive(pathname, item.href)} />
             </li>
@@ -247,7 +245,7 @@ export function MobileNav() {
               </span>
             </button>
           </li>
-          {MOBILE_PRIMARY_NAV.slice(2).map((item) => (
+          {primaryNav.slice(2).map((item) => (
             <li key={item.href}>
               <BarLink item={item} active={isNavActive(pathname, item.href)} />
             </li>

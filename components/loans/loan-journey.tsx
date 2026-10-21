@@ -16,28 +16,29 @@ interface Step {
 
 /** Four steps from "no history" to "applied", highlighting where the farmer is now. */
 export function LoanJourney() {
-  const { recordCount, credit, annualizedProfit } = useFarmStats();
+  const { recordCount, credit, annualizedProfit, borrowingPower, loanRules } = useFarmStats();
+  const { minRecords, minScore } = loanRules;
   const applications = useLoanStore((s) => s.applications);
   const setTab = useLoanStore((s) => s.setTab);
 
   const steps: Step[] = [
     {
       title: 'Build your records',
-      detail: `${Math.min(recordCount, 5)} of 5 farm records`,
-      done: recordCount >= 5,
+      detail: `${Math.min(recordCount, minRecords)} of ${minRecords} farm records`,
+      done: recordCount >= minRecords,
       action: { label: 'Add records', href: '/records' },
     },
     {
-      title: 'Reach a 550 score',
+      title: `Reach a ${minScore} score`,
       detail: `Your score is ${credit.score}`,
-      done: credit.score >= 550,
+      done: credit.score >= minScore,
       action: { label: 'Improve score', href: '/settings/verification' },
     },
     {
       title: 'Show a profit',
       detail:
         annualizedProfit > 0
-          ? `Borrow up to ${formatGHS(3 * annualizedProfit)}`
+          ? `Borrow up to ${formatGHS(borrowingPower)}`
           : 'No profit recorded yet',
       done: annualizedProfit > 0,
       action: { label: 'Record sales', href: '/records' },

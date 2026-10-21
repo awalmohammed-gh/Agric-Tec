@@ -3,41 +3,54 @@
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { cn } from '@/lib/utils';
 import type { CreditScoreBreakdown } from '@/types';
+import type { CreditConfig } from '@/types/admin';
 
 type FactorKey = Exclude<keyof CreditScoreBreakdown, 'score'>;
 
-export const FACTORS: { key: FactorKey; label: string; weight: number; help: string }[] = [
-  {
-    key: 'paymentHistory',
-    label: 'Payment History',
-    weight: 30,
-    help: 'Record something every month',
-  },
-  {
-    key: 'recordCompleteness',
-    label: 'Record Completeness',
-    weight: 25,
-    help: 'Aim for 30+ records',
-  },
-  {
-    key: 'incomeStability',
-    label: 'Income Stability',
-    weight: 25,
-    help: 'Keep income above expenses',
-  },
-  {
-    key: 'momoActivity',
-    label: 'MoMo Activity',
-    weight: 10,
-    help: 'Log your Mobile Money transactions',
-  },
-  {
-    key: 'verification',
-    label: 'Verification',
-    weight: 10,
-    help: 'Complete your profile and Ghana Card',
-  },
-];
+export interface ScoreFactor {
+  key: FactorKey;
+  label: string;
+  /** % of the score, from the admin's credit rules. */
+  weight: number;
+  help: string;
+}
+
+/** The five factors with the admin's weights and targets (defaults: 30/25/25/10/10, 30 records). */
+export function factorsFor(config: CreditConfig): ScoreFactor[] {
+  const { weights, targets } = config;
+  return [
+    {
+      key: 'paymentHistory',
+      label: 'Payment History',
+      weight: weights.paymentHistory,
+      help: 'Record something every month',
+    },
+    {
+      key: 'recordCompleteness',
+      label: 'Record Completeness',
+      weight: weights.recordCompleteness,
+      help: `Aim for ${targets.recordsForFull}+ records`,
+    },
+    {
+      key: 'incomeStability',
+      label: 'Income Stability',
+      weight: weights.incomeStability,
+      help: 'Keep income above expenses',
+    },
+    {
+      key: 'momoActivity',
+      label: 'MoMo Activity',
+      weight: weights.momoActivity,
+      help: 'Log your Mobile Money transactions',
+    },
+    {
+      key: 'verification',
+      label: 'Verification',
+      weight: weights.verification,
+      help: 'Complete your profile and Ghana Card',
+    },
+  ];
+}
 
 export const SCORE_RANGE = 550; // 850 − 300
 
@@ -49,11 +62,11 @@ function barTone(value: number): string {
 
 /** The five weighted factors behind the credit score, with how many points each adds. */
 export function ScoreFactors() {
-  const { credit } = useFarmStats();
+  const { credit, creditConfig } = useFarmStats();
 
   return (
     <ul className="space-y-4">
-      {FACTORS.map((factor) => {
+      {factorsFor(creditConfig).map((factor) => {
         const value = credit[factor.key];
         const max = Math.round((factor.weight / 100) * SCORE_RANGE);
         const points = Math.round((value / 100) * max);

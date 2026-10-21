@@ -39,6 +39,7 @@ import { fieldErrorId } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { YIELD_MULTIPLIERS } from '@/constants/crops';
 import { predictYield } from '@/lib/calculations/yield';
+import { usePlatformStore } from '@/store/platform-store';
 import { cn } from '@/lib/utils';
 import { useProfileStore } from '@/store/profile-store';
 import type { YieldResult as Prediction } from '@/types';
@@ -140,6 +141,7 @@ function OptionCards<T extends string>({
 
 export function YieldForm() {
   const profile = useProfileStore((state) => state.profile);
+  const crops = usePlatformStore((s) => s.crops);
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const defaultCrop = YIELD_CROPS.find((crop) => crop === profile?.primaryCrops[0]) ?? 'Maize';
   const {
@@ -195,7 +197,7 @@ export function YieldForm() {
             onSubmit={handleSubmit(async (input) => {
               try {
                 // Await also supports a future API-backed implementation of predictYield.
-                const result = await predictYield(input);
+                const result = await predictYield(input, crops);
                 setEstimate({ input, result });
               } catch {
                 toast.error('Could not predict your yield. Please try again.');

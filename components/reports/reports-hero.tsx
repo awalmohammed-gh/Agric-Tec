@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { formatDate, formatGHS } from '@/lib/format';
 import { useFarmStore } from '@/store/farm-store';
+import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
 import { useReportStore } from '@/store/report-store';
 
@@ -23,9 +24,10 @@ import { useReportStore } from '@/store/report-store';
  * themes, like a printed report.
  */
 function DocumentMockup() {
-  const { credit, creditLabel, profit, annualizedProfit } = useFarmStats();
+  const { credit, creditLabel, profit, borrowingPower, creditConfig } = useFarmStats();
   const name = useProfileStore((s) => s.profile?.name.trim()) || 'Your farm';
-  const maxLoan = Math.max(0, 3 * annualizedProfit);
+  const maxLoan = borrowingPower;
+  const pdfEnabled = usePlatformStore((s) => s.flags.pdfReports);
 
   return (
     <div aria-hidden="true" className="relative mx-auto h-[300px] w-[250px] select-none">
@@ -50,7 +52,7 @@ function DocumentMockup() {
               ['Credit score', `${credit.score} (${creditLabel})`],
               ['Net profit', formatGHS(profit)],
               ['Max. loan', formatGHS(maxLoan)],
-              ['Status', credit.score >= 650 ? 'Loan ready' : 'Building'],
+              ['Status', credit.score >= creditConfig.bands.good ? 'Loan ready' : 'Building'],
             ].map(([label, value]) => (
               <div key={label} className="rounded-md bg-slate-50 px-2 py-1.5 ring-1 ring-slate-100">
                 <p className="text-[7px] text-slate-400">{label}</p>
@@ -76,10 +78,12 @@ function DocumentMockup() {
           </div>
         </div>
       </div>
-      {/* Verified seal */}
-      <div className="absolute -right-3 bottom-6 inline-flex items-center gap-1.5 rounded-full bg-[#022c22] px-3 py-1.5 text-[11px] font-semibold text-[#34d399] shadow-lg ring-1 ring-[#34d399]/40">
-        <ShieldCheck size={13} /> PDF ready
-      </div>
+      {/* Verified seal (only while PDF downloads are switched on) */}
+      {pdfEnabled && (
+        <div className="absolute -right-3 bottom-6 inline-flex items-center gap-1.5 rounded-full bg-[#022c22] px-3 py-1.5 text-[11px] font-semibold text-[#34d399] shadow-lg ring-1 ring-[#34d399]/40">
+          <ShieldCheck size={13} /> PDF ready
+        </div>
+      )}
     </div>
   );
 }
@@ -88,7 +92,7 @@ export function ReportsHero() {
   const { credit, creditLabel, recordCount, momo } = useFarmStats();
   const latest = useFarmStore((s) => s.records[0]?.date);
   const openPreview = useReportStore((s) => s.openPreview);
-  const { busy, download } = useReportDownload();
+  const { busy, download, enabled: pdfEnabled } = useReportDownload();
 
   const facts = [
     { icon: ShieldCheck, text: `Credit score ${credit.score} · ${creditLabel}` },
@@ -141,15 +145,17 @@ export function ReportsHero() {
             <Button icon={FileCheck2} onClick={() => openPreview('loan')}>
               Generate Loan Report
             </Button>
-            <Button
-              variant="ghost"
-              icon={FileStack}
-              loading={busy === 'all'}
-              disabled={busy !== null && busy !== 'all'}
-              onClick={() => download('all')}
-            >
-              {busy === 'all' ? 'Building your file…' : 'Download complete file'}
-            </Button>
+            {pdfEnabled && (
+              <Button
+                variant="ghost"
+                icon={FileStack}
+                loading={busy === 'all'}
+                disabled={busy !== null && busy !== 'all'}
+                onClick={() => download('all')}
+              >
+                {busy === 'all' ? 'Building your file…' : 'Download complete file'}
+              </Button>
+            )}
           </div>
           <p className="text-text-mute mt-4 flex items-center gap-1.5 text-xs">
             <Lock size={12} aria-hidden="true" /> Reports are created on your device. Nothing is

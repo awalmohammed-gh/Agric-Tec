@@ -3,16 +3,27 @@ import { toast } from 'sonner';
 import { REPORT_ORDER } from '@/components/reports/report-meta';
 import { useReportBuilder } from '@/hooks/use-report-data';
 import { generateReportPDF } from '@/lib/pdf/generate-report';
+import { usePlatformStore } from '@/store/platform-store';
 import type { ReportType } from '@/types';
 
 export type DownloadTarget = ReportType | 'all';
 
-/** Downloads one report, or all four as a single combined PDF, with a busy state per target. */
+export const PDF_UNAVAILABLE = 'PDF downloads are currently unavailable.';
+
+/**
+ * Downloads one report, or all four as a single combined PDF, with a busy state per target.
+ * `enabled` is false while the admin has PDF reports switched off; downloads are then refused.
+ */
 export function useReportDownload() {
   const buildReport = useReportBuilder();
+  const enabled = usePlatformStore((s) => s.flags.pdfReports);
   const [busy, setBusy] = useState<DownloadTarget | null>(null);
 
   async function download(target: DownloadTarget) {
+    if (!usePlatformStore.getState().flags.pdfReports) {
+      toast.error(PDF_UNAVAILABLE);
+      return;
+    }
     setBusy(target);
     try {
       const now = new Date();
@@ -29,5 +40,5 @@ export function useReportDownload() {
     }
   }
 
-  return { busy, download };
+  return { busy, download, enabled };
 }

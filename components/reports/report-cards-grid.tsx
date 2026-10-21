@@ -48,25 +48,31 @@ function itemsLabel(type: ReportType, count: number): string {
 export function ReportCardsGrid({ className }: { className?: string }) {
   const openPreview = useReportStore((s) => s.openPreview);
   const buildReport = useReportBuilder();
-  const { busy, download } = useReportDownload();
+  const { busy, download, enabled: pdfEnabled } = useReportDownload();
 
   return (
     <Card className={cn('@container', className)}>
       <CardHeader className="flex-wrap">
         <div>
           <CardTitle>Report Library</CardTitle>
-          <CardSub>Preview a report, then download it as a PDF to share with lenders</CardSub>
+          <CardSub>
+            {pdfEnabled
+              ? 'Preview a report, then download it as a PDF to share with lenders'
+              : 'Preview your reports. PDF downloads are currently unavailable.'}
+          </CardSub>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={FileStack}
-          loading={busy === 'all'}
-          disabled={busy !== null && busy !== 'all'}
-          onClick={() => download('all')}
-        >
-          All 4 as one PDF
-        </Button>
+        {pdfEnabled && (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={FileStack}
+            loading={busy === 'all'}
+            disabled={busy !== null && busy !== 'all'}
+            onClick={() => download('all')}
+          >
+            All 4 as one PDF
+          </Button>
+        )}
       </CardHeader>
 
       <ul className="grid grid-cols-1 gap-4 @lg:grid-cols-2">
@@ -120,20 +126,22 @@ export function ReportCardsGrid({ className }: { className?: string }) {
                       className="transition-transform group-hover:translate-x-0.5"
                     />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => download(type)}
-                    disabled={busy !== null}
-                    aria-label={`Download ${report.title} as PDF`}
-                    className="border-border bg-glass text-text-dim hover:bg-glass-strong hover:text-text relative z-10 inline-flex min-h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors disabled:opacity-60"
-                  >
-                    {busy === type ? (
-                      <Loader2 size={15} aria-hidden="true" className="animate-spin" />
-                    ) : (
-                      <Download size={15} aria-hidden="true" />
-                    )}
-                    PDF
-                  </button>
+                  {pdfEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => download(type)}
+                      disabled={busy !== null}
+                      aria-label={`Download ${report.title} as PDF`}
+                      className="border-border bg-glass text-text-dim hover:bg-glass-strong hover:text-text relative z-10 inline-flex min-h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors disabled:opacity-60"
+                    >
+                      {busy === type ? (
+                        <Loader2 size={15} aria-hidden="true" className="animate-spin" />
+                      ) : (
+                        <Download size={15} aria-hidden="true" />
+                      )}
+                      PDF
+                    </button>
+                  )}
                 </div>
               </div>
             </li>

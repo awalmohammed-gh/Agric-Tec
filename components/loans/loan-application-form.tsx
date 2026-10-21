@@ -33,6 +33,7 @@ import { formatGHS } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useFarmStore } from '@/store/farm-store';
 import { useLoanStore } from '@/store/loan-store';
+import { usePlatformStore } from '@/store/platform-store';
 import type { EligibilityResult as Eligibility, LoanPartner, RepaymentResult } from '@/types';
 
 interface CheckResult {
@@ -42,7 +43,7 @@ interface CheckResult {
   repayment: RepaymentResult;
 }
 
-const SLIDER_MAX = 200_000; // the largest partner limit
+const DEFAULT_SLIDER_MAX = 200_000;
 const SLIDER_STEP = 500;
 const QUICK_AMOUNTS = [5_000, 10_000, 25_000];
 
@@ -62,10 +63,14 @@ const stepLabel = 'text-text-dim mb-2 text-xs font-semibold tracking-wide upperc
  */
 export function LoanApplicationForm({ className }: { className?: string }) {
   const records = useFarmStore((s) => s.records);
-  const { credit, annualizedProfit } = useFarmStats();
+  const { credit, borrowingPower: maxAffordable, loanRules } = useFarmStats();
+  const lenders = usePlatformStore((s) => s.lenders);
   const openConfirm = useLoanStore((s) => s.openConfirm);
   const [result, setResult] = useState<CheckResult | null>(null);
-  const maxAffordable = Math.max(0, 3 * annualizedProfit);
+  // The slider reaches the largest active lender's limit.
+  const sliderMax = lenders.length
+    ? Math.max(...lenders.map((l) => l.maxAmount))
+    : DEFAULT_SLIDER_MAX;
 
   const {
     register,
@@ -84,7 +89,7 @@ export function LoanApplicationForm({ className }: { className?: string }) {
   });
   const amount = Number(amountRaw) || 0;
   const period = Number(monthsRaw);
-  const offers = rankOffers(amount, period, credit.score);
+  const offers = rankOffers(amount, period, credit.score, lenders);
   const selected = offers.find((o) => o.partner.id === partnerId && o.offersTerm);
 
   // Keep a lender picked: the best offer by default, and again when the term rules one out.
@@ -94,7 +99,7 @@ export function LoanApplicationForm({ className }: { className?: string }) {
   }, [selected, fallbackId, setValue]);
 
   function onSubmit(values: LoanFormValues) {
-    const partner = findPartner(values.partnerId);
+    const partner = findPartner(values.partnerId, lenders);
     if (!partner) return;
     setResult({
       values,
@@ -104,6 +109,7 @@ export function LoanApplicationForm({ className }: { className?: string }) {
         records,
         score: credit.score,
         partner,
+        rules: loanRules,
       }),
       repayment: monthlyRepayment(values.amount, partner.rate, values.months),
     });
@@ -117,7 +123,7 @@ export function LoanApplicationForm({ className }: { className?: string }) {
       purpose !== result.values.purpose);
 
   // Slider track: green up to the borrowing limit, neutral beyond it.
-  const limitPct = Math.min(100, (maxAffordable / SLIDER_MAX) * 100);
+  const limitPct = Math.min(100, (maxAffordable / sliderMax) * 100);
   const withinLimit = amount <= maxAffordable;
   const trackStyle: CSSProperties = {
     background: `linear-gradient(to right, color-mix(in oklab, var(--accent) 55%, transparent) ${limitPct}%, var(--glass-strong) ${limitPct}%)`,
@@ -169,9 +175,9 @@ export function LoanApplicationForm({ className }: { className?: string }) {
             <input
               type="range"
               min={MIN_LOAN}
-              max={SLIDER_MAX}
+              max={sliderMax}
               step={SLIDER_STEP}
-              value={Math.min(SLIDER_MAX, Math.max(MIN_LOAN, amount))}
+              value={Math.min(sliderMax, Math.max(MIN_LOAN, amount))}
               onChange={(event) =>
                 setValue('amount', Number(event.target.value), { shouldValidate: true })
               }
@@ -181,7 +187,7 @@ export function LoanApplicationForm({ className }: { className?: string }) {
             />
             <div className="text-text-mute flex justify-between text-[11px]">
               <span>{formatGHS(MIN_LOAN)}</span>
-              <span>{formatGHS(SLIDER_MAX)}</span>
+              <span>{formatGHS(sliderMax)}</span>
             </div>
             <p
               id="loan-limit-note"

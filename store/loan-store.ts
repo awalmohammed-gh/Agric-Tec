@@ -26,7 +26,8 @@ interface LoanState {
   setTab: (tab: LoanTab) => void;
   openConfirm: (draft: LoanDraft) => void;
   closeConfirm: () => void;
-  submit: (input: LoanApplicationInput) => Promise<LoanApplication>;
+  /** `score` is recorded with the application so lenders see the score at the time of applying. */
+  submit: (input: LoanApplicationInput, score: number) => Promise<LoanApplication>;
 }
 
 export const useLoanStore = create<LoanState>()((set, get) => ({
@@ -52,10 +53,10 @@ export const useLoanStore = create<LoanState>()((set, get) => ({
   openConfirm: (confirm) => set({ confirm }),
   closeConfirm: () => set({ confirm: null }),
 
-  submit: async (input) => {
+  submit: async (input, score) => {
     const userId = useAuthStore.getState().session?.userId;
     if (!userId) throw new Error('You need to sign in first');
-    const application = await loansService.submitApplication(userId, input);
+    const application = await loansService.submitApplication(userId, input, score);
     set((state) => ({ applications: [application, ...state.applications] }));
     return application;
   },

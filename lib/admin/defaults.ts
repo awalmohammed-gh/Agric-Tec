@@ -105,25 +105,26 @@ export const DEFAULT_DIAGNOSES: DiagnosisContent[] = MOCK_DIAGNOSES.map((diagnos
 }));
 
 /**
- * The assistant's topics from lib/ai/assistant-replies.ts as editable items. An item matches when
- * the message contains any of its keywords (whole words or phrases); the highest priority wins.
+ * The assistant's original topics as editable knowledge items, in the original priority order.
+ * Matching and placeholders are documented in lib/ai/assistant-replies.ts: a keyword matches when
+ * all its words appear in the message ("maize plant*" = "maize" and a word starting with "plant").
  */
 export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
   {
     id: 'kb-maize-planting',
-    keywords: ['plant maize', 'maize planting', 'maize season', 'when to plant'],
+    keywords: ['maize plant*', 'maize when', 'maize season*'],
     priority: 100,
     active: true,
     reply: {
       title: 'Maize Planting in Ghana',
-      intro: 'Here are the usual planting windows. Wait for reliable rains before sowing.',
+      intro: 'Here are the usual planting windows, {name}. Wait for reliable rains before sowing.',
       bullets: [
         'Major season: March–April in the forest and transitional zones.',
         'Minor season: August where a second rainy season supports maize.',
         'Northern zones: May–June, following the onset of reliable rains.',
         'Use healthy, locally adapted seed and prepare a well-drained seedbed.',
       ],
-      tip: 'Confirm your local rainfall pattern with a MoFA extension officer.',
+      tip: 'For {region}, {plantingWindow}.',
     },
   },
   {
@@ -151,14 +152,8 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
     active: true,
     reply: {
       title: 'Improve Your Credit Score',
-      intro: 'These five steps help build your farm financial history.',
-      bullets: [
-        'Record genuine farm or MoMo activity each month to build a consistent six-month history.',
-        'Log every sale, expense and activity, and work towards 30 combined farm and MoMo entries.',
-        'Budget for the next season and plan sales to improve your surplus.',
-        'Log genuine farm-related Mobile Money receipts and payments.',
-        'Complete your profile, then verify your phone, location and Ghana Card.',
-      ],
+      intro: 'Your score is {score} ({scoreLabel}). {creditFocus}',
+      bullets: ['{creditSteps}'],
       tip: 'This is your AgriCtec farm score. Lenders make their own decisions; improving it does not guarantee a loan.',
     },
   },
@@ -169,8 +164,10 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
     active: true,
     reply: {
       title: 'Cocoa Prices',
-      intro: 'Prices in the app are indicative, not a live buying quote.',
+      intro:
+        'These are indicative mock prices from the app’s market data, not a live buying quote.',
       bullets: [
+        '{cocoaPrice}',
         'Compare the unit, weight and any deductions before agreeing to a sale.',
         'Keep your weighing slip and sale receipt, and record the income in your farm records.',
       ],
@@ -179,23 +176,24 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
   },
   {
     id: 'kb-weather',
-    keywords: ['weather', 'rain', 'rains', 'rainfall'],
+    keywords: ['weather', 'rain*'],
     priority: 60,
     active: true,
     reply: {
       title: 'Weather Intelligence',
-      intro: 'App weather is simulated, not a live forecast.',
+      intro:
+        'Today’s app weather: {weather}. This is simulated weather, not a live forecast for {region}.',
       bullets: [
-        'Check field drainage and postpone spraying if rain is expected.',
-        'Plan demanding field work for cooler morning hours and keep drinking water nearby.',
-        'Check a local forecast before planting or scheduling field work.',
+        '{rainAdvice}',
+        '{fieldWorkAdvice}',
+        'Check a local forecast for {region} before planting{cropWork}.',
       ],
       tip: 'Use rainfall onset and soil moisture together when deciding when to plant.',
     },
   },
   {
     id: 'kb-fertilizer',
-    keywords: ['fertilizer', 'fertiliser', 'fertilizers', 'npk'],
+    keywords: ['fertiliz*', 'fertilis*', 'npk'],
     priority: 50,
     active: true,
     reply: {
@@ -212,18 +210,29 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
   },
   {
     id: 'kb-finances',
-    keywords: ['profit', 'profits', 'income', 'expense', 'expenses', 'money', 'finances'],
+    keywords: [
+      'profit',
+      'profits',
+      'income',
+      'expense',
+      'expenses',
+      'money',
+      'finance',
+      'finances',
+    ],
     priority: 40,
     active: true,
     reply: {
       title: 'Your Farm Finances',
-      intro: 'Your income, expenses and profit come from your farm records.',
+      intro:
+        '{name}, here is your all-time summary from {records} farm records. MoMo transfers are excluded to avoid double-counting.',
       bullets: [
-        'Record every sale and expense on the day it happens.',
-        'Review your largest expense category before your next purchase.',
-        'Set aside part of your surplus for next season’s inputs.',
+        'Total income: {income}.',
+        'Total expenses: {expenses}.',
+        'Net profit: {profit}.',
+        'Profit margin: {margin}.',
       ],
-      tip: 'Add your first sale and expense in Farm Records to start tracking your profit.',
+      tip: '{financeTip}',
     },
   },
   {
@@ -233,8 +242,8 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
     active: true,
     reply: {
       title: 'Cassava Tips',
-      intro: 'These four practices can help with your cassava crop.',
-      bullets: [...CROP_TIPS.Cassava],
+      intro: 'These four practices can help with your cassava crop in {region}.',
+      bullets: ['{tips:Cassava}'],
       tip: 'Ask your local MoFA extension officer which improved varieties suit your soil and market.',
     },
   },
@@ -244,7 +253,7 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
     priority: 20,
     active: true,
     reply: {
-      title: 'Akwaaba!',
+      title: 'Akwaaba, {name}!',
       intro:
         'I’m your AgriCtec AI assistant. Ask me a farming or farm-finance question in plain English.',
       bullets: [
@@ -252,17 +261,17 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
         'Weather information and indicative cocoa market prices.',
         'Your farm income, expenses, profit and personalised credit-score steps.',
       ],
-      tip: 'Try a quick prompt below to get started.',
+      tip: 'Try a quick prompt below to get started. Replies are rule-based for now.',
     },
   },
   {
     id: 'kb-thanks',
-    keywords: ['thank', 'thanks', 'thank you'],
+    keywords: ['thank*'],
     priority: 10,
     active: true,
     reply: {
       title: 'You’re welcome!',
-      intro: 'Happy farming! I’m here when you need a hand.',
+      intro: 'Happy farming, {name}! I’m here when you need a hand.',
     },
   },
 ];

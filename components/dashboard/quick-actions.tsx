@@ -12,8 +12,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useModalStore, type GlobalModal } from '@/store/modal-store';
+import { usePlatformStore } from '@/store/platform-store';
+import type { FeatureKey } from '@/types/admin';
 
-type QuickAction = { label: string; icon: LucideIcon; tone: string } & (
+type QuickAction = { label: string; icon: LucideIcon; tone: string; flag?: FeatureKey } & (
   { modal: GlobalModal } | { href: string }
 );
 
@@ -25,9 +27,22 @@ const ACTIONS: QuickAction[] = [
     icon: ScanLine,
     tone: 'bg-purple/15 text-ink-purple',
     href: '/crop-doctor',
+    flag: 'cropDoctor',
   },
-  { label: 'Ask AI', icon: Bot, tone: 'bg-info/15 text-ink-blue', href: '/assistant' },
-  { label: 'Apply Loan', icon: HandCoins, tone: 'bg-accent/15 text-ink-green', href: '/loans' },
+  {
+    label: 'Ask AI',
+    icon: Bot,
+    tone: 'bg-info/15 text-ink-blue',
+    href: '/assistant',
+    flag: 'aiAssistant',
+  },
+  {
+    label: 'Apply Loan',
+    icon: HandCoins,
+    tone: 'bg-accent/15 text-ink-green',
+    href: '/loans',
+    flag: 'loans',
+  },
   { label: 'Export', icon: Download, tone: 'bg-glass-strong text-text-dim', href: '/reports' },
 ];
 
@@ -54,11 +69,14 @@ function TileContent({ action }: { action: QuickAction }) {
 /** Six one-tap shortcuts. Lays out 3 per row, or all 6 in one row when its container is wide. */
 export function QuickActions({ className }: { className?: string }) {
   const openModal = useModalStore((s) => s.openModal);
+  const flags = usePlatformStore((s) => s.flags);
+  // Shortcuts to pages the admin has switched off are hidden.
+  const actions = ACTIONS.filter((action) => !action.flag || flags[action.flag]);
 
   return (
     <nav aria-label="Quick actions" className={cn('@container', className)}>
       <ul className="grid grid-cols-3 gap-2 sm:gap-3 @lg:grid-cols-6">
-        {ACTIONS.map((action) => (
+        {actions.map((action) => (
           <li key={action.label}>
             {'modal' in action ? (
               <button

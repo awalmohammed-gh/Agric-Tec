@@ -9,11 +9,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/store/auth-store';
+import { usePlatformStore } from '@/store/platform-store';
 
 export function AccountSettings() {
   const session = useAuthStore((state) => state.session);
   const { signOut, signingOut } = useSignOut();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const plans = usePlatformStore((state) => state.plans);
+  const freeName = plans.find((plan) => plan.id === 'free')?.name ?? 'Free Plan';
+  // The upgrade offer only shows while the admin has the Premium plan switched on.
+  const premiumOffered = plans.some((plan) => plan.id === 'premium' && plan.active);
   return (
     <Card className="flex h-full flex-col rounded-3xl">
       <CardHeader>
@@ -28,11 +33,13 @@ export function AccountSettings() {
       <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b pb-4">
         <div>
           <p className="text-text-mute text-xs">Plan</p>
-          <Badge className="mt-2">Free Plan</Badge>
+          <Badge className="mt-2">{freeName}</Badge>
         </div>
-        <Button size="sm" variant="ghost" icon={Sparkles} onClick={() => setUpgradeOpen(true)}>
-          Upgrade
-        </Button>
+        {premiumOffered && (
+          <Button size="sm" variant="ghost" icon={Sparkles} onClick={() => setUpgradeOpen(true)}>
+            Upgrade
+          </Button>
+        )}
       </div>
       <div className="py-4">
         <p className="text-text-mute text-xs">Signed in as</p>

@@ -12,6 +12,7 @@ import { checkEligibility, monthlyRepayment } from '@/lib/calculations/loan';
 import { formatGHS } from '@/lib/format';
 import { useFarmStore } from '@/store/farm-store';
 import { useLoanStore, type LoanDraft } from '@/store/loan-store';
+import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
 import type { LoanApplication } from '@/types';
 
@@ -19,13 +20,14 @@ import type { LoanApplication } from '@/types';
 function ApplyContent({ draft, onClose }: { draft: LoanDraft; onClose: () => void }) {
   const records = useFarmStore((s) => s.records);
   const name = useProfileStore((s) => s.profile?.name.trim()) || 'Not provided';
-  const { credit, creditLabel } = useFarmStats();
+  const { credit, creditLabel, loanRules } = useFarmStats();
+  const lenders = usePlatformStore((s) => s.lenders);
   const submit = useLoanStore((s) => s.submit);
   const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [application, setApplication] = useState<LoanApplication | null>(null);
 
-  const partner = findPartner(draft.partnerId);
+  const partner = findPartner(draft.partnerId, lenders);
   if (!partner) return null;
 
   const eligibility = checkEligibility({
@@ -33,6 +35,7 @@ function ApplyContent({ draft, onClose }: { draft: LoanDraft; onClose: () => voi
     records,
     score: credit.score,
     partner,
+    rules: loanRules,
   });
   const repayment = monthlyRepayment(draft.amount, partner.rate, draft.months);
 
@@ -40,13 +43,16 @@ function ApplyContent({ draft, onClose }: { draft: LoanDraft; onClose: () => voi
     if (!partner) return;
     setSending(true);
     try {
-      const sent = await submit({
-        partnerId: partner.id,
-        amount: draft.amount,
-        purpose: draft.purpose,
-        months: draft.months,
-        monthly: repayment.monthly,
-      });
+      const sent = await submit(
+        {
+          partnerId: partner.id,
+          amount: draft.amount,
+          purpose: draft.purpose,
+          months: draft.months,
+          monthly: repayment.monthly,
+        },
+        credit.score,
+      );
       setApplication(sent);
       toast.success(`Application sent to ${partner.name}`);
     } catch (error) {
@@ -183,7 +189,8 @@ function ApplyContent({ draft, onClose }: { draft: LoanDraft; onClose: () => voi
 export function ApplyConfirmModal() {
   const draft = useLoanStore((s) => s.confirm);
   const closeConfirm = useLoanStore((s) => s.closeConfirm);
-  const partner = draft ? findPartner(draft.partnerId) : undefined;
+  const lenders = usePlatformStore((s) => s.lenders);
+  const partner = draft ? findPartner(draft.partnerId, lenders) : undefined;
 
   return (
     <Modal

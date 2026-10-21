@@ -7,9 +7,17 @@ import { useProfileStore } from '@/store/profile-store';
 import { useSettingsStore } from '@/store/settings-store';
 import { useUiStore } from '@/store/ui-store';
 import { useModalStore } from '@/store/modal-store';
+import { initialPlatformState, usePlatformStore } from '@/store/platform-store';
 import { useReportStore } from '@/store/report-store';
 
-export { useAuthStore, useChatStore, useFarmStore, useProfileStore, useSettingsStore };
+export {
+  useAuthStore,
+  useChatStore,
+  useFarmStore,
+  usePlatformStore,
+  useProfileStore,
+  useSettingsStore,
+};
 
 /** Loads every user-data store in parallel. Await this before rendering the app shell. */
 export async function loadAllStores(userId: string): Promise<void> {
@@ -19,6 +27,7 @@ export async function loadAllStores(userId: string): Promise<void> {
     useChatStore.getState().load(userId),
     useSettingsStore.getState().load(userId),
     useLoanStore.getState().load(userId),
+    usePlatformStore.getState().load(userId),
   ]);
 }
 
@@ -36,6 +45,7 @@ export function resetAllStores(): void {
     status: 'idle',
   });
   useUiStore.setState({ mobileNavOpen: false });
+  usePlatformStore.setState(initialPlatformState());
   useLoanStore.setState({
     userId: null,
     applications: [],

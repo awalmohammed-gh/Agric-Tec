@@ -1,17 +1,25 @@
+'use client';
+
 import { Lightbulb } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { CropTile } from '@/components/ui/crop-icon';
-import { BASE_YIELD_PER_ACRE, CROP_TIPS, PRICE_PER_TONNE } from '@/constants/crops';
+import { findCrop } from '@/lib/calculations/yield';
 import { formatGHS } from '@/lib/format';
+import { usePlatformStore } from '@/store/platform-store';
 import type { Crop } from '@/types';
 
 export function YieldTips({ crop }: { crop: Exclude<Crop, 'Other'> }) {
+  // The admin's crop data, falling back to the built-in figures for a crop it has removed.
+  const crops = usePlatformStore((s) => s.crops);
+  const data = findCrop(crop, crops) ?? findCrop(crop);
+  const yieldPerAcre = data?.yieldPerAcre ?? 0;
+  const price = data?.pricePerTonne ?? 0;
   const facts = [
-    { label: 'Average yield', value: `${BASE_YIELD_PER_ACRE[crop]} t/acre` },
-    { label: 'Farm-gate price', value: `${formatGHS(PRICE_PER_TONNE[crop])}/t` },
+    { label: 'Average yield', value: `${yieldPerAcre} t/acre` },
+    { label: 'Farm-gate price', value: `${formatGHS(price)}/t` },
     {
       label: 'Average revenue',
-      value: `${formatGHS(BASE_YIELD_PER_ACRE[crop] * PRICE_PER_TONNE[crop])}/acre`,
+      value: `${formatGHS(yieldPerAcre * price)}/acre`,
     },
   ];
 
@@ -45,7 +53,7 @@ export function YieldTips({ crop }: { crop: Exclude<Crop, 'Other'> }) {
       </div>
 
       <ol className="mt-5 grid gap-3 @2xl:grid-cols-2 @5xl:grid-cols-4">
-        {CROP_TIPS[crop].map((tip, index) => (
+        {(data?.tips ?? []).map((tip, index) => (
           <li
             key={tip}
             className="border-border bg-bg-2/40 hover:border-accent/30 relative flex flex-col gap-3 overflow-hidden rounded-2xl border p-4 transition-colors"

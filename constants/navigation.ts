@@ -13,6 +13,7 @@ import {
   Settings,
   type LucideIcon,
 } from 'lucide-react';
+import type { FeatureFlags, FeatureKey } from '@/types/admin';
 
 export interface NavItem {
   label: string;
@@ -20,6 +21,8 @@ export interface NavItem {
   icon: LucideIcon;
   /** Path prefix that counts as this item being active, when wider than `href`. */
   match?: string;
+  /** The admin feature flag that switches this page on or off. */
+  flag?: FeatureKey;
 }
 
 export interface NavSection {
@@ -40,16 +43,21 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'AI Powered',
     items: [
-      { label: 'AI Assistant', href: '/assistant', icon: Bot },
-      { label: 'AI Crop Doctor', href: '/crop-doctor', icon: Stethoscope },
-      { label: 'AI Yield Predictor', href: '/yield-predictor', icon: Wheat },
+      { label: 'AI Assistant', href: '/assistant', icon: Bot, flag: 'aiAssistant' },
+      { label: 'AI Crop Doctor', href: '/crop-doctor', icon: Stethoscope, flag: 'cropDoctor' },
+      {
+        label: 'AI Yield Predictor',
+        href: '/yield-predictor',
+        icon: Wheat,
+        flag: 'yieldPredictor',
+      },
     ],
   },
   {
     title: 'Finance',
     items: [
-      { label: 'Loans & Credit', href: '/loans', icon: HandCoins },
-      { label: 'Market & Weather', href: '/market', icon: Store },
+      { label: 'Loans & Credit', href: '/loans', icon: HandCoins, flag: 'loans' },
+      { label: 'Market & Weather', href: '/market', icon: Store, flag: 'market' },
     ],
   },
   {
@@ -117,7 +125,7 @@ export const isItemActive = (pathname: string, item: NavItem) =>
 export const MOBILE_PRIMARY_NAV: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Records', href: '/records', icon: Leaf },
-  { label: 'Crop Doctor', href: '/crop-doctor', icon: Stethoscope },
+  { label: 'Crop Doctor', href: '/crop-doctor', icon: Stethoscope, flag: 'cropDoctor' },
   { label: 'Profile', href: '/settings/profile', icon: UserRound },
 ];
 
@@ -135,3 +143,26 @@ export const MOBILE_MENU_ITEMS: NavItem[] = [
   ),
   { label: 'Settings', href: '/settings/preferences', icon: Settings },
 ];
+
+/** Whether a nav item's feature is switched on (items without a flag always are). */
+export const isNavEnabled = (item: NavItem, flags: FeatureFlags) => !item.flag || flags[item.flag];
+
+/** The sidebar sections with switched-off features removed (and any section left empty). */
+export const enabledNavSections = (flags: FeatureFlags): NavSection[] =>
+  NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => isNavEnabled(item, flags)),
+  })).filter((section) => section.items.length > 0);
+
+/**
+ * The mobile bar and menu for the current flags. A switched-off bar destination is replaced by
+ * the first enabled menu page, so the bar always keeps four destinations around the Menu button.
+ */
+export function mobileNavFor(flags: FeatureFlags): { primary: NavItem[]; menu: NavItem[] } {
+  const menu = MOBILE_MENU_ITEMS.filter((item) => isNavEnabled(item, flags));
+  const primary = MOBILE_PRIMARY_NAV.map((item) => {
+    if (isNavEnabled(item, flags)) return item;
+    return menu.shift() ?? null;
+  }).filter((item): item is NavItem => item !== null);
+  return { primary, menu };
+}

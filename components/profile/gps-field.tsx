@@ -5,6 +5,7 @@ import { ExternalLink, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { formatGPS } from '@/lib/format';
+import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
 
 export function GpsField() {
@@ -32,6 +33,14 @@ export function GpsField() {
             gps: { lat: coords.latitude, lng: coords.longitude },
             verification: { location: true },
           });
+          // Location checks stay instant; this only records the approved check for the admin.
+          void usePlatformStore
+            .getState()
+            .logInstantCheck(
+              'location',
+              `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`,
+            )
+            .catch(() => {});
           if (active.current) toast.success('Farm location saved and verified');
         } catch (error) {
           if (active.current)

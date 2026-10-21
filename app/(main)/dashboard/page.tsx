@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AiRecommendations } from '@/components/dashboard/ai-recommendations';
+import { AnnouncementBanner } from '@/components/dashboard/announcement-banner';
 import { DashboardHero } from '@/components/dashboard/dashboard-hero';
 import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
 import { InsightBanner } from '@/components/dashboard/insight-banner';
@@ -17,6 +18,7 @@ export const metadata: Metadata = { title: 'Dashboard' };
 export default function DashboardPage() {
   return (
     <div className="@container space-y-5 sm:space-y-6">
+      <AnnouncementBanner />
       <InsightBanner />
 
       <div className="grid grid-cols-1 gap-5 sm:gap-6 @4xl:grid-cols-3">

@@ -21,11 +21,11 @@ import {
   totalIncome,
   ytdIncome,
 } from '@/lib/calculations/finance';
+import { borrowingLimit } from '@/lib/calculations/loan';
 import { useFarmStore } from '@/store/farm-store';
+import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
 import type { ReadinessItem } from '@/types';
-
-const MIN_RECORDS = 5;
 
 /**
  * Every derived number the pages need, computed from the stores.
@@ -35,8 +35,15 @@ export function useFarmStats() {
   const records = useFarmStore((s) => s.records);
   const momo = useFarmStore((s) => s.momo);
   const profile = useProfileStore((s) => s.profile);
+  // The admin's credit rules (weights, targets, bands, loan eligibility).
+  const creditConfig = usePlatformStore((s) => s.creditConfig);
+  const cardUnderReview = usePlatformStore((s) =>
+    s.verifications.some((v) => v.kind === 'ghanaCard' && v.status === 'pending'),
+  );
+  const loanRules = creditConfig.eligibility;
+  const minRecords = loanRules.minRecords;
 
-  const credit = calculateCreditScore(records, momo, profile);
+  const credit = calculateCreditScore(records, momo, profile, creditConfig);
   const momoSummary = momoTotals(momo);
   const profileComplete = isProfileComplete(profile);
   const monthly6 = monthlySeries(records, 6);
@@ -56,8 +63,8 @@ export function useFarmStats() {
     {
       key: 'records',
       label: 'Financial Records',
-      description: `${Math.min(records.length, MIN_RECORDS)} of ${MIN_RECORDS} farm records logged.`,
-      done: records.length >= MIN_RECORDS,
+      description: `${Math.min(records.length, minRecords)} of ${minRecords} farm records logged.`,
+      done: records.length >= minRecords,
     },
     {
       key: 'momo',
@@ -81,7 +88,9 @@ export function useFarmStats() {
       label: 'Ghana Card',
       description: profile?.verification.ghanaCard
         ? 'Your Ghana Card is verified.'
-        : 'Verify your Ghana Card in your profile.',
+        : cardUnderReview
+          ? 'Your Ghana Card is under review.'
+          : 'Verify your Ghana Card in your profile.',
       done: profile?.verification.ghanaCard ?? false,
     },
   ];
@@ -108,9 +117,14 @@ export function useFarmStats() {
       momoNet: monthOverMonth(momoNet6),
     },
     credit,
-    creditLabel: scoreLabel(credit.score),
+    creditLabel: scoreLabel(credit.score, creditConfig.bands),
+    creditConfig,
+    /** Minimum records, minimum score and the profit multiple lenders allow. */
+    loanRules,
     health: financialHealth(records),
     annualizedProfit: annualizedNetProfit(records),
+    /** The most the farmer can borrow under the admin's rules. */
+    borrowingPower: borrowingLimit(annualizedNetProfit(records), loanRules),
     readiness,
     recordCount: records.length,
     profileComplete,

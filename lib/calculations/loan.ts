@@ -1,3 +1,4 @@
+import { DEFAULT_CREDIT_CONFIG } from '@/lib/admin/defaults';
 import { annualizedNetProfit } from '@/lib/calculations/finance';
 import { formatGHS } from '@/lib/format';
 import type {
@@ -7,10 +8,15 @@ import type {
   LoanPartner,
   RepaymentResult,
 } from '@/types';
+import type { CreditConfig } from '@/types/admin';
 
-const DEFAULT_MIN_SCORE = 550;
-const MIN_RECORDS = 5;
-const PROFIT_MULTIPLE = 3;
+export type EligibilityRules = CreditConfig['eligibility'];
+
+/** The most a farmer can borrow: the admin's multiple of their annualized profit. */
+export const borrowingLimit = (
+  annualizedProfit: number,
+  rules: EligibilityRules = DEFAULT_CREDIT_CONFIG.eligibility,
+) => Math.max(0, rules.maxProfitMultiplier * annualizedProfit);
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
@@ -32,32 +38,38 @@ export function monthlyRepayment(
   };
 }
 
-/** Checks every eligibility rule and collects ALL failing reasons, not just the first. */
+/**
+ * Checks every eligibility rule and collects ALL failing reasons, not just the first.
+ * `rules` come from the admin's credit config. A chosen lender's own minimum score replaces
+ * the platform minimum, as before; the platform minimum applies when no lender is chosen.
+ */
 export function checkEligibility({
   amount,
   records,
   score,
   partner,
+  rules = DEFAULT_CREDIT_CONFIG.eligibility,
 }: {
   amount: number;
   records: FarmRecord[];
   score: number;
   partner?: LoanPartner;
+  rules?: EligibilityRules;
 }): EligibilityResult {
   const issues: EligibilityIssue[] = [];
-  const maxAffordable = Math.max(0, PROFIT_MULTIPLE * annualizedNetProfit(records));
-  const minScore = partner?.minScore ?? DEFAULT_MIN_SCORE;
+  const maxAffordable = borrowingLimit(annualizedNetProfit(records), rules);
+  const minScore = partner?.minScore ?? rules.minScore;
 
-  if (records.length < MIN_RECORDS) {
+  if (records.length < rules.minRecords) {
     issues.push({
       code: 'records',
-      message: `You need at least ${MIN_RECORDS} farm records (you have ${records.length}).`,
+      message: `You need at least ${rules.minRecords} farm records (you have ${records.length}).`,
     });
   }
   if (amount > maxAffordable) {
     issues.push({
       code: 'affordability',
-      message: `Requested amount is above 3× your yearly profit (max ${formatGHS(maxAffordable)}).`,
+      message: `Requested amount is above ${rules.maxProfitMultiplier}× your yearly profit (max ${formatGHS(maxAffordable)}).`,
     });
   }
   if (score < minScore) {

@@ -1,8 +1,8 @@
 import { format, getMonth, getYear, startOfMonth, subMonths } from 'date-fns';
-import { MARKET_PRICES } from '@/data/mock/market-prices';
 import { WEATHER_CONDITIONS } from '@/data/mock/weather';
 import { marketCropKey } from '@/lib/market/data';
-import { delay, sessionStore } from '@/services/storage';
+import { contentService } from '@/services/admin/content.service';
+import { sessionStore } from '@/services/storage';
 import type { MarketPrice, PriceTrends, Weather } from '@/types';
 
 const WEATHER_KEY = 'weather';
@@ -47,9 +47,13 @@ function hashString(value: string): number {
 }
 
 export const marketService = {
-  /** Picks one weather condition per browser session, so it stays the same until the tab closes. */
+  /**
+   * The admin's weather override when one is set. Otherwise picks one simulated condition per
+   * browser session, so it stays the same until the tab closes.
+   */
   async getWeather(): Promise<WeatherSnapshot> {
-    await delay();
+    const override = await contentService.getWeatherOverride();
+    if (override) return { ...override, updatedAt: new Date().toISOString() };
     if (tabWeather) return { ...tabWeather };
     const saved = sessionStore.get<WeatherSnapshot | null>(WEATHER_KEY, null);
     if (validWeather(saved)) {
@@ -69,9 +73,9 @@ export const marketService = {
     return { ...tabWeather };
   },
 
+  /** The admin's market prices (defaults: data/mock/market-prices.ts), as fresh copies. */
   async getPrices(): Promise<MarketPrice[]> {
-    await delay();
-    return MARKET_PRICES.map((price) => ({ ...price }));
+    return contentService.getMarketPrices();
   },
 
   /**
@@ -80,7 +84,7 @@ export const marketService = {
    * between renders, and the latest month always equals today's price.
    */
   async getPriceTrends(crops: string[], months: number): Promise<PriceTrends> {
-    await delay();
+    const listed = await contentService.getMarketPrices();
     const thisMonth = startOfMonth(new Date());
     const monthStarts = Array.from({ length: months }, (_, i) =>
       subMonths(thisMonth, months - 1 - i),
@@ -90,7 +94,7 @@ export const marketService = {
       labels: monthStarts.map((month) => format(month, 'MMM')),
       series: crops.map((crop) => {
         const current =
-          MARKET_PRICES.find((p) => marketCropKey(p.crop) === marketCropKey(crop))?.price ?? 100;
+          listed.find((p) => marketCropKey(p.crop) === marketCropKey(crop))?.price ?? 100;
         const prices = monthStarts.map((month, i) => {
           if (i === months - 1) return current;
           const monthIndex = getYear(month) * 12 + getMonth(month);

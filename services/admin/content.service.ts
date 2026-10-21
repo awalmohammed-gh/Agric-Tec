@@ -22,6 +22,9 @@ import type { MarketPrice, Weather } from '@/types';
 import type { AssistantKnowledgeItem, CropContent, DiagnosisContent } from '@/types/admin';
 import type { z } from 'zod';
 
+/** A deep copy of a stored value (or the default), so callers can never mutate shared defaults. */
+const read = <T>(key: string, fallback: T): T => structuredClone(storage.get<T>(key, fallback));
+
 /** Validates, audits and stores one content key. */
 function saveContent<T>(
   key: string,
@@ -50,7 +53,7 @@ function saveContent<T>(
 export const contentService = {
   async getMarketPrices(): Promise<MarketPrice[]> {
     await delay();
-    return storage.get<MarketPrice[]>(PLATFORM_KEYS.market, DEFAULT_MARKET_PRICES);
+    return read<MarketPrice[]>(PLATFORM_KEYS.market, DEFAULT_MARKET_PRICES);
   },
 
   async saveMarketPrices(prices: MarketPrice[]): Promise<MarketPrice[]> {
@@ -67,7 +70,7 @@ export const contentService = {
   /** When set, the farmer app shows this instead of the simulated weather. */
   async getWeatherOverride(): Promise<Weather | null> {
     await delay();
-    return storage.get<Weather | null>(PLATFORM_KEYS.weatherOverride, null);
+    return read<Weather | null>(PLATFORM_KEYS.weatherOverride, null);
   },
 
   async saveWeatherOverride(weather: Weather | null): Promise<Weather | null> {
@@ -93,7 +96,7 @@ export const contentService = {
 
   async getCrops(): Promise<CropContent[]> {
     await delay();
-    return storage.get<CropContent[]>(PLATFORM_KEYS.crops, DEFAULT_CROP_CONTENT);
+    return read<CropContent[]>(PLATFORM_KEYS.crops, DEFAULT_CROP_CONTENT);
   },
 
   async saveCrops(crops: CropContent[]): Promise<CropContent[]> {
@@ -111,7 +114,7 @@ export const contentService = {
   async getAssistantKb(): Promise<AssistantKnowledgeItem[]> {
     await delay();
     return [
-      ...storage.get<AssistantKnowledgeItem[]>(PLATFORM_KEYS.assistantKb, DEFAULT_ASSISTANT_KB),
+      ...read<AssistantKnowledgeItem[]>(PLATFORM_KEYS.assistantKb, DEFAULT_ASSISTANT_KB),
     ].sort((a, b) => b.priority - a.priority);
   },
 
@@ -131,7 +134,7 @@ export const contentService = {
 
   async getDiagnoses(): Promise<DiagnosisContent[]> {
     await delay();
-    return storage.get<DiagnosisContent[]>(PLATFORM_KEYS.diagnoses, DEFAULT_DIAGNOSES);
+    return read<DiagnosisContent[]>(PLATFORM_KEYS.diagnoses, DEFAULT_DIAGNOSES);
   },
 
   async saveDiagnoses(items: DiagnosisContent[]): Promise<DiagnosisContent[]> {

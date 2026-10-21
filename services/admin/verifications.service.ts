@@ -31,13 +31,20 @@ const last4FromMasked = (masked: string) => masked.replace(/\D/g, '').slice(-4);
 /** Marks the check as passed on the farmer's profile (and lifts a pending-verification status). */
 function applyToProfile(request: VerificationRequest): void {
   const profile = readProfile(request.userId);
-  writeProfile({
-    ...profile,
-    verification: { ...profile.verification, [request.kind]: true },
-    ...(request.kind === 'ghanaCard' && {
-      ghanaCardLast4: last4FromMasked(request.submittedValue),
-    }),
-  });
+  const last4 = request.kind === 'ghanaCard' ? last4FromMasked(request.submittedValue) : undefined;
+  // Phone and location are saved by the farmer's own profile store first; rewriting an already
+  // verified profile here could race that save, so only write when something changes.
+  const changed =
+    !profile.verification[request.kind] ||
+    (last4 !== undefined && profile.ghanaCardLast4 !== last4);
+  if (changed)
+    writeProfile({
+      ...profile,
+      verification: { ...profile.verification, [request.kind]: true },
+      ...(request.kind === 'ghanaCard' && {
+        ghanaCardLast4: last4FromMasked(request.submittedValue),
+      }),
+    });
   if (request.kind === 'ghanaCard') {
     writeUsers(
       readUsers().map((u) =>
@@ -52,6 +59,14 @@ function applyToProfile(request: VerificationRequest): void {
 const farmerName = (userId: string) => readProfile(userId).name || 'a farmer';
 
 export const verificationsService = {
+  /** A farmer's own requests, newest first (called by the farmer app, so no admin check). */
+  async listForFarmer(userId: string): Promise<VerificationRequest[]> {
+    await delay();
+    return read()
+      .filter((v) => v.userId === userId)
+      .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+  },
+
   /** Newest first. */
   async list(filter: VerificationFilter = {}): Promise<VerificationRequest[]> {
     await delay();

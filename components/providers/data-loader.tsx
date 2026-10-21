@@ -3,45 +3,59 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
+import { MaintenanceScreen } from '@/components/shared/maintenance-screen';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { loadAllStores, useAuthStore } from '@/store';
+import { authService } from '@/services/auth.service';
+import { loadAllStores, signOutAndReset, useAuthStore, usePlatformStore } from '@/store';
 
-type LoadState = 'loading' | 'ready' | 'error';
+type LoadState = 'loading' | 'ready' | 'error' | 'maintenance';
+
+/** What hydrate() decided: render the app, show maintenance, or leave for the login page. */
+type HydrateResult = 'ready' | 'maintenance' | { redirect: string };
 
 /**
- * Hydrates the stores BEFORE rendering the app: first auth, then every data store.
+ * Hydrates the stores BEFORE rendering the app: first the admin's flags (maintenance mode), then
+ * auth and the account's status, then every data store.
  * (The old app loaded data before auth had finished, which caused a race condition.)
  */
 export function DataLoader({ children }: { children: ReactNode }) {
   const [state, setState] = useState<LoadState>('loading');
   const [attempt, setAttempt] = useState(0);
+  const maintenanceMessage = usePlatformStore((s) => s.flags.maintenanceMessage);
 
   const router = useRouter();
 
   useEffect(() => {
     let cancelled = false;
 
-    /** Resolves true when the app can render, false when we are redirecting to /login. */
-    async function hydrate(): Promise<boolean> {
+    async function hydrate(): Promise<HydrateResult> {
+      // Maintenance mode replaces the whole app for farmers (admins use /admin, unaffected).
+      const flags = await usePlatformStore.getState().loadFlags();
+      if (flags.maintenanceMode) return 'maintenance';
+
       // getSession() also clears the proxy cookie when no session is stored (e.g. the cookie
       // survived but localStorage was cleared), so /login won't bounce us back here.
       const session = await useAuthStore.getState().init();
-      if (!session) return false;
+      if (!session) {
+        return { redirect: `/login?next=${encodeURIComponent(window.location.pathname)}` };
+      }
+      // An admin may have suspended or deleted the account since this session started.
+      const status = await authService.checkAccount(session.userId);
+      if (status === 'suspended' || status === 'deleted') {
+        await signOutAndReset();
+        return { redirect: `/login?reason=${status}` };
+      }
       await loadAllStores(session.userId);
-      return true;
+      return 'ready';
     }
 
     hydrate().then(
-      (ready) => {
+      (result) => {
         if (cancelled) return;
-        if (ready) {
-          setState('ready');
-        } else {
-          const next = encodeURIComponent(window.location.pathname);
-          router.replace(`/login?next=${next}`); // keep the skeleton while redirecting
-        }
+        if (typeof result === 'string') setState(result);
+        else router.replace(result.redirect); // keep the skeleton while redirecting
       },
       (error: unknown) => {
         console.error('[DataLoader] Failed to load data', error);
@@ -76,6 +90,8 @@ export function DataLoader({ children }: { children: ReactNode }) {
       </div>
     );
   }
+
+  if (state === 'maintenance') return <MaintenanceScreen message={maintenanceMessage} />;
 
   if (state === 'loading') return <AppSkeleton />;
 

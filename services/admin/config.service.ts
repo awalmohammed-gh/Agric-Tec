@@ -18,6 +18,12 @@ const readCredit = () =>
   storage.get<CreditConfig>(PLATFORM_KEYS.creditConfig, DEFAULT_CREDIT_CONFIG);
 const readHistory = () => storage.get<CreditConfig[]>(PLATFORM_KEYS.creditHistory, []);
 
+/** The feature flags right now, without latency (auth.service checks them inside its own calls). */
+export const readFlags = (): FeatureFlags => ({
+  ...DEFAULT_FLAGS,
+  ...storage.get<Partial<FeatureFlags>>(PLATFORM_KEYS.flags, {}),
+});
+
 /** Saves `input` as the next version and moves the current one into history. */
 function writeCreditVersion(input: CreditConfigInput): CreditConfig {
   const valid = parseOrThrow(creditConfigInputSchema, input);
@@ -103,7 +109,7 @@ export const configService = {
   /** Read by the farmer app (navigation, maintenance mode, signup), so no admin check. */
   async getFlags(): Promise<FeatureFlags> {
     await delay();
-    return { ...DEFAULT_FLAGS, ...storage.get<Partial<FeatureFlags>>(PLATFORM_KEYS.flags, {}) };
+    return readFlags();
   },
 
   async saveFlags(flags: FeatureFlags): Promise<FeatureFlags> {

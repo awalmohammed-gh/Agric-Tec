@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { BadgeCheck, LockKeyhole } from 'lucide-react';
+import { LockKeyhole, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { formatGhanaCard, ghanaCard } from '@/lib/profile';
-import { useProfileStore } from '@/store/profile-store';
+import { usePlatformStore } from '@/store/platform-store';
 
 export function GhanaCardModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
@@ -30,12 +30,11 @@ function GhanaCardForm({ onClose }: { onClose: () => void }) {
           return setError('Enter a valid Ghana Card number, e.g. GHA-123456789-0');
         setSaving(true);
         try {
-          const last4 = number.replace(/\D/g, '').slice(-4);
-          await useProfileStore
-            .getState()
-            .save({ ghanaCardLast4: last4, verification: { ghanaCard: true } });
+          // Sent for admin review; only a masked number is stored. The profile shows
+          // "Under review" until an admin approves it.
+          await usePlatformStore.getState().submitGhanaCard(number);
           setNumber('');
-          toast.success('Ghana Card verified (demo)');
+          toast.success('Ghana Card sent for review');
           onClose();
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : 'Could not verify your Ghana Card');
@@ -75,13 +74,13 @@ function GhanaCardForm({ onClose }: { onClose: () => void }) {
       >
         <LockKeyhole size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
         Only the last four digits, including the check digit, are saved. Your full card number is
-        not stored.
+        not stored. Our team reviews each card, usually within one working day.
       </p>
       <p className="bg-gold/10 text-ink-gold rounded-xl p-3 text-xs">
         Demo only. No real NIA verification is performed.
       </p>
-      <Button type="submit" icon={BadgeCheck} loading={saving} className="w-full">
-        Verify Ghana Card
+      <Button type="submit" icon={Send} loading={saving} className="w-full">
+        Submit for review
       </Button>
     </form>
   );

@@ -21,11 +21,10 @@ export interface Recommendation {
   cta: { label: string; href: string };
 }
 
-const MIN_RECORDS = 5;
 const MAX_RECOMMENDATIONS = 5;
 const HIGH_EXPENSE_RATIO = 0.8;
-const LOAN_READY_SCORE = 650;
-const MOMO_MAX_POINTS = 55; // momoActivity weight (10%) × the 550-point score range
+/** Points between the lowest (300) and highest (850) score. */
+const SCORE_RANGE = 550;
 
 /** The entry with the largest value, e.g. { Maize: 9600, Cocoa: 8100 } → ['Maize', 9600]. */
 function largest(totals: Record<string, number>): [string, number] | null {
@@ -39,6 +38,10 @@ const pct = (part: number, whole: number) => Math.round((part / whole) * 100);
 /** Up to 5 data-driven suggestions, in priority order. */
 export function getRecommendations(stats: FarmStats): Recommendation[] {
   const items: Recommendation[] = [];
+  // The admin's rules: minimum records, the "loan ready" band and the MoMo factor's weight.
+  const minRecords = stats.loanRules.minRecords;
+  const loanReadyScore = stats.creditConfig.bands.good;
+  const momoMaxPoints = Math.round((stats.creditConfig.weights.momoActivity / 100) * SCORE_RANGE);
 
   if (!stats.hasData) {
     items.push({
@@ -48,8 +51,8 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
       title: 'Start Your Journey',
       text: 'Add your first farm record or MoMo transaction. Every entry builds your digital financial identity.',
     });
-  } else if (stats.recordCount < MIN_RECORDS) {
-    const missing = MIN_RECORDS - stats.recordCount;
+  } else if (stats.recordCount < minRecords) {
+    const missing = minRecords - stats.recordCount;
     items.push({
       id: 'history',
       cta: { label: 'Add records', href: '/records' },
@@ -82,7 +85,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
       cta: { label: 'Log MoMo', href: '/momo' },
       icon: Smartphone,
       title: 'Connect Mobile Money',
-      text: `Log your MoMo payments. A strong MoMo history can raise your credit score by up to ${MOMO_MAX_POINTS} points.`,
+      text: `Log your MoMo payments. A strong MoMo history can raise your credit score by up to ${momoMaxPoints} points.`,
     });
   }
 
@@ -107,8 +110,8 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
     });
   }
 
-  const maxLoan = Math.max(0, 3 * stats.annualizedProfit);
-  if (stats.credit.score >= LOAN_READY_SCORE && maxLoan > 0) {
+  const maxLoan = stats.borrowingPower;
+  if (stats.credit.score >= loanReadyScore && maxLoan > 0) {
     items.push({
       id: 'loan-ready',
       cta: { label: 'See loan offers', href: '/loans' },
@@ -143,9 +146,9 @@ function insightPool(stats: FarmStats): string[] {
 
   if (stats.recordCount > 0) {
     pool.push(
-      stats.recordCount >= MIN_RECORDS
+      stats.recordCount >= stats.loanRules.minRecords
         ? `You have logged ${stats.recordCount} farm records. Lenders can now see a solid history.`
-        : `You have logged ${stats.recordCount} farm record${stats.recordCount === 1 ? '' : 's'}. Add ${MIN_RECORDS - stats.recordCount} more to unlock loan offers.`,
+        : `You have logged ${stats.recordCount} farm record${stats.recordCount === 1 ? '' : 's'}. Add ${stats.loanRules.minRecords - stats.recordCount} more to unlock loan offers.`,
     );
   }
 

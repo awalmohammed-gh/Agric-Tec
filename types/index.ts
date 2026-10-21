@@ -226,10 +226,8 @@ export interface LoanApplicationInput {
   monthly: number;
 }
 
-export interface LoanApplication extends LoanApplicationInput {
-  id: string;
-  userId: string;
-  reference: string; // e.g. APP-2026-48213
-  status: 'submitted';
-  createdAt: string;
-}
+/**
+ * A loan application with its status history. Since admin phase A3 there is one shape for both
+ * apps: lenders/admins move it through the pipeline and the farmer sees the timeline.
+ */
+export type { LoanApplication, LoanStatus } from '@/types/admin';

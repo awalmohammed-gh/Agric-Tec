@@ -287,3 +287,7 @@ export interface Paged<T> {
   pageSize: number;
   pageCount: number;
 }
+
+/** Feature flags that switch a farmer-app feature on or off (the rest are signup/maintenance). */
+export type FeatureKey =
+  'aiAssistant' | 'cropDoctor' | 'yieldPredictor' | 'loans' | 'market' | 'pdfReports';

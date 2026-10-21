@@ -14,12 +14,26 @@ import { PasswordInput } from '@/components/auth/password-input';
 import { Button } from '@/components/ui/button';
 import { FormField, fieldErrorId } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
+import { SUSPENDED_MESSAGE } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth-store';
+import { usePlatformStore } from '@/store/platform-store';
 
-export function LoginForm({ next }: { next: string }) {
+/** Why the app sent the farmer back here (set by DataLoader). */
+export type LoginReason = 'suspended' | 'deleted';
+
+const REASON_MESSAGES: Record<LoginReason, string> = {
+  suspended: SUSPENDED_MESSAGE,
+  deleted: 'This account no longer exists. Create a new account or contact support.',
+};
+
+export function LoginForm({ next, reason }: { next: string; reason?: LoginReason }) {
   const router = useRouter();
   const signIn = useAuthStore((s) => s.signIn);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(
+    reason ? REASON_MESSAGES[reason] : null,
+  );
+  // The admin can close sign-ups and guest mode.
+  const { signupOpen, guestMode } = usePlatformStore((s) => s.flags);
 
   const {
     register,
@@ -81,15 +95,21 @@ export function LoginForm({ next }: { next: string }) {
         </Button>
       </form>
 
-      <AuthDivider />
-      <GuestButton next={next} />
+      {guestMode && (
+        <>
+          <AuthDivider />
+          <GuestButton next={next} />
+        </>
+      )}
 
-      <p className="text-text-dim text-center text-sm">
-        Don&apos;t have an account?{' '}
-        <Link href="/signup" className="text-ink-green font-semibold hover:underline">
-          Create one
-        </Link>
-      </p>
+      {signupOpen && (
+        <p className="text-text-dim text-center text-sm">
+          Don&apos;t have an account?{' '}
+          <Link href="/signup" className="text-ink-green font-semibold hover:underline">
+            Create one
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

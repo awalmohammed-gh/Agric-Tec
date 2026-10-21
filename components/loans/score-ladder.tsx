@@ -2,26 +2,29 @@
 
 import { CircleCheck, Landmark, Lock } from 'lucide-react';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
-import { LOAN_PARTNERS } from '@/constants/loan-partners';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { cn } from '@/lib/utils';
+import { usePlatformStore } from '@/store/platform-store';
+import type { CreditConfig } from '@/types/admin';
 
 const MIN = 300;
 const MAX = 850;
 const pct = (score: number) => ((Math.min(MAX, Math.max(MIN, score)) - MIN) / (MAX - MIN)) * 100;
 
-/** Score bands, matching scoreLabel(): Building < 500, Fair < 650, Good < 750, Excellent. */
-const BANDS = [
-  { label: 'Building', from: 300, to: 500, tone: 'bg-[#ef4444]/70' },
-  { label: 'Fair', from: 500, to: 650, tone: 'bg-[#f5c451]/80' },
-  { label: 'Good', from: 650, to: 750, tone: 'bg-[#34d399]/80' },
-  { label: 'Excellent', from: 750, to: 850, tone: 'bg-[#10b981]' },
+/** Score bands, matching scoreLabel() and the admin's thresholds (default 500 / 650 / 750). */
+const bandsFor = ({ fair, good, excellent }: CreditConfig['bands']) => [
+  { label: 'Building', from: MIN, to: fair, tone: 'bg-[#ef4444]/70' },
+  { label: 'Fair', from: fair, to: good, tone: 'bg-[#f5c451]/80' },
+  { label: 'Good', from: good, to: excellent, tone: 'bg-[#34d399]/80' },
+  { label: 'Excellent', from: excellent, to: MAX, tone: 'bg-[#10b981]' },
 ];
 
 /** The 300–850 scale with the farmer's score and each lender's minimum marked on it. */
 export function ScoreLadder() {
-  const { credit } = useFarmStats();
-  const lenders = [...LOAN_PARTNERS].sort((a, b) => a.minScore - b.minScore);
+  const { credit, creditConfig } = useFarmStats();
+  const bands = bandsFor(creditConfig.bands);
+  const activeLenders = usePlatformStore((s) => s.lenders);
+  const lenders = [...activeLenders].sort((a, b) => a.minScore - b.minScore);
   const unlocked = lenders.filter((p) => credit.score >= p.minScore).length;
 
   return (
@@ -57,7 +60,7 @@ export function ScoreLadder() {
           <span className="h-3 w-0.5 bg-[#10b981]" />
         </span>
         <div className="flex h-3 overflow-hidden rounded-full">
-          {BANDS.map((band) => (
+          {bands.map((band) => (
             <span
               key={band.label}
               className={band.tone}
@@ -78,7 +81,7 @@ export function ScoreLadder() {
           className="text-text-mute absolute inset-x-0 bottom-0 flex text-[10px]"
           aria-hidden="true"
         >
-          {BANDS.map((band) => (
+          {bands.map((band) => (
             <span
               key={band.label}
               className="text-center"

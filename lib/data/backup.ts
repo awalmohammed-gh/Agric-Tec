@@ -1,7 +1,8 @@
 import { backupSchema, type DataBackup } from '@/lib/data/backup-schema';
 import { safeProfile } from '@/lib/profile';
 import { defaultProfile } from '@/services/profile.service';
-import { storage } from '@/services/storage';
+import { FARMER_ADMIN_META } from '@/lib/admin/keys';
+import { storage, userKey } from '@/services/storage';
 import { loadAllStores, resetAllStores } from '@/store';
 import { useAuthStore } from '@/store/auth-store';
 import { useChatStore } from '@/store/chat-store';
@@ -9,6 +10,21 @@ import { useFarmStore } from '@/store/farm-store';
 import { useLoanStore } from '@/store/loan-store';
 import { useProfileStore, waitForProfileSaves } from '@/store/profile-store';
 import { useSettingsStore, waitForSettingsSaves } from '@/store/settings-store';
+
+/**
+ * Per-user keys the farmer's own import/delete must keep: the admin's notes and tags on this
+ * farmer, and the announcements they dismissed. Loan applications live at platform level since
+ * the admin console (a backup lists them, but restoring one never rewrites lender decisions).
+ */
+const KEPT_KEYS = [FARMER_ADMIN_META, 'dismissed-announcements'];
+
+function keptData(userId: string): Record<string, unknown> {
+  return Object.fromEntries(
+    KEPT_KEYS.map((name) => [name, storage.get<unknown>(userKey(userId, name), null)]).filter(
+      ([, value]) => value !== null,
+    ),
+  );
+}
 
 function currentUser(): string {
   const id = useAuthStore.getState().session?.userId;
@@ -57,7 +73,7 @@ export async function importDataBackup(input: DataBackup): Promise<void> {
     diagnoses: rebind(data.diagnoses),
     chat: data.chat,
     settings: data.settings,
-    loanApplications: rebind(data.loanApplications),
+    ...keptData(userId),
   });
   resetAllStores();
   await loadAllStores(userId);
@@ -68,7 +84,9 @@ export async function deleteUserData(confirmation: string): Promise<void> {
   const userId = currentUser();
   await Promise.all([waitForProfileSaves(), waitForSettingsSaves()]);
   if (currentUser() !== userId) throw new Error('Your session changed. Please try again.');
+  const kept = keptData(userId);
   storage.clearUser(userId);
+  for (const [name, value] of Object.entries(kept)) storage.set(userKey(userId, name), value);
   resetAllStores();
   await loadAllStores(userId);
 }

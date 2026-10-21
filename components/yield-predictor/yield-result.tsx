@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CropLabel } from '@/components/ui/crop-icon';
 import { yieldInsight } from '@/lib/calculations/yield';
+import { usePlatformStore } from '@/store/platform-store';
 import { formatGHS, todayISO } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useModalStore } from '@/store/modal-store';
@@ -54,7 +55,8 @@ export function YieldResult({
   stale?: boolean;
 }) {
   const openRecord = useModalStore((state) => state.openRecordWithDefaults);
-  const benchmarks = input.crop === 'Other' ? null : perAcreBenchmarks(input.crop);
+  const crops = usePlatformStore((s) => s.crops);
+  const benchmarks = input.crop === 'Other' ? null : perAcreBenchmarks(input.crop, crops);
   const rows = benchmarks
     ? [
         {
@@ -199,7 +201,7 @@ export function YieldResult({
 
       <div className="bg-info/5 text-text-dim mt-4 flex gap-2.5 rounded-xl p-3 text-xs leading-relaxed">
         <Lightbulb size={16} aria-hidden="true" className="text-ink-blue mt-0.5 shrink-0" />
-        <p>{yieldInsight(input, result)}</p>
+        <p>{yieldInsight(input, result, crops)}</p>
       </div>
       <Button
         variant="ghost"

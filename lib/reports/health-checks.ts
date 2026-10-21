@@ -10,10 +10,10 @@ export interface HealthCheck {
   action: { label: string; href: string };
 }
 
-const MIN_RECORDS = 5;
-
 /** Five lender-style checks behind the financial health score. */
 export function healthChecks(stats: FarmStats): HealthCheck[] {
+  // The admin's loan rules (default: 5 records).
+  const minRecords = stats.loanRules.minRecords;
   const costRatio = stats.income > 0 ? Math.round((stats.expenses / stats.income) * 100) : null;
   return [
     {
@@ -47,9 +47,9 @@ export function healthChecks(stats: FarmStats): HealthCheck[] {
     },
     {
       key: 'history',
-      label: `At least ${MIN_RECORDS} farm records`,
+      label: `At least ${minRecords} farm records`,
       detail: `${stats.recordCount} recorded so far.`,
-      pass: stats.recordCount >= MIN_RECORDS,
+      pass: stats.recordCount >= minRecords,
       action: { label: 'Add farm records', href: '/records' },
     },
     {

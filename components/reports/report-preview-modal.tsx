@@ -7,7 +7,9 @@ import { REPORT_META } from '@/components/reports/report-meta';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { useReportBuilder } from '@/hooks/use-report-data';
+import { PDF_UNAVAILABLE } from '@/components/reports/use-report-download';
 import { generateReportPDF } from '@/lib/pdf/generate-report';
+import { usePlatformStore } from '@/store/platform-store';
 import { formatGeneratedAt, type ReportData } from '@/lib/reports/build-report-data';
 import { cn } from '@/lib/utils';
 import { useReportStore } from '@/store/report-store';
@@ -178,12 +180,17 @@ export function ReportPreviewModal() {
   const closePreview = useReportStore((s) => s.closePreview);
   const buildReport = useReportBuilder();
   const [downloading, setDownloading] = useState(false);
+  const pdfEnabled = usePlatformStore((s) => s.flags.pdfReports);
 
   // Built from the same function as the PDF, at the moment the preview opened.
   const data = type ? buildReport(type, openedAt ? new Date(openedAt) : undefined) : null;
 
   async function download() {
     if (!data) return;
+    if (!usePlatformStore.getState().flags.pdfReports) {
+      toast.error(PDF_UNAVAILABLE);
+      return;
+    }
     setDownloading(true);
     try {
       await generateReportPDF(data);
@@ -218,9 +225,13 @@ export function ReportPreviewModal() {
               </span>
             </Button>
           </span>
-          <Button icon={Download} loading={downloading} onClick={download}>
-            {downloading ? 'Creating PDF…' : 'Download PDF'}
-          </Button>
+          {pdfEnabled ? (
+            <Button icon={Download} loading={downloading} onClick={download}>
+              {downloading ? 'Creating PDF…' : 'Download PDF'}
+            </Button>
+          ) : (
+            <span className="text-text-mute self-center text-xs">{PDF_UNAVAILABLE}</span>
+          )}
         </>
       }
     >

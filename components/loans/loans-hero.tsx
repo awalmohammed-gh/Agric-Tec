@@ -10,16 +10,18 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { ScoreGauge } from '@/components/ui/score-gauge';
-import { LOAN_PARTNERS } from '@/constants/loan-partners';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { formatGHS } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useLoanStore, type LoanTab } from '@/store/loan-store';
+import { usePlatformStore } from '@/store/platform-store';
+import type { CreditConfig } from '@/types/admin';
 
-function status(score: number): { label: string; tone: string } {
-  if (score >= 650)
+/** Loan ready from the "Good" band; eligible with some lenders from the platform minimum. */
+function status(score: number, config: CreditConfig): { label: string; tone: string } {
+  if (score >= config.bands.good)
     return { label: 'Loan ready', tone: 'border-accent/40 bg-accent/15 text-ink-green' };
-  if (score >= 550)
+  if (score >= config.eligibility.minScore)
     return { label: 'Eligible with some lenders', tone: 'border-gold/40 bg-gold/15 text-ink-gold' };
   return { label: 'Building credit', tone: 'border-danger/40 bg-danger/15 text-ink-red' };
 }
@@ -40,11 +42,16 @@ function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; v
 
 /** Borrowing power as the headline, with the credit gauge and key lending facts. */
 export function LoansHero() {
-  const { credit, creditLabel, annualizedProfit, recordCount } = useFarmStats();
-  const maxAffordable = Math.max(0, 3 * annualizedProfit);
-  const matched = LOAN_PARTNERS.filter((p) => credit.score >= p.minScore).length;
-  const best = LOAN_PARTNERS.reduce((low, p) => (p.rate < low.rate ? p : low));
-  const { label, tone } = status(credit.score);
+  const { credit, creditLabel, annualizedProfit, recordCount, borrowingPower, creditConfig } =
+    useFarmStats();
+  const lenders = usePlatformStore((s) => s.lenders);
+  const maxAffordable = borrowingPower;
+  const multiple = creditConfig.eligibility.maxProfitMultiplier;
+  const matched = lenders.filter((p) => credit.score >= p.minScore).length;
+  const best = lenders.length
+    ? lenders.reduce((low, p) => (p.rate < low.rate ? p : low))
+    : undefined;
+  const { label, tone } = status(credit.score, creditConfig);
   const setTab = useLoanStore((s) => s.setTab);
 
   /** Opens a tab of the loan workspace and brings it into view. */
@@ -92,7 +99,7 @@ export function LoansHero() {
           </h2>
           <p className="text-text-dim mt-2 max-w-xl text-sm">
             {maxAffordable > 0
-              ? `Up to 3× your annualized profit of ${formatGHS(annualizedProfit)}. Lenders still set the final amount.`
+              ? `Up to ${multiple}× your annualized profit of ${formatGHS(annualizedProfit)}. Lenders still set the final amount.`
               : 'Record profitable sales and your borrowing limit will appear here.'}
           </p>
 
@@ -117,12 +124,12 @@ export function LoansHero() {
             <Stat
               icon={Building2}
               label="Lenders matched"
-              value={`${matched} of ${LOAN_PARTNERS.length}`}
+              value={`${matched} of ${lenders.length}`}
             />
             <Stat
               icon={BadgePercent}
               label="Best rate"
-              value={`${best.rate}% · ${best.name.split(' ')[0]}`}
+              value={best ? `${best.rate}% · ${best.name.split(' ')[0]}` : 'No lenders open'}
             />
             <Stat icon={ListChecks} label="Farm records" value={String(recordCount)} />
           </div>

@@ -102,7 +102,16 @@ const loan = z.object({
   months: z.number().int().min(1).max(360),
   monthly: money,
   reference: z.string().max(160),
-  status: z.literal('submitted'),
+  // Lenders/admins move applications along, so any status can appear in a backup.
+  status: z.enum([
+    'submitted',
+    'under_review',
+    'approved',
+    'rejected',
+    'disbursed',
+    'repaid',
+    'defaulted',
+  ]),
   createdAt: timestamp,
 });
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { ghanaPhone } from '@/lib/profile';
+import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
 
 export function PhoneVerifyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -34,6 +35,11 @@ function PhoneVerification({ onClose }: { onClose: () => void }) {
         setSaving(true);
         try {
           await useProfileStore.getState().verifyPhone(sentTo);
+          // Phone checks stay instant; this only records the approved check for the admin.
+          void usePlatformStore
+            .getState()
+            .logInstantCheck('phone', sentTo)
+            .catch(() => {});
           toast.success('Phone verified');
           onClose();
         } catch (cause) {

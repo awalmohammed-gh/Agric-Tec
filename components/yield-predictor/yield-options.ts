@@ -10,7 +10,9 @@ import {
   Waves,
   type LucideIcon,
 } from 'lucide-react';
-import { BASE_YIELD_PER_ACRE, YIELD_MULTIPLIERS } from '@/constants/crops';
+import { YIELD_MULTIPLIERS } from '@/constants/crops';
+import { baseYield } from '@/lib/calculations/yield';
+import type { CropContent } from '@/types/admin';
 import type { YieldInput } from '@/types';
 
 export interface YieldOption<T extends string> {
@@ -53,8 +55,11 @@ export function inputStrength(input: Pick<YieldInput, 'season' | 'fertilizer' | 
 }
 
 /** Per-acre yield with no inputs (average farm) and with the best inputs. */
-export function perAcreBenchmarks(crop: Exclude<YieldInput['crop'], 'Other'>) {
-  const base = BASE_YIELD_PER_ACRE[crop];
+export function perAcreBenchmarks(
+  crop: Exclude<YieldInput['crop'], 'Other'>,
+  crops?: CropContent[],
+) {
+  const base = baseYield(crop, crops);
   const { best } = inputStrength({ season: 'minor', fertilizer: 'none', irrigation: 'rainfed' });
   return { base, best: base * best };
 }

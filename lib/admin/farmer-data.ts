@@ -3,14 +3,15 @@
 
 import { calculateCreditScore } from '@/lib/calculations/credit-score';
 import { totalExpenses, totalIncome } from '@/lib/calculations/finance';
-import { FARMER_ADMIN_META, FARMER_DATA } from '@/lib/admin/keys';
+import { DEFAULT_CREDIT_CONFIG } from '@/lib/admin/defaults';
+import { FARMER_ADMIN_META, FARMER_DATA, PLATFORM_KEYS } from '@/lib/admin/keys';
 import type { RiskSubject } from '@/lib/admin/risk-rules';
 import { safeProfile } from '@/lib/profile';
 import { USERS_KEY, type StoredUser } from '@/services/auth.service';
 import { defaultProfile } from '@/services/profile.service';
 import { storage, userKey } from '@/services/storage';
 import type { Diagnosis, FarmRecord, MomoTransaction, Profile } from '@/types';
-import type { FarmerAccount } from '@/types/admin';
+import type { CreditConfig, FarmerAccount } from '@/types/admin';
 
 export interface FarmerAdminMeta {
   tags: string[];
@@ -24,6 +25,9 @@ export interface FarmerData {
   diagnoses: Diagnosis[];
   meta: FarmerAdminMeta;
 }
+
+const readCreditConfig = () =>
+  storage.get<CreditConfig>(PLATFORM_KEYS.creditConfig, DEFAULT_CREDIT_CONFIG);
 
 export const readUsers = (): StoredUser[] => storage.get<StoredUser[]>(USERS_KEY, []);
 export const writeUsers = (users: StoredUser[]): void => storage.set(USERS_KEY, users);
@@ -89,7 +93,8 @@ export function buildFarmerAccount(
       momo: data.momo.length,
       income: totalIncome(data.records),
       expenses: totalExpenses(data.records),
-      score: calculateCreditScore(data.records, data.momo, data.profile).score,
+      // The live credit rules, so admins see the same score the farmer sees.
+      score: calculateCreditScore(data.records, data.momo, data.profile, readCreditConfig()).score,
       diagnoses: data.diagnoses.length,
     },
     tags: data.meta.tags,
