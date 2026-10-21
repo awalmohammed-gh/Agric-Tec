@@ -1,19 +1,21 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { FarmersTable } from '@/components/admin/farmers/farmers-table';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
+import AdminLoading from '@/app/(admin)/admin/loading';
 
 export const metadata: Metadata = { title: 'All Farmers' };
 
-/** Guarded by farmers.view. Built in phase A7. */
+/**
+ * Guarded by farmers.view. The table keeps its filters in the URL (useSearchParams), so it
+ * renders inside a Suspense boundary.
+ */
 export default function FarmersPage() {
   return (
-    <AdminPlaceholder
-      permission="farmers.view"
-      phase="A7"
-      features={[
-        'Search by name, email or phone; filter by region, status, crop and tags',
-        'Bulk suspend, verify and tag; CSV export',
-        'Sortable table with 25 per page',
-      ]}
-    />
+    <RequirePermission permission="farmers.view">
+      <Suspense fallback={<AdminLoading />}>
+        <FarmersTable />
+      </Suspense>
+    </RequirePermission>
   );
 }

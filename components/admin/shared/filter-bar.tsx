@@ -27,6 +27,8 @@ export interface FilterBarProps {
   total: number;
   /** e.g. "farmers". */
   noun?: string;
+  /** Clears search and filters in one go (pass the table's clearFilters). */
+  onClearAll?: () => void;
   className?: string;
 }
 
@@ -38,14 +40,17 @@ export function FilterBar({
   filters = [],
   total,
   noun = 'results',
+  onClearAll,
   className,
 }: FilterBarProps) {
   const active = filters.filter((f) => f.value);
   const anyActive = active.length > 0 || query.trim() !== '';
 
   function clearAll() {
+    if (onClearAll) return onClearAll();
+    // Without onClearAll only one URL change is safe, so clear the search and a single filter.
     onQueryChange('');
-    for (const filter of active) filter.onChange('');
+    active[0]?.onChange('');
   }
 
   return (

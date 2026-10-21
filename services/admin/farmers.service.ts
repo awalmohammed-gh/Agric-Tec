@@ -12,12 +12,14 @@ import {
 } from '@/lib/admin/farmer-data';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
 import { makeTempPassword } from '@/lib/admin/passwords';
+import { calculateCreditScore, scoreLabel } from '@/lib/calculations/credit-score';
+import { configService } from '@/services/admin/config.service';
 import { toCSV } from '@/lib/export/csv';
 import { generateId } from '@/lib/utils';
 import { hashPassword, type StoredUser } from '@/services/auth.service';
 import { delay, storage } from '@/services/storage';
 import type { Profile } from '@/types';
-import type { FarmerAccount } from '@/types/admin';
+import type { FarmerAccount, FarmerDetail } from '@/types/admin';
 
 /** Profile fields an admin may edit. Verification changes go through verifications.service. */
 export type FarmerProfilePatch = Partial<
@@ -38,6 +40,8 @@ function saveUser(updated: StoredUser): void {
 }
 
 const label = (user: StoredUser) => readFarmerData(user.id).profile.name || user.email;
+
+const yesNo = (value: boolean) => (value ? 'Yes' : 'No');
 
 const actorName = () => getCurrentAdmin()?.name ?? 'Admin';
 
@@ -68,6 +72,25 @@ export const farmersService = {
     await delay();
     requirePermission('farmers.view');
     return readUsers().map((user) => buildFarmerAccount(user));
+  },
+
+  /** Everything the quick view and profile page show: records, MoMo, score breakdown and rules. */
+  async getDetail(id: string): Promise<FarmerDetail> {
+    await delay();
+    requirePermission('farmers.view');
+    const user = findUser(id);
+    const data = readFarmerData(id);
+    const creditConfig = await configService.getCreditConfig();
+    const newest = <T extends { date: string; createdAt: string }>(a: T, b: T) =>
+      b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt);
+    return {
+      account: buildFarmerAccount(user, data),
+      records: [...data.records].sort(newest),
+      momo: [...data.momo].sort(newest),
+      diagnoses: data.diagnoses,
+      credit: calculateCreditScore(data.records, data.momo, data.profile, creditConfig),
+      creditConfig,
+    };
   },
 
   async get(id: string): Promise<FarmerAccount> {
@@ -269,7 +292,8 @@ export const farmersService = {
   /** CSV of the given farmers (or all). Only the count is logged, never the data. */
   async exportCSV(ids?: string[]): Promise<string> {
     await delay();
-    const users = readUsers().filter((u) => !ids || ids.includes(u.id));
+    const users = readUsers().filter((u) => !u.isGuest && (!ids || ids.includes(u.id)));
+    const { bands } = await configService.getCreditConfig();
     return withAudit(
       {
         permission: 'reports.export',
@@ -281,6 +305,7 @@ export const farmersService = {
       async () =>
         toCSV(
           users.map((u) => buildFarmerAccount(u)),
+          // A whitelist: never the password hash, and never Ghana Card digits (only yes/no).
           [
             { header: 'ID', value: (f) => f.userId },
             { header: 'Name', value: (f) => f.profile.name },
@@ -291,12 +316,24 @@ export const farmersService = {
             { header: 'Farm type', value: (f) => f.profile.farmType },
             { header: 'Acres', value: (f) => f.profile.acres },
             { header: 'Primary crops', value: (f) => f.profile.primaryCrops.join('; ') },
+            { header: 'GPS latitude', value: (f) => f.profile.gps?.lat ?? '' },
+            { header: 'GPS longitude', value: (f) => f.profile.gps?.lng ?? '' },
+            { header: 'Phone verified', value: (f) => yesNo(f.profile.verification.phone) },
+            { header: 'Location verified', value: (f) => yesNo(f.profile.verification.location) },
+            {
+              header: 'Ghana Card verified',
+              value: (f) => yesNo(f.profile.verification.ghanaCard),
+            },
             { header: 'Status', value: (f) => f.status },
+            { header: 'Suspension reason', value: (f) => f.suspendedReason ?? '' },
             { header: 'Credit score', value: (f) => f.stats.score },
+            { header: 'Score band', value: (f) => scoreLabel(f.stats.score, bands) },
             { header: 'Records', value: (f) => f.stats.records },
-            { header: 'MoMo', value: (f) => f.stats.momo },
+            { header: 'MoMo transactions', value: (f) => f.stats.momo },
+            { header: 'Diagnoses', value: (f) => f.stats.diagnoses },
             { header: 'Income (GHS)', value: (f) => f.stats.income },
             { header: 'Expenses (GHS)', value: (f) => f.stats.expenses },
+            { header: 'Net profit (GHS)', value: (f) => f.stats.income - f.stats.expenses },
             { header: 'Tags', value: (f) => f.tags.join('; ') },
             { header: 'Joined', value: (f) => f.createdAt },
             { header: 'Last active', value: (f) => f.lastActiveAt ?? '' },

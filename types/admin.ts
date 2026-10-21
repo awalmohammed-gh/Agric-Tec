@@ -1,6 +1,16 @@
 // ---------- Admin console types (admin spec Section 4) ----------
 
-import type { AssistantReply, Crop, DiagnosisResult, LoanPartner, Profile } from '@/types';
+import type {
+  AssistantReply,
+  CreditScoreBreakdown,
+  Crop,
+  Diagnosis,
+  DiagnosisResult,
+  FarmRecord,
+  LoanPartner,
+  MomoTransaction,
+  Profile,
+} from '@/types';
 
 export type AdminRole = 'analyst' | 'support' | 'admin' | 'super_admin';
 export type Role = 'farmer' | AdminRole;
@@ -291,3 +301,15 @@ export interface Paged<T> {
 /** Feature flags that switch a farmer-app feature on or off (the rest are signup/maintenance). */
 export type FeatureKey =
   'aiAssistant' | 'cropDoctor' | 'yieldPredictor' | 'loans' | 'market' | 'pdfReports';
+
+/** A farmer with their data, for the quick view and the profile page (phase A7/A8). */
+export interface FarmerDetail {
+  account: FarmerAccount;
+  /** Newest first. */
+  records: FarmRecord[];
+  momo: MomoTransaction[];
+  diagnoses: Diagnosis[];
+  credit: CreditScoreBreakdown;
+  /** The live credit rules the score was calculated with. */
+  creditConfig: CreditConfig;
+}

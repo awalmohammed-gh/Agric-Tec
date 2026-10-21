@@ -91,6 +91,17 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
       .map((name) => [name, params.get(name) ?? '']),
   );
   const setFilter = (name: string, value: string | null) => updateParams({ [name]: value });
+  /**
+   * Clears the search and every filter in ONE URL update. (Calling setFilter several times in a
+   * row would not work: each call starts from this render's URL, so only the last would stick.)
+   */
+  const clearFilters = () => {
+    setQuery('');
+    updateParams({
+      q: null,
+      ...Object.fromEntries(Object.keys(filters).map((name) => [name, null])),
+    });
+  };
 
   const sortKey = params.get('sort');
   const sort: TableSort | null = sortKey
@@ -165,6 +176,7 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
     setQuery,
     filters: filterValues,
     setFilter,
+    clearFilters,
     sort,
     setSort,
     page,
@@ -172,6 +184,8 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
     pageCount,
     pageSize,
     pageRows,
+    /** Every row matching the search and filters, sorted (e.g. for "export all filtered"). */
+    filteredRows: filtered,
     total,
     selected,
     selectedRows,
