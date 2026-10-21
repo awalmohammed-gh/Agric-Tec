@@ -1,9 +1,19 @@
 import type { Metadata } from 'next';
-import { AdminWelcome } from '@/components/admin/auth/admin-welcome';
+import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
 
 export const metadata: Metadata = { title: 'Overview' };
 
-/** Placeholder until phase A5 (shell) and A6 (overview dashboard). */
-export default function AdminHomePage() {
-  return <AdminWelcome />;
+/** Guarded by overview.view. Built in phase A6. */
+export default function AdminOverviewPage() {
+  return (
+    <AdminPlaceholder
+      permission="overview.view"
+      phase="A6"
+      features={[
+        'Platform KPIs: farmers, activity, income tracked, credit scores',
+        'Sign-ups, regions, score bands and the loan funnel as charts',
+        'Queues that need attention, with links',
+      ]}
+    />
+  );
 }

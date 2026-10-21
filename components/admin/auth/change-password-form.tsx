@@ -25,6 +25,8 @@ export interface ChangePasswordFormProps {
   currentPassword?: string;
   /** True for the first-login change of a temporary or demo password. */
   forced?: boolean;
+  /** Inside a dialog that already shows a title. */
+  hideHeading?: boolean;
   onDone: (admin: AdminUser) => void;
   onCancel?: () => void;
 }
@@ -32,6 +34,7 @@ export interface ChangePasswordFormProps {
 export function ChangePasswordForm({
   currentPassword,
   forced = false,
+  hideHeading = false,
   onDone,
   onCancel,
 }: ChangePasswordFormProps) {
@@ -64,16 +67,18 @@ export function ChangePasswordForm({
 
   return (
     <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <h1 className="font-display text-text text-2xl font-bold">
-          {forced ? 'Set a new password' : 'Change password'}
-        </h1>
-        <p className="text-text-dim mt-1 text-sm">
-          {forced
-            ? 'Your password was temporary. Choose your own before entering the console.'
-            : 'Use a strong password you don’t use anywhere else.'}
-        </p>
-      </div>
+      {!hideHeading && (
+        <div>
+          <h1 className="font-display text-text text-2xl font-bold">
+            {forced ? 'Set a new password' : 'Change password'}
+          </h1>
+          <p className="text-text-dim mt-1 text-sm">
+            {forced
+              ? 'Your password was temporary. Choose your own before entering the console.'
+              : 'Use a strong password you don’t use anywhere else.'}
+          </p>
+        </div>
+      )}
 
       {formError && <FormAlert icon={AlertCircle}>{formError}</FormAlert>}
 

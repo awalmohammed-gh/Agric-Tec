@@ -1,19 +1,42 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
-import { AdminSessionGate } from '@/components/admin/auth/admin-session-gate';
 import { AdminBackground } from '@/components/admin/layout/admin-background';
+import { AdminDataLoader } from '@/components/admin/layout/admin-data-loader';
+import { AdminSearch } from '@/components/admin/layout/admin-search';
+import { AdminSidebar, AdminSidebarDrawer } from '@/components/admin/layout/admin-sidebar';
+import { AdminTopbar } from '@/components/admin/layout/admin-topbar';
+import { ChangePasswordDialog } from '@/components/admin/layout/admin-user-menu';
+import { ImpersonationBar } from '@/components/admin/layout/impersonation-bar';
+import { PageContainer } from '@/components/layout/page-container';
 
 export const metadata: Metadata = {
   title: { default: 'Admin Console', template: '%s | AgriCtec Admin' },
   robots: { index: false, follow: false },
 };
 
-/** The signed-in console. Phase A5 adds the sidebar, top bar and data loader inside the gate. */
+/**
+ * The admin console shell: purple/gold backdrop, role-filtered sidebar (a drawer below 1024px),
+ * top bar with breadcrumbs, search, bell, theme and role. Every page also checks its own
+ * permission (RequirePermission), so a typed-in URL is never enough.
+ */
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <AdminBackground />
-      <AdminSessionGate>{children}</AdminSessionGate>
+      <AdminDataLoader>
+        <ImpersonationBar />
+        <div className="flex min-h-screen">
+          <AdminSidebar />
+          <AdminSidebarDrawer />
+          {/* 272px = 12px inset + 260px floating sidebar (from 1024px). */}
+          <main className="min-w-0 flex-1 px-4 pb-16 sm:px-6 lg:ml-[272px] lg:pt-3">
+            <AdminTopbar />
+            <PageContainer>{children}</PageContainer>
+          </main>
+        </div>
+        <AdminSearch />
+        <ChangePasswordDialog />
+      </AdminDataLoader>
     </>
   );
 }

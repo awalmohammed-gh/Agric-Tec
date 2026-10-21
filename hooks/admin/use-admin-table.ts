@@ -170,6 +170,7 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
     page,
     setPage,
     pageCount,
+    pageSize,
     pageRows,
     total,
     selected,
@@ -180,3 +181,6 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
     clearSelection,
   };
 }
+
+/** What useAdminTable returns, for components that render a table from it. */
+export type AdminTableState<T> = ReturnType<typeof useAdminTable<T>>;

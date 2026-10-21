@@ -252,6 +252,20 @@
   animation: slideIn 0.3s ease-out both;
 }
 
+/* Admin console: the sidebar drawer slides in from the left (below 1024px) */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@utility animate-slide-in-left {
+  animation: slideInLeft 0.25s ease-out both;
+}
+
 /* Crop scanner: a line sweeping down and back up the viewfinder */
 @keyframes scanSweep {
   0%,

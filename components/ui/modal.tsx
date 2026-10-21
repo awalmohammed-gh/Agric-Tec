@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useEffectEvent, useId, useRef, type ReactNode } from 'react';
+import { useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useDialog } from '@/hooks/use-dialog';
 import { useMounted } from '@/hooks/use-mounted';
 import { cn } from '@/lib/utils';
 
@@ -24,20 +25,6 @@ const sizes: Record<ModalSize, string> = {
   lg: 'max-w-3xl',
 };
 
-const FOCUSABLE =
-  'a[href], area[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
-
-// Open modals, innermost last: only the top one reacts to Escape and Tab
-// (e.g. a ConfirmDialog opened from inside another Modal).
-const modalStack: string[] = [];
-let bodyOverflowBeforeModals = '';
-
-function focusableIn(container: HTMLElement): HTMLElement[] {
-  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-    (el) => !el.closest('[inert]') && el.getClientRects().length > 0,
-  );
-}
-
 export function Modal({
   open,
   onClose,
@@ -49,62 +36,9 @@ export function Modal({
 }: ModalProps) {
   const mounted = useMounted();
   const titleId = useId();
-  const modalId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
-
-  const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    if (modalStack.at(-1) !== modalId) return;
-    const panel = panelRef.current;
-    if (!panel) return;
-
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-
-    if (event.key === 'Tab') {
-      const items = focusableIn(panel);
-      if (items.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement;
-      const outside = !(active instanceof Node) || !panel.contains(active);
-
-      if (event.shiftKey && (active === first || active === panel || outside)) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && (active === last || outside)) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-  });
-
-  useEffect(() => {
-    if (!open || !mounted) return;
-
-    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    if (modalStack.length === 0) bodyOverflowBeforeModals = document.body.style.overflow;
-    modalStack.push(modalId);
-    panelRef.current?.focus();
-
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      const index = modalStack.lastIndexOf(modalId);
-      if (index !== -1) modalStack.splice(index, 1);
-      if (modalStack.length === 0) document.body.style.overflow = bodyOverflowBeforeModals;
-      // Return focus to whatever opened the modal.
-      trigger?.focus();
-    };
-  }, [open, mounted, modalId]);
+  // Focus trap, Escape, scroll lock and focus return (shared with the admin drawers).
+  useDialog({ open, active: mounted, panelRef, onClose });
 
   if (!mounted || !open) return null;
 

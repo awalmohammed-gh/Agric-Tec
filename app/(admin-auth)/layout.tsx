@@ -16,7 +16,7 @@ export default function AdminAuthLayout({ children }: { children: ReactNode }) {
     <>
       <AdminBackground />
       <main className="flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="animate-fade-in w-full max-w-[440px]">
+        <div className="animate-fade-in w-full max-w-110">
           <div className="mb-6 flex flex-col items-center text-center">
             <AdminBrand />
           </div>
