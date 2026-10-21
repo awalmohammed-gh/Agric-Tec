@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isReadOnly, READ_ONLY_MESSAGE } from '@/lib/read-only';
 import { DEFAULT_SETTINGS, settingsService } from '@/services/settings.service';
 import type { Language, NotificationSettings, StoreStatus } from '@/types';
 
@@ -29,6 +30,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => {
       current: Pick<SettingsState, 'language' | 'notifications'>,
     ) => Pick<SettingsState, 'language' | 'notifications'>,
   ): Promise<void> {
+    if (isReadOnly()) return Promise.reject(new Error(READ_ONLY_MESSAGE));
     const userId = requireUser();
     const task = saves
       .catch(() => {})

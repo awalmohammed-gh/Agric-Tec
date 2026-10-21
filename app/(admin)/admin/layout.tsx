@@ -6,7 +6,6 @@ import { AdminSearch } from '@/components/admin/layout/admin-search';
 import { AdminSidebar, AdminSidebarDrawer } from '@/components/admin/layout/admin-sidebar';
 import { AdminTopbar } from '@/components/admin/layout/admin-topbar';
 import { ChangePasswordDialog } from '@/components/admin/layout/admin-user-menu';
-import { ImpersonationBar } from '@/components/admin/layout/impersonation-bar';
 import { PageContainer } from '@/components/layout/page-container';
 
 export const metadata: Metadata = {
@@ -24,7 +23,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <>
       <AdminBackground />
       <AdminDataLoader>
-        <ImpersonationBar />
         <div className="flex min-h-screen">
           <AdminSidebar />
           <AdminSidebarDrawer />

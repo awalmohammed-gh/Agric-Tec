@@ -1,32 +1,39 @@
 'use client';
 
 import { Eye, X } from 'lucide-react';
-import { useAdminUiStore } from '@/store/admin/admin-ui-store';
+import { exitImpersonation } from '@/lib/admin/impersonation';
+import { useAuthStore } from '@/store/auth-store';
 
 /**
- * Gold bar across the very top while an admin views the app as a farmer (read-only, phase A8).
+ * Shown in the farmer app while an admin views it as a farmer (phase A8): a gold bar at the very
+ * top, plus a gold frame around the window so the read-only state stays obvious while scrolling.
  * The spec's 👁 is the Eye icon here: the app never renders emoji.
  */
 export function ImpersonationBar() {
-  const impersonating = useAdminUiStore((s) => s.impersonating);
-  const stop = useAdminUiStore((s) => s.stopImpersonation);
-  if (!impersonating) return null;
+  const view = useAuthStore((s) => s.impersonation);
+  if (!view) return null;
 
   return (
-    <div
-      role="status"
-      className="bg-gold sticky top-0 z-[60] flex min-h-10 items-center justify-center gap-3 px-4 py-1.5 text-sm font-semibold text-[#3a2a05]"
-    >
-      <Eye size={16} aria-hidden="true" />
-      <span className="truncate">Viewing as {impersonating.name} (read-only)</span>
-      <button
-        type="button"
-        onClick={stop}
-        className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-black/10 px-2.5 text-xs font-bold transition-colors hover:bg-black/20"
+    <>
+      <div
+        role="status"
+        className="bg-gold relative z-60 flex min-h-10 items-center justify-center gap-3 px-4 py-1.5 text-sm font-semibold text-[#3a2a05]"
       >
-        <X size={14} aria-hidden="true" />
-        Exit
-      </button>
-    </div>
+        <Eye size={16} aria-hidden="true" className="shrink-0" />
+        <span className="truncate">Viewing as {view.farmerName} (read-only)</span>
+        <button
+          type="button"
+          onClick={exitImpersonation}
+          className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg bg-black/10 px-2.5 text-xs font-bold transition-colors hover:bg-black/20"
+        >
+          <X size={14} aria-hidden="true" />
+          Exit
+        </button>
+      </div>
+      <div
+        aria-hidden="true"
+        className="ring-gold/70 pointer-events-none fixed inset-0 z-70 ring-4 ring-inset"
+      />
+    </>
   );
 }

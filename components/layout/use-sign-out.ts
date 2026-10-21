@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { signOutAndReset } from '@/store';
+import { exitImpersonation } from '@/lib/admin/impersonation';
+import { signOutAndReset, useAuthStore } from '@/store';
 
 /** Signs out, clears every store and returns to /login. Shared by the sidebar and mobile menu. */
 export function useSignOut() {
@@ -11,6 +12,7 @@ export function useSignOut() {
   const [signingOut, setSigningOut] = useState(false);
 
   async function signOut() {
+    if (useAuthStore.getState().impersonation) return exitImpersonation();
     setSigningOut(true);
     try {
       await signOutAndReset();

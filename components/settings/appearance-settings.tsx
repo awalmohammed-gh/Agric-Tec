@@ -1,5 +1,6 @@
 'use client';
 
+import { READ_ONLY_MESSAGE, useReadOnly } from '@/lib/read-only';
 import { useState } from 'react';
 import { Languages, Palette } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,6 +21,7 @@ export function AppearanceSettings() {
   const language = useSettingsStore((state) => state.language);
   const status = useSettingsStore((state) => state.status);
   const [saving, setSaving] = useState(false);
+  const readOnly = useReadOnly();
   return (
     <Card className="h-full rounded-3xl">
       <CardHeader>
@@ -49,7 +51,8 @@ export function AppearanceSettings() {
         <Select
           id="settings-language"
           value={language}
-          disabled={saving || status !== 'ready'}
+          disabled={saving || status !== 'ready' || readOnly}
+          title={readOnly ? READ_ONLY_MESSAGE : undefined}
           className="mt-3"
           onChange={async (event) => {
             const next = event.target.value as Language;

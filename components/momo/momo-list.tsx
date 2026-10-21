@@ -1,5 +1,6 @@
 'use client';
 
+import { readOnlyProps, READ_ONLY_CLASS, useReadOnly } from '@/lib/read-only';
 import { useState } from 'react';
 import { isToday, isYesterday } from 'date-fns';
 import {
@@ -46,6 +47,7 @@ function TransactionRow({
   onEdit: (t: MomoTransaction) => void;
   onDelete: (t: MomoTransaction) => void;
 }) {
+  const readOnly = useReadOnly();
   const inflow = t.direction === 'in';
   const Arrow = inflow ? ArrowDownLeft : ArrowUpRight;
   return (
@@ -98,17 +100,19 @@ function TransactionRow({
         <div className="flex gap-0.5 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0">
           <button
             type="button"
-            onClick={() => onEdit(t)}
+            {...readOnlyProps(readOnly)}
+            onClick={readOnly ? undefined : () => onEdit(t)}
             aria-label={`Edit transaction with ${t.counterparty}`}
-            className={cn(actionClass, 'hover:text-text')}
+            className={cn(actionClass, 'hover:text-text', readOnly && READ_ONLY_CLASS)}
           >
             <Pencil size={16} aria-hidden="true" />
           </button>
           <button
             type="button"
-            onClick={() => onDelete(t)}
+            {...readOnlyProps(readOnly)}
+            onClick={readOnly ? undefined : () => onDelete(t)}
             aria-label={`Delete transaction with ${t.counterparty}`}
-            className={cn(actionClass, 'hover:text-ink-red')}
+            className={cn(actionClass, 'hover:text-ink-red', readOnly && READ_ONLY_CLASS)}
           >
             <Trash2 size={16} aria-hidden="true" />
           </button>
@@ -189,7 +193,7 @@ export function MomoList({
         title="No MoMo transactions yet"
         description="Log mobile money payments you send and receive. They raise your credit score."
         action={
-          <Button icon={Plus} onClick={() => openModal('momo')}>
+          <Button mutates icon={Plus} onClick={() => openModal('momo')}>
             Add your first transaction
           </Button>
         }

@@ -57,6 +57,7 @@ function PhoneVerification({ onClose }: { onClose: () => void }) {
       <Button
         variant="ghost"
         icon={Send}
+        mutates
         disabled={!ghanaPhone.test(phone) || saving}
         onClick={() => {
           setSentTo(phone);
@@ -97,6 +98,7 @@ function PhoneVerification({ onClose }: { onClose: () => void }) {
       <Button
         type="submit"
         icon={Check}
+        mutates
         loading={saving}
         disabled={!sentTo || code.length !== 6}
         className="w-full"

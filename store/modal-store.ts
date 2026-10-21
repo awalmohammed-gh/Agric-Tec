@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { toast } from 'sonner';
+import { isReadOnly, READ_ONLY_MESSAGE } from '@/lib/read-only';
 import type { NewMomoInput, NewRecordInput } from '@/types';
 
 export type GlobalModal = 'record' | 'momo';
@@ -17,16 +19,25 @@ interface ModalState {
 }
 
 /** Which app-wide form modal is open. The modals are mounted once in app/(main)/layout.tsx. */
+/** True (with a note) when forms must not open because the app is read-only. */
+function blocked(): boolean {
+  if (!isReadOnly()) return false;
+  toast.info(READ_ONLY_MESSAGE);
+  return true;
+}
+
 export const useModalStore = create<ModalState>()((set) => ({
   modal: null,
   editingId: undefined,
   recordDefaults: undefined,
   momoDefaults: undefined,
   openModal: (modal, editingId) =>
-    set({ modal, editingId, recordDefaults: undefined, momoDefaults: undefined }),
+    blocked() || set({ modal, editingId, recordDefaults: undefined, momoDefaults: undefined }),
   openRecordWithDefaults: (recordDefaults) =>
+    blocked() ||
     set({ modal: 'record', editingId: undefined, recordDefaults, momoDefaults: undefined }),
   openMomoWithDefaults: (momoDefaults) =>
+    blocked() ||
     set({ modal: 'momo', editingId: undefined, recordDefaults: undefined, momoDefaults }),
   closeModal: () =>
     set({ modal: null, editingId: undefined, recordDefaults: undefined, momoDefaults: undefined }),

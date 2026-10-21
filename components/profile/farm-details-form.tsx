@@ -111,6 +111,7 @@ export function FarmDetailsForm() {
           )}
         </fieldset>
         <Button
+          mutates
           type="submit"
           icon={Save}
           disabled={!isDirty}

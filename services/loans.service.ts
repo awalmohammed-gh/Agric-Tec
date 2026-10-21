@@ -22,7 +22,7 @@ const legacyKey = (userId: string) => userKey(userId, 'loanApplications');
  */
 async function adoptLegacyApplications(userId: string): Promise<void> {
   const legacy = storage.get<LegacyApplication[]>(legacyKey(userId), []);
-  if (legacy.length === 0) return;
+  if (legacy.length === 0 || storage.isReadOnly()) return;
   const data = readFarmerData(userId);
   const score = calculateCreditScore(
     data.records,

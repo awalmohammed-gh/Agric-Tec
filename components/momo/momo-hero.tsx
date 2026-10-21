@@ -1,5 +1,6 @@
 'use client';
 
+import { readOnlyProps, READ_ONLY_CLASS, useReadOnly } from '@/lib/read-only';
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -45,6 +46,7 @@ function Change({ value, goodWhenDown = false }: { value: number | null; goodWhe
 export function MomoHero() {
   const momoList = useFarmStore((s) => s.momo);
   const openMomo = useModalStore((s) => s.openMomoWithDefaults);
+  const readOnly = useReadOnly();
   const { momo } = useFarmStats();
 
   const inThisMonth = momo.monthly6.income[5] ?? 0;
@@ -117,15 +119,23 @@ export function MomoHero() {
           <div className="relative mt-4 grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => openMomo({ direction: 'in' })}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-3 text-sm font-semibold text-[#065f46] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-white"
+              {...readOnlyProps(readOnly)}
+              onClick={readOnly ? undefined : () => openMomo({ direction: 'in' })}
+              className={cn(
+                'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-3 text-sm font-semibold text-[#065f46] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-white',
+                readOnly && READ_ONLY_CLASS,
+              )}
             >
               <ArrowDownLeft size={16} aria-hidden="true" /> Log received
             </button>
             <button
               type="button"
-              onClick={() => openMomo({ direction: 'out' })}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/40 px-3 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white"
+              {...readOnlyProps(readOnly)}
+              onClick={readOnly ? undefined : () => openMomo({ direction: 'out' })}
+              className={cn(
+                'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/40 px-3 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white',
+                readOnly && READ_ONLY_CLASS,
+              )}
             >
               <ArrowUpRight size={16} aria-hidden="true" /> Log sent
             </button>

@@ -10,6 +10,8 @@ const SESSION_COOKIE = 'agrictec_session';
 const ADMIN_COOKIE = 'agrictec_admin';
 const AUTH_PAGES = ['/login', '/signup'];
 const ADMIN_LOGIN = '/admin-login';
+/** Set by the farmer tab while an admin views the app as a farmer (read-only, phase A8). */
+const IMPERSONATION_COOKIE = 'agrictec_impersonating';
 
 const isAdminPath = (pathname: string) => pathname === '/admin' || pathname.startsWith('/admin/');
 
@@ -31,8 +33,14 @@ export function proxy(request: NextRequest) {
     return hasAdmin ? NextResponse.redirect(new URL('/admin', request.url)) : NextResponse.next();
   }
 
-  // ---- Farmer app (unchanged) ----
-  const hasSession = request.cookies.has(SESSION_COOKIE);
+  // ---- Farmer app ----
+  // An admin viewing as a farmer has no farmer session: let the read-only view through. The
+  // first request carries the one-time ?impersonate= token; later ones carry the cookie.
+  const viewingAsFarmer =
+    hasAdmin &&
+    (request.cookies.has(IMPERSONATION_COOKIE) || request.nextUrl.searchParams.has('impersonate'));
+  const hasFarmerSession = request.cookies.has(SESSION_COOKIE);
+  const hasSession = hasFarmerSession || viewingAsFarmer;
   const isAuthPage = AUTH_PAGES.some((p) => pathname.startsWith(p));
 
   if (!hasSession && !isAuthPage) {
@@ -41,7 +49,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
   // Registration remains accessible so a guest can create a full account.
-  if (hasSession && isAuthPage && !pathname.startsWith('/signup')) {
+  // Only a real farmer session skips /login (a leftover view-as-farmer cookie must not loop).
+  if (hasFarmerSession && isAuthPage && !pathname.startsWith('/signup')) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   return NextResponse.next();

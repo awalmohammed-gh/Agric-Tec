@@ -153,19 +153,25 @@ export function DiagnosisCard({
         </p>
 
         <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button icon={saved ? Check : Save} loading={saving} disabled={saved} onClick={onSave}>
+          <Button
+            mutates
+            icon={saved ? Check : Save}
+            loading={saving}
+            disabled={saved}
+            onClick={onSave}
+          >
             {saved ? 'Diagnosis saved' : 'Save Diagnosis'}
           </Button>
           <Button variant="ghost" icon={RotateCcw} disabled={saving} onClick={onScanAnother}>
             Scan another
           </Button>
           {onLogTreatment && result.severity !== 'None' && (
-            <Button variant="ghost" size="sm" icon={ReceiptText} onClick={onLogTreatment}>
+            <Button mutates variant="ghost" size="sm" icon={ReceiptText} onClick={onLogTreatment}>
               Log treatment cost
             </Button>
           )}
           {onAskAssistant && (
-            <Button variant="ghost" size="sm" icon={Bot} onClick={onAskAssistant}>
+            <Button mutates variant="ghost" size="sm" icon={Bot} onClick={onAskAssistant}>
               Ask the AI assistant
             </Button>
           )}

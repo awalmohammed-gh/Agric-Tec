@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { assertWritable } from '@/lib/read-only';
 import {
   DEFAULT_ASSISTANT_KB,
   DEFAULT_CREDIT_CONFIG,
@@ -94,6 +95,7 @@ export const usePlatformStore = create<PlatformState>()((set, get) => ({
   },
 
   dismissAnnouncement: async (id) => {
+    assertWritable();
     const userId = currentUser();
     // Hide it at once; storage follows.
     set((state) => ({ dismissed: [...state.dismissed, id] }));
@@ -106,6 +108,7 @@ export const usePlatformStore = create<PlatformState>()((set, get) => ({
   },
 
   submitGhanaCard: async (cardNumber) => {
+    assertWritable();
     const userId = currentUser();
     const request = await platformService.submitGhanaCard(userId, cardNumber);
     if (get().userId === userId) {
@@ -115,6 +118,7 @@ export const usePlatformStore = create<PlatformState>()((set, get) => ({
   },
 
   logInstantCheck: async (kind, value) => {
+    assertWritable();
     const userId = currentUser();
     const request = await platformService.logInstantCheck(userId, kind, value);
     if (get().userId === userId) {

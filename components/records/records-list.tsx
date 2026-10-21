@@ -1,5 +1,6 @@
 'use client';
 
+import { readOnlyProps, READ_ONLY_CLASS, useReadOnly } from '@/lib/read-only';
 import { useState } from 'react';
 import { isToday, isYesterday } from 'date-fns';
 import { ClipboardList, FilterX, Pencil, Plus, SearchX, Trash2 } from 'lucide-react';
@@ -64,6 +65,7 @@ function RecordRow({
   onEdit: (record: FarmRecord) => void;
   onDelete: (record: FarmRecord) => void;
 }) {
+  const readOnly = useReadOnly();
   const badge = TYPE_BADGE[record.type];
   return (
     <li className="group hover:bg-glass focus-within:bg-glass flex items-start gap-3 rounded-2xl px-3 py-3 transition-colors sm:items-center">
@@ -91,17 +93,19 @@ function RecordRow({
         <div className="flex gap-0.5 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0">
           <button
             type="button"
-            onClick={() => onEdit(record)}
+            {...readOnlyProps(readOnly)}
+            onClick={readOnly ? undefined : () => onEdit(record)}
             aria-label={`Edit record: ${record.description}`}
-            className={cn(actionClass, 'hover:text-text')}
+            className={cn(actionClass, 'hover:text-text', readOnly && READ_ONLY_CLASS)}
           >
             <Pencil size={16} aria-hidden="true" />
           </button>
           <button
             type="button"
-            onClick={() => onDelete(record)}
+            {...readOnlyProps(readOnly)}
+            onClick={readOnly ? undefined : () => onDelete(record)}
             aria-label={`Delete record: ${record.description}`}
-            className={cn(actionClass, 'hover:text-ink-red')}
+            className={cn(actionClass, 'hover:text-ink-red', readOnly && READ_ONLY_CLASS)}
           >
             <Trash2 size={16} aria-hidden="true" />
           </button>
@@ -184,7 +188,7 @@ export function RecordsList({
         title="No records yet. Add your first record!"
         description="Income, expenses and farm activities you record here build your financial history."
         action={
-          <Button icon={Plus} onClick={() => openModal('record')}>
+          <Button mutates icon={Plus} onClick={() => openModal('record')}>
             Add your first record
           </Button>
         }

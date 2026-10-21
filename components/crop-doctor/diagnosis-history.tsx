@@ -1,5 +1,6 @@
 'use client';
 
+import { readOnlyProps, READ_ONLY_CLASS, useReadOnly } from '@/lib/read-only';
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { History, Leaf, Trash2 } from 'lucide-react';
@@ -26,6 +27,7 @@ const FILTER_LABELS: Record<Filter, string> = {
 export function DiagnosisHistory() {
   const diagnoses = useFarmStore((state) => state.diagnoses);
   const deleteDiagnosis = useFarmStore((state) => state.deleteDiagnosis);
+  const readOnly = useReadOnly();
   const [selected, setSelected] = useState<Diagnosis | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
@@ -131,8 +133,12 @@ export function DiagnosisHistory() {
                 <button
                   type="button"
                   aria-label={`Delete ${diagnosis.disease} diagnosis`}
-                  onClick={() => setSelected(diagnosis)}
-                  className="hover:bg-danger absolute top-2 right-2 inline-flex size-9 items-center justify-center rounded-lg bg-black/55 text-white backdrop-blur transition-colors"
+                  {...readOnlyProps(readOnly)}
+                  onClick={readOnly ? undefined : () => setSelected(diagnosis)}
+                  className={cn(
+                    'hover:bg-danger absolute top-2 right-2 inline-flex size-9 items-center justify-center rounded-lg bg-black/55 text-white backdrop-blur transition-colors',
+                    readOnly && READ_ONLY_CLASS,
+                  )}
                 >
                   <Trash2 size={15} aria-hidden="true" />
                 </button>

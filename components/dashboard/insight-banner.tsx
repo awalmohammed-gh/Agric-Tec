@@ -79,7 +79,7 @@ export function InsightBanner() {
             </button>
           </>
         )}
-        <Button size="sm" icon={Plus} onClick={() => openModal('record')}>
+        <Button mutates size="sm" icon={Plus} onClick={() => openModal('record')}>
           Add Record
         </Button>
       </div>

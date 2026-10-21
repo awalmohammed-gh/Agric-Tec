@@ -100,6 +100,7 @@ export function PersonalInfoForm() {
           </Select>
         </FormField>
         <Button
+          mutates
           type="submit"
           icon={Save}
           disabled={!isDirty}

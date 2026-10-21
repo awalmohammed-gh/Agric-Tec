@@ -83,7 +83,7 @@ export function MomoToolbar({
           >
             <span className="hidden @3xl:inline">Export</span>
           </Button>
-          <Button icon={Plus} onClick={onNew} className="px-3 @3xl:px-4">
+          <Button mutates icon={Plus} onClick={onNew} className="px-3 @3xl:px-4">
             <span className="hidden @md:inline">New</span>
             <span className="sr-only @md:hidden">New transaction</span>
           </Button>

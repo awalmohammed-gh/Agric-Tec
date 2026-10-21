@@ -1,5 +1,8 @@
+'use client';
+
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { Loader2, type LucideIcon } from 'lucide-react';
+import { READ_ONLY_MESSAGE, useReadOnly } from '@/lib/read-only';
 import { cn } from '@/lib/utils';
 
 type ButtonVariant = 'primary' | 'ghost' | 'danger';
@@ -10,6 +13,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   loading?: boolean;
   icon?: LucideIcon;
+  /**
+   * The button creates, edits, deletes or submits farmer data. While an admin views the app as
+   * a farmer it then does nothing, looks disabled and explains why in a tooltip. (aria-disabled
+   * rather than disabled, because disabled buttons don't show tooltips.)
+   */
+  mutates?: boolean;
 }
 
 const variants: Record<ButtonVariant, string> = {
@@ -36,22 +45,31 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     children,
     disabled,
     type = 'button',
+    mutates = false,
+    onClick,
+    title,
     ...props
   },
   ref,
 ) {
   const iconSize = size === 'sm' ? 14 : 16;
+  const readOnly = useReadOnly() && mutates;
   return (
     <button
       ref={ref}
-      type={type}
+      // Read-only: never submits a form and ignores clicks.
+      type={readOnly ? 'button' : type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
+      aria-disabled={readOnly || undefined}
+      title={readOnly ? READ_ONLY_MESSAGE : title}
+      onClick={readOnly ? undefined : onClick}
       className={cn(
         'inline-flex items-center justify-center rounded-xl font-semibold whitespace-nowrap transition-all duration-200',
         'disabled:pointer-events-none disabled:opacity-60',
         variants[variant],
         sizes[size],
+        readOnly && 'cursor-not-allowed opacity-60 hover:translate-y-0',
         className,
       )}
       {...props}

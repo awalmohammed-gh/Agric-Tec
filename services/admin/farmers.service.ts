@@ -187,11 +187,14 @@ export const farmersService = {
         targetType: 'farmer',
         targetId: id,
         summary: `Permanently deleted ${label(user)}`,
+        // A summary only: counts, never the farmer's data or contact details.
         before: {
-          email: user.email,
-          name: data.profile.name,
           records: data.records.length,
           momo: data.momo.length,
+          diagnoses: data.diagnoses.length,
+          applications: storage
+            .get<{ userId: string }[]>(PLATFORM_KEYS.loanApplications, [])
+            .filter((a) => a.userId === id).length,
         },
         after: () => ({ deleted: true }),
       },
@@ -286,6 +289,34 @@ export const farmersService = {
         saveUser({ ...user, passwordHash: await hashPassword(temporary) });
         return temporary;
       },
+    );
+  },
+
+  /** One farmer's records as CSV (newest first). Only the count is logged. */
+  async exportRecordsCSV(id: string): Promise<string> {
+    await delay();
+    const user = findUser(id);
+    const records = [...readFarmerData(id).records].sort(
+      (a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
+    );
+    return withAudit(
+      {
+        permission: 'reports.export',
+        action: 'farmer.export_records',
+        targetType: 'farmer',
+        targetId: id,
+        summary: `Exported ${records.length} records of ${label(user)}`,
+        after: () => ({ count: records.length }),
+      },
+      async () =>
+        toCSV(records, [
+          { header: 'Date', value: (r) => r.date },
+          { header: 'Type', value: (r) => r.type },
+          { header: 'Description', value: (r) => r.description },
+          { header: 'Crop', value: (r) => r.crop },
+          { header: 'Amount (GHS)', value: (r) => r.amount },
+          { header: 'Notes', value: (r) => r.notes ?? '' },
+        ]),
     );
   },
 

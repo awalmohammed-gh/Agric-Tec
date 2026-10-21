@@ -22,10 +22,10 @@ import {
   ytdIncome,
 } from '@/lib/calculations/finance';
 import { borrowingLimit } from '@/lib/calculations/loan';
+import { buildReadiness } from '@/lib/calculations/readiness';
 import { useFarmStore } from '@/store/farm-store';
 import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
-import type { ReadinessItem } from '@/types';
 
 /**
  * Every derived number the pages need, computed from the stores.
@@ -53,47 +53,7 @@ export function useFarmStats() {
   /** This month vs last month, from the last two points of a 6-month series. */
   const monthOverMonth = (series: number[]) => percentChange(series[5] ?? 0, series[4] ?? 0);
 
-  const readiness: ReadinessItem[] = [
-    {
-      key: 'account',
-      label: 'Account Created',
-      description: 'Your AgriCtec account is active.',
-      done: true,
-    },
-    {
-      key: 'records',
-      label: 'Financial Records',
-      description: `${Math.min(records.length, minRecords)} of ${minRecords} farm records logged.`,
-      done: records.length >= minRecords,
-    },
-    {
-      key: 'momo',
-      label: 'MoMo Integration',
-      description:
-        momo.length > 0
-          ? `${momo.length} MoMo transaction${momo.length === 1 ? '' : 's'} recorded.`
-          : 'Log at least one MoMo transaction.',
-      done: momo.length >= 1,
-    },
-    {
-      key: 'profile',
-      label: 'Profile Complete',
-      description: profileComplete
-        ? 'Name, phone, farm name and acreage are filled in.'
-        : 'Add your name, phone, farm name and acreage.',
-      done: profileComplete,
-    },
-    {
-      key: 'ghanaCard',
-      label: 'Ghana Card',
-      description: profile?.verification.ghanaCard
-        ? 'Your Ghana Card is verified.'
-        : cardUnderReview
-          ? 'Your Ghana Card is under review.'
-          : 'Verify your Ghana Card in your profile.',
-      done: profile?.verification.ghanaCard ?? false,
-    },
-  ];
+  const readiness = buildReadiness({ records, momo, profile, minRecords, cardUnderReview });
 
   return {
     income: totalIncome(records),

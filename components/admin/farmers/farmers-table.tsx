@@ -21,16 +21,14 @@ import { PageHeader } from '@/components/admin/layout/page-header';
 import { AdminTable, type AdminColumn } from '@/components/admin/shared/admin-table';
 import { RowMenu, type RowMenuItem } from '@/components/admin/shared/row-menu';
 import { StatusBadge } from '@/components/admin/shared/status-badge';
-import {
-  AddNoteDialog,
-  ReactivateDialog,
-  ResetPasswordDialog,
-} from '@/components/admin/farmers/farmer-action-dialogs';
+import { AddNoteDialog, ReactivateDialog } from '@/components/admin/farmers/farmer-action-dialogs';
+import { ResetPasswordDialog } from '@/components/admin/farmers/detail/reset-password-dialog';
 import { FarmerQuickView } from '@/components/admin/farmers/farmer-quick-view';
 import { csvFileName, FarmersBulkActions } from '@/components/admin/farmers/farmers-bulk-actions';
 import { FarmersFilters } from '@/components/admin/farmers/farmers-filters';
 import { SuspendDialog } from '@/components/admin/farmers/suspend-dialog';
 import { TagEditor } from '@/components/admin/farmers/tag-editor';
+import { useViewAsFarmer } from '@/components/admin/farmers/use-view-as-farmer';
 import { Badge, type BadgeColor } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CROP_TONES, CropIcon, cropFromName } from '@/components/ui/crop-icon';
@@ -51,7 +49,6 @@ import { cn } from '@/lib/utils';
 import { farmersService } from '@/services/admin/farmers.service';
 import { riskService } from '@/services/admin/risk.service';
 import { useAdminDataStore } from '@/store/admin/admin-data-store';
-import { useAdminUiStore } from '@/store/admin/admin-ui-store';
 import type { FarmerAccount } from '@/types/admin';
 
 const BAND_COLOR: Record<string, BadgeColor> = {
@@ -101,7 +98,7 @@ export function FarmersTable() {
   const farmers = useAdminDataStore((s) => s.farmers);
   const status = useAdminDataStore((s) => s.status);
   const refresh = useAdminDataStore((s) => s.refresh);
-  const startImpersonation = useAdminUiStore((s) => s.startImpersonation);
+  const viewAsFarmer = useViewAsFarmer();
   const bands = usePlatformStatus()?.creditConfig.bands;
   const [quickView, setQuickView] = useState<FarmerAccount | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -127,11 +124,6 @@ export function FarmersTable() {
     setQuickView(null);
     table.clearSelection();
     await refresh();
-  }
-
-  function viewAsFarmer(farmer: FarmerAccount) {
-    startImpersonation({ userId: farmer.userId, name: nameOf(farmer) });
-    router.push(`/admin/farmers/${farmer.userId}?view=farmer`);
   }
 
   async function runScan() {
@@ -207,7 +199,7 @@ export function FarmersTable() {
           ]
         : []),
       ...(abilities.impersonate
-        ? [{ label: 'View as farmer', icon: Eye, onSelect: () => viewAsFarmer(farmer) }]
+        ? [{ label: 'View as farmer', icon: Eye, onSelect: () => void viewAsFarmer(farmer) }]
         : []),
     ];
   }

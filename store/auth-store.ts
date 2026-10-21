@@ -2,9 +2,20 @@ import { create } from 'zustand';
 import { authService } from '@/services/auth.service';
 import type { Session, StoreStatus } from '@/types';
 
+/** An admin viewing the app as a farmer (phase A8): the farmer's data, strictly read-only. */
+export interface ImpersonationView {
+  adminId: string;
+  adminName: string;
+  farmerId: string;
+  farmerName: string;
+  startedAt: string;
+}
+
 interface AuthState {
   session: Session | null;
   status: StoreStatus;
+  /** Set while an admin views the app as this farmer; every write is then refused. */
+  impersonation: ImpersonationView | null;
   init: () => Promise<Session | null>;
   signIn: (email: string, password: string) => Promise<Session>;
   signUp: (email: string, password: string) => Promise<Session>;
@@ -15,6 +26,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()((set) => ({
   session: null,
   status: 'idle',
+  impersonation: null,
 
   init: async () => {
     set({ status: 'loading' });

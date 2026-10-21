@@ -1,5 +1,6 @@
 'use client';
 
+import { readOnlyProps, READ_ONLY_CLASS, useReadOnly } from '@/lib/read-only';
 import { CircleAlert, CircleCheck, Info, TriangleAlert, X, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ export function AnnouncementBanner({ className }: { className?: string }) {
   const dismissed = usePlatformStore((s) => s.dismissed);
   const dismiss = usePlatformStore((s) => s.dismissAnnouncement);
   const profile = useProfileStore((s) => s.profile);
+  const readOnly = useReadOnly();
 
   const now = new Date();
   const visible = announcements
@@ -75,13 +77,20 @@ export function AnnouncementBanner({ className }: { className?: string }) {
             {announcement.dismissible && (
               <button
                 type="button"
-                onClick={() =>
-                  dismiss(announcement.id).catch(() =>
-                    toast.error('Could not save that. It may show again next time.'),
-                  )
+                {...readOnlyProps(readOnly)}
+                onClick={
+                  readOnly
+                    ? undefined
+                    : () =>
+                        dismiss(announcement.id).catch(() =>
+                          toast.error('Could not save that. It may show again next time.'),
+                        )
                 }
                 aria-label={`Dismiss announcement: ${announcement.title}`}
-                className="hover:bg-glass-strong -mt-1 -mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors"
+                className={cn(
+                  'hover:bg-glass-strong -mt-1 -mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                  readOnly && READ_ONLY_CLASS,
+                )}
               >
                 <X size={16} aria-hidden="true" />
               </button>

@@ -28,6 +28,8 @@ export interface DataTableProps<T> {
   /** Initial sort, e.g. { key: 'date', direction: 'desc' } for newest first. */
   defaultSort?: SortState;
   className?: string;
+  /** Extra classes for a row, e.g. to highlight flagged rows. */
+  rowClassName?: (row: T) => string | undefined;
 }
 
 export interface SortState {
@@ -63,6 +65,7 @@ export function DataTable<T extends object>({
   caption,
   defaultSort,
   className,
+  rowClassName,
 }: DataTableProps<T>) {
   const [sort, setSort] = useState<SortState | null>(defaultSort ?? null);
 
@@ -156,7 +159,10 @@ export function DataTable<T extends object>({
             sortedRows.map((row) => (
               <tr
                 key={getRowId(row)}
-                className="border-border hover:bg-glass border-b transition-colors last:border-b-0"
+                className={cn(
+                  'border-border hover:bg-glass border-b transition-colors last:border-b-0',
+                  rowClassName?.(row),
+                )}
               >
                 {columns.map((column) => (
                   <td

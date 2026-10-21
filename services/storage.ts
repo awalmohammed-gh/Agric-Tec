@@ -4,6 +4,18 @@
 const PREFIX = 'agrictec:';
 const isBrowser = () => typeof window !== 'undefined';
 
+/**
+ * Set while an admin views the farmer app as a farmer (phase A8). Every write to localStorage
+ * then throws, so the impersonated view can never change anyone's data. Per tab: other tabs
+ * (and sessionStorage, used only for per-tab UI state) are unaffected.
+ */
+let readOnly = false;
+export const READ_ONLY_MESSAGE = 'Read-only while viewing as farmer';
+
+function assertWritable(): void {
+  if (readOnly) throw new Error(READ_ONLY_MESSAGE);
+}
+
 function read<T>(area: Storage, key: string, fallback: T): T {
   try {
     const raw = area.getItem(PREFIX + key);
@@ -22,17 +34,28 @@ function write<T>(area: Storage, key: string, value: T): void {
 }
 
 export const storage = {
+  /** Turns the read-only guard on or off for this tab (see READ_ONLY_MESSAGE). */
+  setReadOnly(on: boolean): void {
+    readOnly = on;
+  },
+
+  isReadOnly(): boolean {
+    return readOnly;
+  },
+
   get<T>(key: string, fallback: T): T {
     if (!isBrowser()) return fallback;
     return read(window.localStorage, key, fallback);
   },
 
   set<T>(key: string, value: T): void {
+    assertWritable();
     if (!isBrowser()) return;
     write(window.localStorage, key, value);
   },
 
   remove(key: string): void {
+    assertWritable();
     if (!isBrowser()) return;
     try {
       window.localStorage.removeItem(PREFIX + key);
@@ -80,6 +103,7 @@ export const storage = {
 
   /** Removes every key that belongs to one user: "agrictec:<userId>:*". */
   clearUser(userId: string): void {
+    assertWritable();
     if (!isBrowser()) return;
     try {
       const userPrefix = PREFIX + userId + ':';
@@ -101,6 +125,7 @@ export const storage = {
    * values if a write fails (used by the admin platform import).
    */
   replaceKeys(entries: Record<string, unknown>, keep: (key: string) => boolean): void {
+    assertWritable();
     if (!isBrowser()) throw new Error('Data import is only available in your browser.');
     const area = window.localStorage;
     const previous = new Map<string, string>();
@@ -129,6 +154,7 @@ export const storage = {
 
   /** Replace one user's data, restoring the previous values if a write fails. */
   replaceUser(userId: string, data: Record<string, unknown>): void {
+    assertWritable();
     if (!isBrowser()) throw new Error('Data import is only available in your browser.');
     const area = window.localStorage;
     const prefix = PREFIX + userId + ':';

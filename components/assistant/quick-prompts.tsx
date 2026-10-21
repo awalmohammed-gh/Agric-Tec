@@ -1,5 +1,6 @@
 'use client';
 
+import { readOnlyProps, READ_ONLY_CLASS, useReadOnly } from '@/lib/read-only';
 import {
   ArrowUpRight,
   Bug,
@@ -55,6 +56,7 @@ export function QuickPrompts({ variant = 'compact' }: { variant?: 'compact' | 's
   const isTyping = useChatStore((state) => state.isTyping);
   const status = useChatStore((state) => state.status);
   const sendMessage = useChatStore((state) => state.sendMessage);
+  const readOnly = useReadOnly();
   const starter = variant === 'starter';
 
   return (
@@ -70,8 +72,10 @@ export function QuickPrompts({ variant = 'compact' }: { variant?: 'compact' | 's
           key={label}
           type="button"
           disabled={isTyping || status !== 'ready'}
-          onClick={() => void sendMessage(label)}
+          {...readOnlyProps(readOnly)}
+          onClick={readOnly ? undefined : () => void sendMessage(label)}
           className={cn(
+            readOnly && READ_ONLY_CLASS,
             'group border-border bg-glass hover:border-accent/40 hover:bg-glass-strong text-left transition-all duration-200 disabled:pointer-events-none disabled:opacity-50',
             starter
               ? 'rounded-2xl border p-3 sm:p-3.5'

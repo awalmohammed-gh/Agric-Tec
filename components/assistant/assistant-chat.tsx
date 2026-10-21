@@ -50,6 +50,7 @@ export function AssistantChat() {
           variant="ghost"
           size="sm"
           icon={Trash2}
+          mutates
           disabled={isTyping || status !== 'ready' || isClearing || !hasConversation}
           onClick={() => setConfirmOpen(true)}
           className="text-text-mute shrink-0 border-0 bg-transparent shadow-none backdrop-blur-none"

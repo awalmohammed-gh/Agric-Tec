@@ -7,7 +7,13 @@ import { MaintenanceScreen } from '@/components/shared/maintenance-screen';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  activeImpersonation,
+  claimImpersonation,
+  impersonatedSession,
+} from '@/lib/admin/impersonation';
 import { authService } from '@/services/auth.service';
+import { storage } from '@/services/storage';
 import { loadAllStores, signOutAndReset, useAuthStore, usePlatformStore } from '@/store';
 
 type LoadState = 'loading' | 'ready' | 'error' | 'maintenance';
@@ -34,6 +40,27 @@ export function DataLoader({ children }: { children: ReactNode }) {
       // Maintenance mode replaces the whole app for farmers (admins use /admin, unaffected).
       const flags = await usePlatformStore.getState().loadFlags();
       if (flags.maintenanceMode) return 'maintenance';
+
+      // An admin's "View as farmer" (phase A8): the farmer's data, with storage read-only.
+      const url = new URL(window.location.href);
+      const token = url.searchParams.get('impersonate');
+      if (token) {
+        const claimed = claimImpersonation(token);
+        url.searchParams.delete('impersonate');
+        window.history.replaceState(null, '', url.pathname + url.search);
+        if (!claimed) return { redirect: '/admin/farmers?impersonation=expired' };
+      }
+      const view = activeImpersonation();
+      if (view) {
+        storage.setReadOnly(true);
+        useAuthStore.setState({
+          session: impersonatedSession(view),
+          status: 'ready',
+          impersonation: view,
+        });
+        await loadAllStores(view.farmerId);
+        return 'ready';
+      }
 
       // getSession() also clears the proxy cookie when no session is stored (e.g. the cookie
       // survived but localStorage was cleared), so /login won't bounce us back here.

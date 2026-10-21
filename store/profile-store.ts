@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isReadOnly, READ_ONLY_MESSAGE } from '@/lib/read-only';
 import { defaultProfile, profileService } from '@/services/profile.service';
 import type { Profile, StoreStatus } from '@/types';
 import { ghanaPhone, normalizePhone } from '@/lib/profile';
@@ -22,6 +23,7 @@ interface ProfileState {
 
 export const useProfileStore = create<ProfileState>()((set, get) => {
   function persist(partial: ProfileUpdate, expectedPhone?: string): Promise<Profile> {
+    if (isReadOnly()) return Promise.reject(new Error(READ_ONLY_MESSAGE));
     const userId = get().userId;
     if (!userId) return Promise.reject(new Error('You need to sign in first'));
     const operation = saveQueue

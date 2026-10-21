@@ -1,5 +1,6 @@
 'use client';
 
+import { readOnlyProps, READ_ONLY_CLASS, useReadOnly } from '@/lib/read-only';
 import Link from 'next/link';
 import {
   Bot,
@@ -70,6 +71,7 @@ function TileContent({ action }: { action: QuickAction }) {
 export function QuickActions({ className }: { className?: string }) {
   const openModal = useModalStore((s) => s.openModal);
   const flags = usePlatformStore((s) => s.flags);
+  const readOnly = useReadOnly();
   // Shortcuts to pages the admin has switched off are hidden.
   const actions = ACTIONS.filter((action) => !action.flag || flags[action.flag]);
 
@@ -81,8 +83,9 @@ export function QuickActions({ className }: { className?: string }) {
             {'modal' in action ? (
               <button
                 type="button"
-                onClick={() => openModal(action.modal)}
-                className={cn(tileClass, 'w-full')}
+                {...readOnlyProps(readOnly)}
+                onClick={readOnly ? undefined : () => openModal(action.modal)}
+                className={cn(tileClass, 'w-full', readOnly && READ_ONLY_CLASS)}
               >
                 <TileContent action={action} />
               </button>

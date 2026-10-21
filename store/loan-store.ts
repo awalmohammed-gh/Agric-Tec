@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { assertWritable } from '@/lib/read-only';
 import { loansService } from '@/services/loans.service';
 import { useAuthStore } from '@/store/auth-store';
 import type { LoanApplication, LoanApplicationInput, StoreStatus } from '@/types';
@@ -50,10 +51,14 @@ export const useLoanStore = create<LoanState>()((set, get) => ({
   },
 
   setTab: (tab) => set({ tab }),
-  openConfirm: (confirm) => set({ confirm }),
+  openConfirm: (confirm) => {
+    assertWritable();
+    set({ confirm });
+  },
   closeConfirm: () => set({ confirm: null }),
 
   submit: async (input, score) => {
+    assertWritable();
     const userId = useAuthStore.getState().session?.userId;
     if (!userId) throw new Error('You need to sign in first');
     const application = await loansService.submitApplication(userId, input, score);

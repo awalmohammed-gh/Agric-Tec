@@ -151,6 +151,7 @@ export function VerificationGrid() {
                   variant="ghost"
                   onClick={action.run}
                   icon={ArrowUpRight}
+                  mutates
                   className="mt-3"
                 >
                   {action.label}

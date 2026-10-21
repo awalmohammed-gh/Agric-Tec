@@ -70,7 +70,7 @@ export function RecordFormModal() {
           <Button variant="ghost" onClick={closeModal}>
             Cancel
           </Button>
-          <Button type="submit" form={formId} loading={saving}>
+          <Button mutates type="submit" form={formId} loading={saving}>
             {editing ? 'Update record' : 'Save record'}
           </Button>
         </>

@@ -134,6 +134,7 @@ export function DataSettings() {
           <Button
             variant="ghost"
             icon={FileUp}
+            mutates
             disabled={busy}
             onClick={() => fileRef.current?.click()}
             className="shrink-0"
@@ -151,6 +152,7 @@ export function DataSettings() {
           <Button
             variant="danger"
             icon={Trash2}
+            mutates
             disabled={busy}
             onClick={() => {
               setConfirmation('');

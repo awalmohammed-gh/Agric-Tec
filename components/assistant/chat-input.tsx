@@ -1,5 +1,6 @@
 'use client';
 
+import { READ_ONLY_MESSAGE, useReadOnly } from '@/lib/read-only';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowUp, CornerDownLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ export function ChatInput() {
   const isTyping = useChatStore((state) => state.isTyping);
   const status = useChatStore((state) => state.status);
   const sendMessage = useChatStore((state) => state.sendMessage);
+  const readOnly = useReadOnly();
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreFocus = useRef(false);
   const disabled = isTyping || status !== 'ready';
@@ -42,10 +44,10 @@ export function ChatInput() {
           ref={inputRef}
           aria-label="Message the assistant"
           aria-describedby={text.length > 400 ? 'chat-character-count' : undefined}
-          placeholder="Ask about your farm…"
+          placeholder={readOnly ? READ_ONLY_MESSAGE : 'Ask about your farm…'}
           value={text}
           maxLength={500}
-          disabled={disabled}
+          disabled={disabled || readOnly}
           className="min-w-0 border-0 bg-transparent px-2 focus:shadow-none"
           onChange={(event) => setText(event.target.value)}
           onKeyDown={(event) => {
@@ -57,6 +59,7 @@ export function ChatInput() {
         <Button
           type="submit"
           icon={ArrowUp}
+          mutates
           aria-label="Send message"
           disabled={disabled || !text.trim()}
           className="size-10 min-h-10 shrink-0 rounded-xl px-0"

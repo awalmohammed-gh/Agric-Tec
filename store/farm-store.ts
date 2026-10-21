@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { assertWritable } from '@/lib/read-only';
 import { buildSampleData } from '@/data/mock/sample-data';
 import { diagnosesService } from '@/services/diagnoses.service';
 import { momoService } from '@/services/momo.service';
@@ -69,12 +70,14 @@ export const useFarmStore = create<FarmState>()((set, get) => {
     },
 
     addRecord: async (input) => {
+      assertWritable();
       const record = await recordsService.create(requireUser(), input);
       set((state) => ({ records: [record, ...state.records].sort(byNewest) }));
       return record;
     },
 
     updateRecord: async (id, patch) => {
+      assertWritable();
       const updated = await recordsService.update(requireUser(), id, patch);
       set((state) => ({
         records: state.records.map((r) => (r.id === id ? updated : r)).sort(byNewest),
@@ -83,17 +86,20 @@ export const useFarmStore = create<FarmState>()((set, get) => {
     },
 
     deleteRecord: async (id) => {
+      assertWritable();
       await recordsService.remove(requireUser(), id);
       set((state) => ({ records: state.records.filter((r) => r.id !== id) }));
     },
 
     addMomo: async (input) => {
+      assertWritable();
       const transaction = await momoService.create(requireUser(), input);
       set((state) => ({ momo: [transaction, ...state.momo].sort(byNewest) }));
       return transaction;
     },
 
     updateMomo: async (id, patch) => {
+      assertWritable();
       const updated = await momoService.update(requireUser(), id, patch);
       set((state) => ({
         momo: state.momo.map((t) => (t.id === id ? updated : t)).sort(byNewest),
@@ -102,11 +108,13 @@ export const useFarmStore = create<FarmState>()((set, get) => {
     },
 
     deleteMomo: async (id) => {
+      assertWritable();
       await momoService.remove(requireUser(), id);
       set((state) => ({ momo: state.momo.filter((t) => t.id !== id) }));
     },
 
     addDiagnosis: async (input) => {
+      assertWritable();
       const userId = requireUser();
       const diagnosis = await diagnosesService.create(userId, input);
       if (get().userId === userId) {
@@ -116,6 +124,7 @@ export const useFarmStore = create<FarmState>()((set, get) => {
     },
 
     deleteDiagnosis: async (id) => {
+      assertWritable();
       const userId = requireUser();
       await diagnosesService.remove(userId, id);
       if (get().userId === userId) {
@@ -124,6 +133,7 @@ export const useFarmStore = create<FarmState>()((set, get) => {
     },
 
     loadSampleData: async () => {
+      assertWritable();
       const userId = requireUser();
       const sample = buildSampleData(userId);
       const [records, momo] = await Promise.all([
@@ -134,6 +144,7 @@ export const useFarmStore = create<FarmState>()((set, get) => {
     },
 
     clearAll: async () => {
+      assertWritable();
       const userId = requireUser();
       await Promise.all([
         recordsService.replaceAll(userId, []),

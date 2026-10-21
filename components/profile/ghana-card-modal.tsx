@@ -79,7 +79,7 @@ function GhanaCardForm({ onClose }: { onClose: () => void }) {
       <p className="bg-gold/10 text-ink-gold rounded-xl p-3 text-xs">
         Demo only. No real NIA verification is performed.
       </p>
-      <Button type="submit" icon={Send} loading={saving} className="w-full">
+      <Button mutates type="submit" icon={Send} loading={saving} className="w-full">
         Submit for review
       </Button>
     </form>

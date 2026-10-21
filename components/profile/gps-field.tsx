@@ -74,7 +74,7 @@ export function GpsField() {
             {gps ? formatGPS(gps.lat, gps.lng) : 'Not set'}
           </p>
         </div>
-        <Button variant="ghost" icon={MapPin} loading={loading} onClick={locate}>
+        <Button mutates variant="ghost" icon={MapPin} loading={loading} onClick={locate}>
           Get Current Location
         </Button>
       </div>

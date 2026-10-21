@@ -1,5 +1,6 @@
 'use client';
 
+import { useReadOnly } from '@/lib/read-only';
 import { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { toast } from 'sonner';
@@ -29,6 +30,7 @@ export function NotificationSettings() {
   const notifications = useSettingsStore((state) => state.notifications);
   const status = useSettingsStore((state) => state.status);
   const [saving, setSaving] = useState(false);
+  const readOnly = useReadOnly();
   return (
     <Card className="h-full rounded-3xl">
       <CardHeader>
@@ -53,7 +55,7 @@ export function NotificationSettings() {
             <Switch
               checked={notifications[item.key]}
               label={item.title}
-              disabled={saving || status !== 'ready'}
+              disabled={saving || status !== 'ready' || readOnly}
               onChange={async () => {
                 setSaving(true);
                 try {

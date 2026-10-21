@@ -112,7 +112,7 @@ export function RecordsToolbar({
           <Button variant="ghost" icon={Download} onClick={onExport}>
             Export CSV
           </Button>
-          <Button icon={Plus} onClick={onNew}>
+          <Button mutates icon={Plus} onClick={onNew}>
             New Record
           </Button>
         </div>

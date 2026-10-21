@@ -129,13 +129,14 @@ function Onboarding() {
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {!dismissed && (
-          <Button onClick={handleLoad} loading={loading} icon={Sparkles}>
+          <Button mutates onClick={handleLoad} loading={loading} icon={Sparkles}>
             Load sample data
           </Button>
         )}
         <Button
           variant={dismissed ? 'primary' : 'ghost'}
           icon={Plus}
+          mutates
           disabled={loading}
           onClick={() => {
             dismiss();

@@ -2,6 +2,7 @@ import { backupSchema, type DataBackup } from '@/lib/data/backup-schema';
 import { safeProfile } from '@/lib/profile';
 import { defaultProfile } from '@/services/profile.service';
 import { FARMER_ADMIN_META } from '@/lib/admin/keys';
+import { assertWritable } from '@/lib/read-only';
 import { storage, userKey } from '@/services/storage';
 import { loadAllStores, resetAllStores } from '@/store';
 import { useAuthStore } from '@/store/auth-store';
@@ -60,6 +61,7 @@ export function createDataBackup(): DataBackup {
 }
 
 export async function importDataBackup(input: DataBackup): Promise<void> {
+  assertWritable();
   const data = backupSchema.parse(input); // Validate again immediately before mutation.
   const userId = currentUser();
   await Promise.all([waitForProfileSaves(), waitForSettingsSaves()]);
@@ -80,6 +82,7 @@ export async function importDataBackup(input: DataBackup): Promise<void> {
 }
 
 export async function deleteUserData(confirmation: string): Promise<void> {
+  assertWritable();
   if (confirmation !== 'DELETE') throw new Error('Type DELETE to confirm.');
   const userId = currentUser();
   await Promise.all([waitForProfileSaves(), waitForSettingsSaves()]);

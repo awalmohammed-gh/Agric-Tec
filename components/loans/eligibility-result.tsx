@@ -58,7 +58,7 @@ export function EligibilityResult({
           partner={partner}
           repayment={repayment}
         />
-        <Button icon={Send} onClick={onApply} className="mt-4 w-full">
+        <Button mutates icon={Send} onClick={onApply} className="mt-4 w-full">
           Apply with {partner.name}
         </Button>
       </section>

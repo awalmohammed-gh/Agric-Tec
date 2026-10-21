@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { assertWritable, isReadOnly } from '@/lib/read-only';
 import { getAssistantReply, type AssistantContext } from '@/lib/ai/assistant-replies';
 import { calculateCreditScore } from '@/lib/calculations/credit-score';
 import { usePlatformStore } from '@/store/platform-store';
@@ -44,7 +45,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       const history = await chatService.list(userId);
       if (get().userId !== userId || version !== loadVersion) return;
       const messages = history.length ? history : [welcomeMessage()];
-      if (!history.length) await chatService.save(userId, messages);
+      if (!history.length && !isReadOnly()) await chatService.save(userId, messages);
       if (get().userId !== userId || version !== loadVersion) return;
       set({ messages, status: 'ready' });
     } catch (error) {
@@ -55,6 +56,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   },
 
   sendMessage: async (text) => {
+    assertWritable();
     const { userId, isTyping, status } = get();
     const trimmed = text.trim().slice(0, 500);
     if (!trimmed) return;
@@ -129,6 +131,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   },
 
   clear: async () => {
+    assertWritable();
     const { userId, isTyping, status } = get();
     if (!userId) throw new Error('You need to sign in first');
     if (isTyping || status !== 'ready') return;

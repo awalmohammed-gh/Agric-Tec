@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Lock, StickyNote } from 'lucide-react';
+import { Lock, StickyNote } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -45,76 +45,6 @@ export function ReactivateDialog({
           onDone();
         } catch (cause) {
           toast.error(cause instanceof Error ? cause.message : 'Could not reactivate');
-        } finally {
-          setBusy(false);
-        }
-      }}
-    />
-  );
-}
-
-/** Sets a one-time password and shows it once, with a copy button. It is never logged. */
-export function ResetPasswordDialog({
-  farmer,
-  onClose,
-}: {
-  farmer: FarmerAccount | null;
-  onClose: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [temporary, setTemporary] = useState<string | null>(null);
-
-  function close() {
-    setTemporary(null);
-    onClose();
-  }
-
-  if (temporary && farmer) {
-    return (
-      <Modal open onClose={close} title="Temporary password" size="sm">
-        <p className="text-text-dim text-sm">
-          Give this to {nameOf(farmer)} privately. It is shown only once.
-        </p>
-        <div className="border-border bg-glass mt-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3">
-          <span className="text-text font-mono text-lg font-bold">{temporary}</span>
-          <button
-            type="button"
-            onClick={() => {
-              void navigator.clipboard?.writeText(temporary);
-              toast.success('Copied');
-            }}
-            aria-label="Copy temporary password"
-            className="text-text-dim hover:bg-glass-strong hover:text-text inline-flex size-10 items-center justify-center rounded-lg"
-          >
-            <Copy size={16} aria-hidden="true" />
-          </button>
-        </div>
-        <Button className="mt-5 w-full" onClick={close}>
-          Done
-        </Button>
-      </Modal>
-    );
-  }
-
-  return (
-    <ConfirmDialog
-      open={farmer !== null}
-      title="Reset password"
-      message={
-        farmer
-          ? `${nameOf(farmer)}'s current password will stop working. You will see a temporary password once.`
-          : ''
-      }
-      confirmLabel="Reset password"
-      loading={busy}
-      onCancel={close}
-      onConfirm={async () => {
-        if (!farmer) return;
-        setBusy(true);
-        try {
-          setTemporary(await farmersService.resetPassword(farmer.userId));
-        } catch (cause) {
-          toast.error(cause instanceof Error ? cause.message : 'Could not reset the password');
         } finally {
           setBusy(false);
         }
