@@ -69,7 +69,6 @@ const {
 const { PLATFORM_KEYS } = require('../lib/admin/keys.ts');
 const { DEMO_PASSWORDS, SUPER_ADMIN_EMAIL } = require('../lib/admin/seed.ts');
 const {
-  calculateCreditScore,
   factorPoints,
   factorsFromCounts,
   scoreFromFactors,
