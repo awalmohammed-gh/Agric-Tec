@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Outfit } from 'next/font/google';
+import { PageBackground } from '@/components/layout/page-background';
 import { AppProviders } from '@/components/providers/app-providers';
 import './globals.css';
 
@@ -36,6 +37,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${outfit.variable}`}>
       {/* Browser extensions (e.g. Grammarly) add attributes to <body> before React hydrates. */}
       <body suppressHydrationWarning>
+        {/* One shared background for every page, including the 404 and maintenance screens. */}
+        <PageBackground />
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

@@ -51,7 +51,7 @@ agrictec/
 │   ├── page.tsx                    # Redirects to /dashboard (or /login if no session)
 │   ├── not-found.tsx
 │   ├── (auth)/
-│   │   ├── layout.tsx              # Centered glass card, animated background
+│   │   ├── layout.tsx              # Centered glass card on the shared page background
 │   │   ├── login/page.tsx
 │   │   └── signup/page.tsx
 │   └── (main)/
@@ -79,7 +79,7 @@ agrictec/
 │   ├── layout/
 │   │   ├── sidebar.tsx  sidebar-nav.tsx  topbar.tsx
 │   │   ├── mobile-nav-overlay.tsx  theme-toggle.tsx  global-search.tsx
-│   │   └── animated-background.tsx
+│   │   └── page-background.tsx     # The one static page background (root layout)
 │   ├── charts/
 │   │   ├── line-chart.tsx  bar-chart.tsx  doughnut-chart.tsx
 │   │   └── use-chart-theme.ts      # Chart colors that follow the theme
@@ -232,7 +232,7 @@ The style is a **dark glassmorphism fintech dashboard** with an emerald accent.
 Expose these tokens to Tailwind through `@theme` so that classes like `bg-glass`, `text-dim` and `border-border` work.
 
 **Visual elements to recreate**
-- An animated radial-gradient background (emerald, purple and blue blobs with a slow hue shift) plus a faint masked grid overlay.
+- A static, subtle page background on every route: the theme colour (`--bg-1`) with a soft emerald glow top-left (`--bg-glow-1`) and a purple glow bottom-right (`--bg-glow-2`), fixed in place. Only these two colours; no blue, no lines, grid or dot patterns, no animation.
 - Glass cards with `backdrop-blur-xl`, a 1px border, and a subtle top highlight line.
 - A brand logo: a seedling icon in an emerald gradient square, with the name "AgriCtec" in Playfair Display, gradient emerald→gold.
 - Stat cards with gradient icon tiles (green, blue, purple, gold), uppercase labels, large values, and an up/down change line.

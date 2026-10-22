@@ -20,6 +20,9 @@
   --info: #3b82f6;
   --purple: #a855f7;
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  /* Page background glows (PageBackground): emerald top-left, purple bottom-right. */
+  --bg-glow-1: rgba(16, 185, 129, 0.1);
+  --bg-glow-2: rgba(168, 85, 247, 0.08);
   /* Text colours for tinted badges/chips: WCAG AA (≥4.5:1) on this theme's background */
   --ink-green: #34d399;
   --ink-red: #f87171;
@@ -42,6 +45,8 @@
   --accent-2: #10b981;
   --accent-glow: rgba(5, 150, 105, 0.22);
   --shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+  --bg-glow-1: rgba(5, 150, 105, 0.06);
+  --bg-glow-2: rgba(168, 85, 247, 0.05);
   --ink-green: #047857;
   --ink-red: #b91c1c;
   --ink-blue: #1d4ed8;

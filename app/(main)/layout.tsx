@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { ImpersonationBar } from '@/components/admin/layout/impersonation-bar';
-import { AnimatedBackground } from '@/components/layout/animated-background';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { MobileNavOverlay } from '@/components/layout/mobile-nav-overlay';
 import { PageContainer } from '@/components/layout/page-container';
@@ -13,7 +12,7 @@ import { DataLoader } from '@/components/providers/data-loader';
 export default function MainLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <AnimatedBackground />
+      {/* The page background comes from the root layout (PageBackground). */}
       <DataLoader>
         <ImpersonationBar />
         <div className="flex min-h-screen">

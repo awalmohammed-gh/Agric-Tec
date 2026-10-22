@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import { Lock } from 'lucide-react';
-import { AdminBackground } from '@/components/admin/layout/admin-background';
 import { AdminBrand } from '@/components/admin/layout/admin-brand';
 import { Card } from '@/components/ui/card';
 
@@ -14,7 +13,6 @@ export const metadata: Metadata = {
 export default function AdminAuthLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <AdminBackground />
       <main className="flex min-h-screen items-center justify-center px-4 py-10">
         <div className="animate-fade-in w-full max-w-110">
           <div className="mb-6 flex flex-col items-center text-center">

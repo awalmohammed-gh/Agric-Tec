@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { AnimatedBackground } from '@/components/layout/animated-background';
 import { BrandLogo } from '@/components/layout/brand-logo';
 import { MaintenanceGate } from '@/components/shared/maintenance-gate';
 import { Card } from '@/components/ui/card';
@@ -26,7 +25,6 @@ function GhanaFlag() {
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <AnimatedBackground />
       {/* Farmers can't sign in or sign up during maintenance. */}
       <MaintenanceGate>
         <main className="flex min-h-screen items-center justify-center px-4 py-10">

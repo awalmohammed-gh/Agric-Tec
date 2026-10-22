@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
-import { AdminBackground } from '@/components/admin/layout/admin-background';
 import { AdminDataLoader } from '@/components/admin/layout/admin-data-loader';
 import { AdminSearch } from '@/components/admin/layout/admin-search';
 import { AdminSidebar, AdminSidebarDrawer } from '@/components/admin/layout/admin-sidebar';
@@ -14,14 +13,13 @@ export const metadata: Metadata = {
 };
 
 /**
- * The admin console shell: purple/gold backdrop, role-filtered sidebar (a drawer below 1024px),
+ * The admin console shell (on the shared page background): role-filtered sidebar (a drawer below 1024px),
  * top bar with breadcrumbs, search, bell, theme and role. Every page also checks its own
  * permission (RequirePermission), so a typed-in URL is never enough.
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <AdminBackground />
       <AdminDataLoader>
         <div className="flex min-h-screen">
           <AdminSidebar />
