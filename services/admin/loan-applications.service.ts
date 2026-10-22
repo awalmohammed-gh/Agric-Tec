@@ -3,7 +3,10 @@ import { getCurrentAdmin, requirePermission } from '@/lib/admin/admin-session';
 import { withAudit } from '@/lib/admin/audit';
 import { readProfile } from '@/lib/admin/farmer-data';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
-import { canTransition, LOAN_STATUS_LABELS } from '@/lib/admin/loan-status';
+import { statusChangeSchema, type StatusChangeInput } from '@/lib/admin/loan-pipeline';
+import { LOAN_STATUS_LABELS } from '@/lib/admin/loan-status';
+import { parseOrThrow } from '@/lib/admin/schemas';
+import { toCSV } from '@/lib/export/csv';
 import { generateId } from '@/lib/utils';
 import { lendersService } from '@/services/admin/lenders.service';
 import { delay, storage } from '@/services/storage';
@@ -142,10 +145,19 @@ export const loanApplicationsService = {
     return app;
   },
 
-  /** Moves an application along the pipeline. Invalid jumps (e.g. submitted → disbursed) throw. */
-  async updateStatus(id: string, status: LoanStatus, note?: string): Promise<LoanApplication> {
+  /**
+   * Moves an application along the pipeline (the farmer's timeline shows the new step at once).
+   * Invalid jumps (e.g. submitted → disbursed) throw; approved, rejected and defaulted need a
+   * note; disbursed needs the date and the transfer reference. `input` may be just the note.
+   */
+  async updateStatus(
+    id: string,
+    status: LoanStatus,
+    input: string | StatusChangeInput = {},
+  ): Promise<LoanApplication> {
     await delay();
     const app = find(id);
+    const details = typeof input === 'string' ? { note: input } : input;
     return withAudit(
       {
         permission: 'loans.manage',
@@ -154,14 +166,20 @@ export const loanApplicationsService = {
         targetId: id,
         summary: `${app.reference}: ${LOAN_STATUS_LABELS[app.status]} → ${LOAN_STATUS_LABELS[status]}`,
         before: { status: app.status },
-        after: (updated) => ({ status: updated.status, note: note?.trim() || undefined }),
+        after: (updated) => {
+          const step = updated.history.at(-1);
+          return {
+            status: updated.status,
+            note: step?.note,
+            disbursedOn: step?.disbursedOn,
+            disbursementRef: step?.disbursementRef,
+          };
+        },
       },
       async () => {
-        if (!canTransition(app.status, status)) {
-          throw new Error(
-            `An application can’t move from ${LOAN_STATUS_LABELS[app.status]} to ${LOAN_STATUS_LABELS[status]}.`,
-          );
-        }
+        const valid = parseOrThrow(statusChangeSchema(app, status), details);
+        const note = valid.note?.trim();
+        const disbursed = status === 'disbursed';
         const updated: LoanApplication = {
           ...app,
           status,
@@ -171,13 +189,57 @@ export const loanApplicationsService = {
               status,
               by: getCurrentAdmin()?.name ?? 'Admin',
               at: new Date().toISOString(),
-              ...(note?.trim() && { note: note.trim() }),
+              ...(note && { note }),
+              ...(disbursed && {
+                disbursedOn: valid.disbursedOn,
+                disbursementRef: valid.disbursementRef?.trim(),
+              }),
             },
           ],
+          ...(disbursed && {
+            disbursement: {
+              date: valid.disbursedOn ?? '',
+              reference: valid.disbursementRef?.trim() ?? '',
+            },
+          }),
         };
         write(read().map((a) => (a.id === id ? updated : a)));
         return updated;
       },
+    );
+  },
+
+  /** The applications (all, or these IDs) as CSV. No farmer contact details. Audited. */
+  async exportCSV(ids?: string[]): Promise<string> {
+    await delay();
+    const apps = read()
+      .filter((a) => !ids || ids.includes(a.id))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const lenders = await lendersService.list({ includeInactive: true });
+    return withAudit(
+      {
+        permission: 'reports.export',
+        action: 'loan.export',
+        targetType: 'loan',
+        summary: `Exported ${apps.length} loan application${apps.length === 1 ? '' : 's'} to CSV`,
+        after: () => ({ count: apps.length }),
+      },
+      async () =>
+        toCSV(apps, [
+          { header: 'Reference', value: (a) => a.reference },
+          { header: 'Farmer', value: (a) => readProfile(a.userId).name },
+          { header: 'Region', value: (a) => readProfile(a.userId).region },
+          { header: 'Lender', value: (a) => lenders.find((l) => l.id === a.partnerId)?.name ?? '' },
+          { header: 'Amount (GHS)', value: (a) => a.amount },
+          { header: 'Purpose', value: (a) => a.purpose },
+          { header: 'Months', value: (a) => a.months },
+          { header: 'Rate (%)', value: (a) => a.rate },
+          { header: 'Monthly (GHS)', value: (a) => a.monthly },
+          { header: 'Score at application', value: (a) => a.scoreAtApplication },
+          { header: 'Status', value: (a) => LOAN_STATUS_LABELS[a.status] },
+          { header: 'Sent', value: (a) => a.createdAt.slice(0, 10) },
+          { header: 'Disbursed on', value: (a) => a.disbursement?.date ?? '' },
+        ]),
     );
   },
 };

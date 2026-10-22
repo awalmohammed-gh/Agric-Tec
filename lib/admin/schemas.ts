@@ -96,13 +96,30 @@ export const plansSchema = z
 export const lenderInputSchema = z
   .object({
     name: text(80),
-    rate: z.number().min(0).max(100),
-    maxAmount: z.number().positive().max(10_000_000),
-    minMonths: z.number().int().min(1).max(120),
-    maxMonths: z.number().int().min(1).max(120),
-    minScore: score,
+    rate: z.number().min(1, 'The rate must be 1% to 60%.').max(60, 'The rate must be 1% to 60%.'),
+    maxAmount: z.number().min(500, 'The maximum amount must be at least GHS 500.').max(10_000_000),
+    minMonths: z
+      .number()
+      .int()
+      .min(1, 'Terms are 1 to 60 months.')
+      .max(60, 'Terms are 1 to 60 months.'),
+    maxMonths: z
+      .number()
+      .int()
+      .min(1, 'Terms are 1 to 60 months.')
+      .max(60, 'Terms are 1 to 60 months.'),
+    minScore: z
+      .number()
+      .int()
+      .min(300, 'Scores run from 300 to 850.')
+      .max(850, 'Scores run from 300 to 850.'),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a hex colour such as #10b981.'),
     active: z.boolean(),
+    description: z
+      .string()
+      .trim()
+      .max(200, 'Keep the description under 200 characters.')
+      .optional(),
   })
   .refine((l) => l.maxMonths >= l.minMonths, {
     path: ['maxMonths'],

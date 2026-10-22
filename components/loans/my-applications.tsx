@@ -146,6 +146,12 @@ function ApplicationItem({ app }: { app: LoanApplication }) {
                     </span>
                   </p>
                   {step.note && <p className="text-text-dim mt-0.5 text-xs">{step.note}</p>}
+                  {step.disbursedOn && (
+                    <p className="text-text-dim mt-0.5 text-xs">
+                      Funds sent {formatDate(step.disbursedOn)}
+                      {step.disbursementRef && ` · Ref ${step.disbursementRef}`}
+                    </p>
+                  )}
                 </div>
               </li>
             );

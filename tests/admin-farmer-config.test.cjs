@@ -286,8 +286,12 @@ test('a Ghana Card goes to review: the profile waits and the admin queue has it'
 
 test('lenders, content, announcements and plans flow from the admin into the farmer app', async () => {
   await asAdmin();
-  // Lenders: a switched-off lender disappears from the farmer's offers.
-  const [first] = await lendersService.list();
+  // Lenders: a switched-off lender disappears from the farmer's offers. (A lender with
+  // applications under review can't be switched off, so pick one without.)
+  const reviewing = new Set(
+    (await loanApplicationsService.list({ status: 'under_review' })).map((a) => a.partnerId),
+  );
+  const first = (await lendersService.list()).find((l) => !reviewing.has(l.id));
   await lendersService.toggleActive(first.id);
   assert.ok(!(await loansService.getPartners()).some((l) => l.id === first.id));
   await lendersService.toggleActive(first.id);

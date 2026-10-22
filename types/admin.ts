@@ -116,8 +116,21 @@ export interface LoanApplication {
   monthly: number;
   scoreAtApplication: number;
   status: LoanStatus;
-  history: { status: LoanStatus; by: string; at: string; note?: string }[];
+  history: LoanHistoryEntry[];
+  /** Set when the funds go out (status "disbursed"). */
+  disbursement?: { date: string; reference: string };
   createdAt: string;
+}
+
+/** One step of an application's timeline. The farmer sees the note on "My Applications". */
+export interface LoanHistoryEntry {
+  status: LoanStatus;
+  by: string;
+  at: string;
+  note?: string;
+  /** "disbursed" only: the day the funds went out ("yyyy-MM-dd") and the transfer reference. */
+  disbursedOn?: string;
+  disbursementRef?: string;
 }
 
 export interface CreditConfig {
@@ -240,6 +253,8 @@ export interface AdminSession {
 /** A lending partner the admin manages. Only active lenders are shown to farmers. */
 export interface Lender extends LoanPartner {
   active: boolean;
+  /** A short line about the lender, shown with its offer. */
+  description?: string;
   createdAt: string;
 }
 

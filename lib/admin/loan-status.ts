@@ -43,6 +43,14 @@ export const OPEN_LOAN_STATUSES: readonly LoanStatus[] = [
   'disbursed',
 ];
 
+/** Moving into these needs a note (the farmer sees it on their timeline). */
+export const NOTE_REQUIRED_STATUSES: readonly LoanStatus[] = ['approved', 'rejected', 'defaulted'];
+
+export const noteRequired = (status: LoanStatus) => NOTE_REQUIRED_STATUSES.includes(status);
+
+/** Funds went out: counted in "disbursed amount", whatever happened after. */
+export const DISBURSED_LOAN_STATUSES: readonly LoanStatus[] = ['disbursed', 'repaid', 'defaulted'];
+
 /** Counted as approved by the lender, whatever happened after. */
 export const APPROVED_LOAN_STATUSES: readonly LoanStatus[] = [
   'approved',

@@ -140,7 +140,10 @@ test('first admin login seeds ~60 farmers across all 16 regions', async () => {
   assert.equal(cards.length, 8);
   assert.ok(cards.every((v) => /^GHA-\*{6}\d{3}-\d$/.test(v.submittedValue) && v.valueHash));
   assert.deepEqual(
-    pending.filter((v) => v.kind !== 'ghanaCard').map((v) => v.kind).sort(),
+    pending
+      .filter((v) => v.kind !== 'ghanaCard')
+      .map((v) => v.kind)
+      .sort(),
     ['location', 'location', 'phone', 'phone'],
   );
 
@@ -280,9 +283,9 @@ test('the audit log has no update or delete, and other guards hold', async () =>
   await teamService.changeRole(efua.id, 'admin');
   assert.equal((await adminAuthService.getSession()).admin.role, 'super_admin');
 
-  // A lender with open applications can't be removed.
+  // A lender with any applications can't be removed (deactivate it instead).
   const [open] = await loanApplicationsService.list({ status: 'submitted' });
-  await assert.rejects(() => lendersService.remove(open.partnerId), /open application/);
+  await assert.rejects(() => lendersService.remove(open.partnerId), /Deactivate it instead/);
 
   // Credit rules: weights must sum to 100; saving bumps the version and keeps history.
   const config = await configService.getCreditConfig();

@@ -26,6 +26,8 @@ interface PlatformState extends PlatformSnapshot {
   verifications: VerificationRequest[];
   loadFlags: () => Promise<FeatureFlags>;
   load: (userId: string) => Promise<void>;
+  /** Re-reads the admin's settings in place (no loading state), e.g. after an admin edit. */
+  refresh: () => Promise<void>;
   dismissAnnouncement: (id: string) => Promise<void>;
   submitGhanaCard: (cardNumber: string) => Promise<VerificationRequest>;
   logInstantCheck: (kind: 'phone' | 'location', value: string) => Promise<void>;
@@ -37,7 +39,7 @@ interface PlatformState extends PlatformSnapshot {
  */
 export const initialPlatformState = (): Omit<
   PlatformState,
-  'loadFlags' | 'load' | 'dismissAnnouncement' | 'submitGhanaCard' | 'logInstantCheck'
+  'loadFlags' | 'load' | 'refresh' | 'dismissAnnouncement' | 'submitGhanaCard' | 'logInstantCheck'
 > => ({
   userId: null,
   status: 'idle',
@@ -92,6 +94,16 @@ export const usePlatformStore = create<PlatformState>()((set, get) => ({
       set({ status: 'error' });
       throw error;
     }
+  },
+
+  refresh: async () => {
+    const userId = get().userId;
+    if (!userId || get().status !== 'ready') return;
+    const [snapshot, verifications] = await Promise.all([
+      platformService.load(),
+      platformService.listVerifications(userId),
+    ]);
+    if (get().userId === userId) set({ ...snapshot, verifications });
   },
 
   dismissAnnouncement: async (id) => {

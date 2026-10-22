@@ -1,23 +1,15 @@
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
+import { ApplicationDetail } from '@/components/admin/loans/application-detail';
 
 export const metadata: Metadata = { title: 'Loan application' };
 
-/** Guarded by loans.view. Built in phase A10. */
+/** One application. Guarded by loans.view; status changes need loans.manage. */
 export default async function LoanDetailPage({ params }: PageProps<'/admin/loans/[id]'>) {
   const { id } = await params;
   return (
-    <AdminPlaceholder
-      permission="loans.view"
-      phase="A10"
-      title="Loan application"
-      features={[
-        `Application ID: ${id}`,
-        ...[
-          'The application, the farmer’s score then and now',
-          'Status timeline and the allowed next steps',
-        ],
-      ]}
-    />
+    <RequirePermission permission="loans.view">
+      <ApplicationDetail id={id} />
+    </RequirePermission>
   );
 }

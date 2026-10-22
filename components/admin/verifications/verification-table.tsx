@@ -11,8 +11,10 @@ import {
   type AdminColumn,
   type AdminMobileCardParts,
 } from '@/components/admin/shared/admin-table';
+import { PRIMARY_CLASS } from '@/components/admin/shared/action-styles';
 import { BulkActionBar } from '@/components/admin/shared/bulk-action-bar';
 import { InitialsAvatar } from '@/components/admin/shared/initials-avatar';
+import { StatTile } from '@/components/admin/shared/stat-tile';
 import { StatusBadge } from '@/components/admin/shared/status-badge';
 import { APPROVE_CLASS, displayValue, KindChip } from '@/components/admin/verifications/kind-meta';
 import { ReviewModal } from '@/components/admin/verifications/review-modal';
@@ -42,34 +44,6 @@ const nameOf = (f: FarmerAccount | undefined) => (f ? f.profile.name || f.email 
 const KIND_FILTERS: VerificationKind[] = ['ghanaCard', 'phone', 'location'];
 const isKind = (value: string): value is VerificationKind =>
   (KIND_FILTERS as string[]).includes(value);
-
-/** A small summary tile above the queue. */
-function Stat({
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  tone?: 'danger' | 'good';
-}) {
-  return (
-    <div className="border-border bg-glass rounded-2xl border px-4 py-3.5">
-      <p className="text-text-mute text-xs font-semibold">{label}</p>
-      <p
-        className={cn(
-          'font-display mt-1 text-2xl font-bold tabular-nums',
-          tone === 'danger' ? 'text-ink-red' : tone === 'good' ? 'text-ink-green' : 'text-text',
-        )}
-      >
-        {value}
-      </p>
-      <p className="text-text-mute mt-0.5 text-xs">{hint}</p>
-    </div>
-  );
-}
 
 /**
  * The verifications queue (phase A9): pending checks oldest first, reviewed in a centred modal
@@ -270,7 +244,7 @@ export function VerificationTable() {
             <Button
               icon={PlayCircle}
               onClick={() => setReviewId(firstPending.id)}
-              className="bg-[#7c3aed] bg-none text-white shadow-none hover:translate-y-0 hover:bg-[#6d28d9] hover:shadow-none"
+              className={PRIMARY_CLASS}
             >
               Start reviewing
             </Button>
@@ -279,24 +253,24 @@ export function VerificationTable() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat
+        <StatTile
           label="Waiting"
           value={String(pending.length)}
           hint={`${pending.filter((v) => v.kind === 'ghanaCard').length} Ghana Cards`}
         />
-        <Stat
+        <StatTile
           label="Oldest request"
           value={pending.length ? `${oldestDays} ${oldestDays === 1 ? 'day' : 'days'}` : '—'}
           hint="Target: under 3 days"
           tone={oldestDays >= 3 ? 'danger' : undefined}
         />
-        <Stat
+        <StatTile
           label="Over 3 days"
           value={String(overdueCount)}
           hint={overdueCount ? 'Review these first' : 'Nothing overdue'}
           tone={overdueCount ? 'danger' : 'good'}
         />
-        <Stat
+        <StatTile
           label="Reviewed this week"
           value={String(reviewedThisWeek.length)}
           hint={`${approvedThisWeek} approved · ${reviewedThisWeek.length - approvedThisWeek} rejected`}

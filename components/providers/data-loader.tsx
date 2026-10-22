@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
+import { usePlatformSync } from '@/components/providers/use-platform-sync';
 import { MaintenanceScreen } from '@/components/shared/maintenance-screen';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -30,6 +31,8 @@ export function DataLoader({ children }: { children: ReactNode }) {
   const [state, setState] = useState<LoadState>('loading');
   const [attempt, setAttempt] = useState(0);
   const maintenanceMessage = usePlatformStore((s) => s.flags.maintenanceMessage);
+  // Admin changes made in another tab (lenders, rates, loan decisions…) show up here at once.
+  usePlatformSync(state === 'ready');
 
   const router = useRouter();
 

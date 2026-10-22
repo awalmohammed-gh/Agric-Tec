@@ -49,11 +49,8 @@ export function displayValue(request: VerificationRequest): string {
   return request.submittedValue;
 }
 
-// Solid action colours (white text passes WCAG AA on both): green approves, red rejects.
-export const APPROVE_CLASS =
-  'bg-none bg-[#047857] text-white shadow-none hover:translate-y-0 hover:bg-[#065f46] hover:shadow-none';
-export const REJECT_CLASS =
-  'bg-none bg-[#b91c1c] text-white shadow-none hover:translate-y-0 hover:bg-[#991b1b] hover:shadow-none';
+// Shared with the loans pages.
+export { APPROVE_CLASS, REJECT_CLASS } from '@/components/admin/shared/action-styles';
 
 /** A keyboard key in a hint ("A Approve"). */
 export function Kbd({ children }: { children: string }) {

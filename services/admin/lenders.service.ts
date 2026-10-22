@@ -1,7 +1,7 @@
 import { withAudit } from '@/lib/admin/audit';
 import { DEFAULT_LENDERS } from '@/lib/admin/defaults';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
-import { OPEN_LOAN_STATUSES } from '@/lib/admin/loan-status';
+import { deactivateBlock, deleteBlock } from '@/lib/admin/loan-pipeline';
 import { lenderInputSchema, parseOrThrow } from '@/lib/admin/schemas';
 import { delay, storage } from '@/services/storage';
 import type { Lender, LenderInput, LoanApplication } from '@/types/admin';
@@ -27,10 +27,11 @@ function makeId(name: string, taken: Lender[]): string {
   return id;
 }
 
-const openApplications = (lenderId: string) =>
-  storage
-    .get<LoanApplication[]>(PLATFORM_KEYS.loanApplications, [])
-    .filter((a) => a.partnerId === lenderId && OPEN_LOAN_STATUSES.includes(a.status)).length;
+const applications = () => storage.get<LoanApplication[]>(PLATFORM_KEYS.loanApplications, []);
+
+/** Same name, ignoring case and extra spaces. */
+const sameName = (a: string, b: string) =>
+  a.trim().replace(/\s+/g, ' ').toLowerCase() === b.trim().replace(/\s+/g, ' ').toLowerCase();
 
 export const lendersService = {
   /** Active lenders only, unless `includeInactive`. Read by the farmer app, so no admin check. */
@@ -52,7 +53,7 @@ export const lendersService = {
       async () => {
         const valid = parseOrThrow(lenderInputSchema, input);
         const lenders = read();
-        if (lenders.some((l) => l.name.toLowerCase() === valid.name.toLowerCase())) {
+        if (lenders.some((l) => sameName(l.name, valid.name))) {
           throw new Error('A lender with this name already exists.');
         }
         const lender: Lender = {
@@ -81,6 +82,14 @@ export const lendersService = {
       async () => {
         // The schema strips id/createdAt from the merged object; they are re-added unchanged.
         const valid = parseOrThrow(lenderInputSchema, { ...lender, ...patch });
+        if (read().some((l) => l.id !== id && sameName(l.name, valid.name))) {
+          throw new Error('A lender with this name already exists.');
+        }
+        // Switching a lender off through an edit follows the same rule as the toggle.
+        if (lender.active && !valid.active) {
+          const blocked = deactivateBlock(lender, applications());
+          if (blocked) throw new Error(blocked);
+        }
         const updated: Lender = { ...valid, id, createdAt: lender.createdAt };
         write(read().map((l) => (l.id === id ? updated : l)));
         return updated;
@@ -102,6 +111,9 @@ export const lendersService = {
         after: (updated) => ({ active: updated.active }),
       },
       async () => {
+        // Hidden from farmers at once, so not while applications are under review.
+        const blocked = deactivateBlock(lender, applications());
+        if (blocked) throw new Error(blocked);
         const updated = { ...lender, active: !lender.active };
         write(read().map((l) => (l.id === id ? updated : l)));
         return updated;
@@ -109,7 +121,7 @@ export const lendersService = {
     );
   },
 
-  /** Blocked while the lender has applications in progress: deactivate it instead. */
+  /** Only a lender with no applications at all can be deleted: deactivate it instead. */
   async remove(id: string): Promise<void> {
     await delay();
     const lender = find(id);
@@ -124,12 +136,8 @@ export const lendersService = {
         after: () => ({ deleted: true }),
       },
       async () => {
-        const open = openApplications(id);
-        if (open > 0) {
-          throw new Error(
-            `${lender.name} has ${open} open application${open === 1 ? '' : 's'}. Deactivate it instead.`,
-          );
-        }
+        const blocked = deleteBlock(lender, applications());
+        if (blocked) throw new Error(blocked);
         write(read().filter((l) => l.id !== id));
       },
     );

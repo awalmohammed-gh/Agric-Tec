@@ -1,18 +1,21 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
+import { LendersTable } from '@/components/admin/lenders/lenders-table';
+import AdminLoading from '@/app/(admin)/admin/loading';
 
 export const metadata: Metadata = { title: 'Lenders' };
 
-/** Guarded by lenders.manage. Built in phase A10. */
+/**
+ * Guarded by lenders.manage (the service checks it again on every change). The table keeps its
+ * search and sort in the URL (useSearchParams), so it renders inside Suspense.
+ */
 export default function LendersPage() {
   return (
-    <AdminPlaceholder
-      permission="lenders.manage"
-      phase="A10"
-      features={[
-        'Add and edit lending partners: rates, limits, terms and minimum scores',
-        'Switch lenders on or off',
-      ]}
-    />
+    <RequirePermission permission="lenders.manage">
+      <Suspense fallback={<AdminLoading />}>
+        <LendersTable />
+      </Suspense>
+    </RequirePermission>
   );
 }
