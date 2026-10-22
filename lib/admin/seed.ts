@@ -29,7 +29,9 @@ import { hashGhanaCard } from '@/lib/admin/card-hash';
 import { detectRisks } from '@/lib/admin/risk-rules';
 import { CONFIGURED_SUPER_ADMIN } from '@/lib/admin/super-admin';
 import type { RejectReason } from '@/lib/admin/verification-queue';
+import { constituenciesOf } from '@/constants/constituencies';
 import { maskGhanaCard } from '@/lib/profile';
+import { rejectionMessage } from '@/lib/verification';
 import { hashPassword, type StoredUser } from '@/services/auth.service';
 import { storage, userKey } from '@/services/storage';
 import type { Crop, Diagnosis, FarmRecord, MomoNetwork, MomoTransaction, Profile } from '@/types';
@@ -449,6 +451,8 @@ export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
   const farmers: SeedFarmer[] = [];
   const verifications: VerificationRequest[] = [];
   const pendingCards = new Map<string, string>();
+  /** Last four digits of each verified card (the profile keeps only the masked form). */
+  const verifiedCards = new Map<string, string>();
 
   regions.forEach((region, index) => {
     const userId = `${SEED_FARMER_PREFIX}${pad(index + 1, 3)}`;
@@ -520,17 +524,29 @@ export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
         farmType === 'Cooperative'
           ? `${region} ${primaryCrops[0]} Growers`
           : `${last} ${primaryCrops[0]} Farm`,
+      useNameAsFarmName: false,
+      // Constituency: picked by position, not from rand, so the rest of the seed is unchanged.
+      constituency: constituenciesOf(region)[index % constituenciesOf(region).length] ?? '',
       acres,
+      sizeUnit: 'acres',
       farmType,
+      ...(farmType === 'Cooperative' && {
+        cooperativeName: `${region} ${primaryCrops[0]} Growers`,
+      }),
       primaryCrops,
       gps,
+      ghanaCard:
+        cardVerified && cardLast4
+          ? { status: 'verified', masked: maskGhanaCard(cardLast4) }
+          : { status: 'not_provided' },
       verification: {
         phone: rand.chance(0.85),
         location: rand.chance(0.6),
         ghanaCard: cardVerified,
       },
-      ...(cardVerified && cardLast4 && { ghanaCardLast4: cardLast4 }),
+      onboardingCompletedAt: at(signupDaysAgo, 8, index % 60),
     };
+    if (cardVerified && cardLast4) verifiedCards.set(userId, cardLast4);
     if (accountStatus === 'pending_verification' && cardLast4) pendingCards.set(userId, cardLast4);
 
     // Records: one income per month at most and narrow ranges, so ordinary farmers never
@@ -782,7 +798,7 @@ export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
 
   // The planted duplicate: a second account submits the same card as Yaw Asante.
   const yaw = farmers.find((f) => f.data.profile.name === 'Yaw Asante');
-  const yawLast4 = yaw && (pendingCards.get(yaw.user.id) ?? yaw.data.profile.ghanaCardLast4);
+  const yawLast4 = yaw && (pendingCards.get(yaw.user.id) ?? verifiedCards.get(yaw.user.id));
   const firstPending = farmers.find((f) => pendingCards.has(f.user.id));
   const duplicateOf =
     yaw && yawLast4
@@ -865,8 +881,31 @@ export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
       'approved',
       rand.int(1, Math.max(1, daysSince(farmer.user.createdAt))),
       'ghanaCard',
-      cardNumber(numberIndex, farmer.data.profile.ghanaCardLast4 ?? '0000'),
+      cardNumber(numberIndex, verifiedCards.get(farmer.user.id) ?? '0000'),
     );
+  }
+
+  // Each profile's Ghana Card follows its latest request (as the verifications service does):
+  // verified, pending or rejected with the reason, with the mask and hash of that request.
+  for (const farmer of farmers) {
+    const latest = verifications
+      .filter((v) => v.userId === farmer.user.id && v.kind === 'ghanaCard')
+      .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))[0];
+    if (!latest) continue;
+    const profile = farmer.data.profile;
+    const status =
+      profile.verification.ghanaCard || latest.status === 'approved'
+        ? 'verified'
+        : latest.status === 'pending'
+          ? 'pending'
+          : 'rejected';
+    profile.ghanaCard = {
+      status,
+      masked: latest.submittedValue,
+      ...(latest.valueHash && { hash: latest.valueHash }),
+      submittedAt: latest.submittedAt,
+      ...(status === 'rejected' && { rejectedReason: rejectionMessage(latest) }),
+    };
   }
 
   // Loan applications: 25 across every status, each with a valid history.

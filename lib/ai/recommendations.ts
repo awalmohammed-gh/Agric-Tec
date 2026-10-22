@@ -1,6 +1,7 @@
 import {
   BadgeCheck,
   ClipboardList,
+  IdCard,
   Rocket,
   Smartphone,
   Trophy,
@@ -9,6 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { FALLBACK_INSIGHTS } from '@/data/mock/insights';
+import { LOANS_LOCKED_HINT } from '@/lib/calculations/loan';
 import { formatGHS } from '@/lib/format';
 import type { FarmStats } from '@/hooks/use-farm-stats';
 
@@ -58,7 +60,7 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
       cta: { label: 'Add records', href: '/records' },
       icon: ClipboardList,
       title: 'Build Financial History',
-      text: `Add ${missing} more record${missing === 1 ? '' : 's'} to unlock loan offers from our partners.`,
+      text: `Add ${missing} more record${missing === 1 ? '' : 's'} to unlock loan offers from our partners${stats.ghanaCard === 'verified' ? '' : ', and verify your Ghana Card'}.`,
     });
   }
 
@@ -111,7 +113,22 @@ export function getRecommendations(stats: FarmStats): Recommendation[] {
   }
 
   const maxLoan = stats.borrowingPower;
-  if (stats.credit.score >= loanReadyScore && maxLoan > 0) {
+  // Never tell a farmer without a verified Ghana Card that they can get a loan.
+  if (stats.ghanaCard !== 'verified') {
+    items.push({
+      id: 'verify-card',
+      cta: {
+        label: stats.ghanaCard === 'pending' ? 'See status' : 'Verify now',
+        href: '/settings/verification',
+      },
+      icon: IdCard,
+      title: stats.ghanaCard === 'pending' ? 'Ghana Card Under Review' : 'Unlock Loans',
+      text:
+        stats.ghanaCard === 'pending'
+          ? 'Your Ghana Card is being reviewed. Loan offers unlock once it is verified.'
+          : LOANS_LOCKED_HINT,
+    });
+  } else if (stats.credit.score >= loanReadyScore && maxLoan > 0) {
     items.push({
       id: 'loan-ready',
       cta: { label: 'See loan offers', href: '/loans' },
@@ -148,7 +165,7 @@ function insightPool(stats: FarmStats): string[] {
     pool.push(
       stats.recordCount >= stats.loanRules.minRecords
         ? `You have logged ${stats.recordCount} farm records. Lenders can now see a solid history.`
-        : `You have logged ${stats.recordCount} farm record${stats.recordCount === 1 ? '' : 's'}. Add ${stats.loanRules.minRecords - stats.recordCount} more to unlock loan offers.`,
+        : `You have logged ${stats.recordCount} farm record${stats.recordCount === 1 ? '' : 's'}. Add ${stats.loanRules.minRecords - stats.recordCount} more to build your loan history.`,
     );
   }
 

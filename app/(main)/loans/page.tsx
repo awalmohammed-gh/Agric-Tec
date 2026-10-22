@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { FeatureGate } from '@/components/shared/feature-gate';
 import { ApplyConfirmModal } from '@/components/loans/apply-confirm-modal';
+import { GhanaCardLock } from '@/components/loans/ghana-card-lock';
 import { LoansHero } from '@/components/loans/loans-hero';
 import { LoanWorkspace } from '@/components/loans/loan-workspace';
 
@@ -14,6 +15,7 @@ export default function LoansPage() {
   return (
     <FeatureGate flag="loans">
       <div className="@container space-y-6">
+        <GhanaCardLock />
         <LoansHero />
         <LoanWorkspace />
         <ApplyConfirmModal />

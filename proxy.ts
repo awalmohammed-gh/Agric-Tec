@@ -12,6 +12,9 @@ const AUTH_PAGES = ['/login', '/signup'];
 const ADMIN_LOGIN = '/admin-login';
 /** Set by the farmer tab while an admin views the app as a farmer (read-only, phase A8). */
 const IMPERSONATION_COOKIE = 'agrictec_impersonating';
+/** Set once the farmer finishes onboarding (services/onboarding.service.ts). */
+const ONBOARDED_COOKIE = 'agrictec_onboarded';
+const ONBOARDING = '/onboarding';
 
 const isAdminPath = (pathname: string) => pathname === '/admin' || pathname.startsWith('/admin/');
 
@@ -43,15 +46,27 @@ export function proxy(request: NextRequest) {
   const hasSession = hasFarmerSession || viewingAsFarmer;
   const isAuthPage = AUTH_PAGES.some((p) => pathname.startsWith(p));
 
+  const onboarded = request.cookies.has(ONBOARDED_COOKIE);
+  const isOnboarding = pathname === ONBOARDING || pathname.startsWith(`${ONBOARDING}/`);
+  const home = onboarded ? '/dashboard' : ONBOARDING;
+
   if (!hasSession && !isAuthPage) {
     const url = new URL('/login', request.url);
-    url.searchParams.set('next', pathname);
+    // Onboarding comes right after sign-in anyway, so it is not a useful "next".
+    if (!isOnboarding) url.searchParams.set('next', pathname);
     return NextResponse.redirect(url);
   }
   // Registration remains accessible so a guest can create a full account.
   // Only a real farmer session skips /login (a leftover view-as-farmer cookie must not loop).
   if (hasFarmerSession && isAuthPage && !pathname.startsWith('/signup')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL(home, request.url));
+  }
+
+  // ---- Onboarding: the app stays closed until the farm setup is finished ----
+  // The DataLoader checks the profile itself; this cookie is only a redirect hint.
+  if (hasFarmerSession && !viewingAsFarmer && !isAuthPage) {
+    if (!onboarded && !isOnboarding) return NextResponse.redirect(new URL(ONBOARDING, request.url));
+    if (onboarded && isOnboarding) return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   return NextResponse.next();
 }

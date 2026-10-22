@@ -62,8 +62,9 @@ export function calculateCreditScore(
   const checks = [
     isProfileComplete(profile),
     profile?.verification.phone ?? false,
-    profile?.verification.location ?? false,
-    profile?.verification.ghanaCard ?? false,
+    // A map pin counts for the location; the Ghana Card only once an admin has verified it.
+    Boolean(profile?.gps) || (profile?.verification.location ?? false),
+    profile?.ghanaCard.status === 'verified',
   ];
   const verification = (checks.filter(Boolean).length / checks.length) * 100;
 

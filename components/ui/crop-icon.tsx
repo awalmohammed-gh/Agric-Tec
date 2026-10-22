@@ -2,15 +2,23 @@
 
 import type { IconType } from 'react-icons';
 import {
+  GiAlmond,
   GiBananaBunch,
+  GiBeanstalk,
   GiBowlOfRice,
+  GiCabbage,
+  GiChiliPepper,
   GiCoffeeBeans,
   GiCorn,
+  GiGrain,
+  GiPalmTree,
   GiPeanut,
+  GiPeas,
   GiPotato,
   GiRootTip,
   GiSprout,
   GiTomato,
+  GiWheat,
 } from 'react-icons/gi';
 import { CROPS } from '@/constants/crops';
 import { cn } from '@/lib/utils';
@@ -26,6 +34,14 @@ export const CROP_ICONS: Record<Crop, IconType> = {
   Plantain: GiBananaBunch,
   Groundnut: GiPeanut,
   Tomato: GiTomato,
+  Pepper: GiChiliPepper,
+  Okra: GiPeas,
+  Soybean: GiBeanstalk,
+  Sorghum: GiWheat,
+  Millet: GiGrain,
+  Cashew: GiAlmond,
+  'Oil Palm': GiPalmTree,
+  Vegetables: GiCabbage,
   Other: GiSprout,
 };
 
@@ -39,6 +55,14 @@ export const CROP_TONES: Record<Crop, string> = {
   Plantain: 'bg-accent/15 text-ink-green',
   Groundnut: 'bg-gold/15 text-ink-gold',
   Tomato: 'bg-danger/15 text-ink-red',
+  Pepper: 'bg-danger/15 text-ink-red',
+  Okra: 'bg-accent/15 text-ink-green',
+  Soybean: 'bg-gold/15 text-ink-gold',
+  Sorghum: 'bg-warning/15 text-ink-gold',
+  Millet: 'bg-gold/15 text-ink-gold',
+  Cashew: 'bg-warning/15 text-ink-gold',
+  'Oil Palm': 'bg-accent/15 text-ink-green',
+  Vegetables: 'bg-accent/15 text-ink-green',
   Other: 'bg-accent/15 text-ink-green',
 };
 

@@ -10,10 +10,11 @@ import {
   DEFAULT_CROP_CONTENT,
 } from '@/lib/admin/defaults';
 import { scoreLabel } from '@/lib/calculations/credit-score';
+import { LOANS_LOCKED_HINT } from '@/lib/calculations/loan';
 import { formatGHS } from '@/lib/format';
 import { marketService } from '@/services/market.service';
 import { delay } from '@/services/storage';
-import type { AssistantReply, CreditScoreBreakdown } from '@/types';
+import type { AssistantReply, CreditScoreBreakdown, GhanaCardStatus } from '@/types';
 import type { AssistantKnowledgeItem, CreditConfig, CropContent } from '@/types/admin';
 
 export interface AssistantContext {
@@ -28,6 +29,11 @@ export interface AssistantContext {
   creditFactors?: CreditScoreBreakdown;
   /** The admin's score bands, for {scoreLabel}. Defaults to 500 / 650 / 750. */
   bands?: CreditConfig['bands'];
+  /**
+   * The farmer's Ghana Card status. Unless it is 'verified', a reply about loans never says the
+   * farmer can get one: its tip becomes "Verify your Ghana Card to unlock loan offers."
+   */
+  ghanaCard?: GhanaCardStatus;
 }
 
 export interface AssistantContent {
@@ -268,7 +274,16 @@ export async function resolveAssistantReply(
   const fallback = knowledge.find((k) => k.id === ASSISTANT_FALLBACK_ID)?.reply ?? FALLBACK;
   const template = item?.reply ?? fallback;
   const values = await placeholderValues(tokensIn(template), ctx, crops);
-  return { item: item ?? null, reply: render(template, values) };
+  return { item: item ?? null, reply: lockLoans(render(template, values), ctx) };
+}
+
+const LOAN_WORDS = /\bloans?\b|\bborrow/i;
+
+/** Without a verified Ghana Card, a reply that talks about loans ends with how to unlock them. */
+function lockLoans(reply: AssistantReply, ctx: AssistantContext): AssistantReply {
+  if (!ctx.ghanaCard || ctx.ghanaCard === 'verified') return reply;
+  const text = [reply.title, reply.intro, ...(reply.bullets ?? []), reply.tip].join(' ');
+  return LOAN_WORDS.test(text) ? { ...reply, tip: LOANS_LOCKED_HINT } : reply;
 }
 
 /** Renders any reply with a farmer's values (the admin's live preview). */

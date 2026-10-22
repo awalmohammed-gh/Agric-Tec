@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { CROPS } from '@/constants/crops';
 import { REGIONS } from '@/constants/regions';
-import { ghanaPhone, normalizePhone } from '@/lib/profile';
+import { FARM_TYPES, SIZE_UNITS, ghanaPhone, normalizePhone } from '@/lib/profile';
 
 const id = z.string().min(1).max(160);
 const date = z.iso.date();
@@ -13,18 +13,27 @@ export const backupProfileSchema = z
     name: z.string().trim().max(160),
     phone: z.string().trim().regex(ghanaPhone).or(z.literal('')).transform(normalizePhone),
     email: z.string().trim().email().or(z.literal('')),
-    region: z.enum(REGIONS),
+    region: z.enum(REGIONS).or(z.literal('')),
+    constituency: z.string().max(80).optional(),
+    community: z.string().max(80).optional(),
     farmName: z.string().max(80),
-    acres: z.number().min(0).max(10000),
-    farmType: z.enum(['Smallholder', 'Commercial', 'Cooperative']),
-    primaryCrops: z.array(z.enum(CROPS)).max(5),
+    useNameAsFarmName: z.boolean().optional(),
+    acres: z.number().min(0).max(25000),
+    sizeUnit: z.enum(SIZE_UNITS).optional(),
+    farmType: z.enum(FARM_TYPES),
+    cooperativeName: z.string().max(100).optional(),
+    outgrowerCompany: z.string().max(100).optional(),
+    primaryCrops: z.array(z.enum(CROPS)).max(CROPS.length),
+    otherCrops: z.string().max(120).optional(),
     gps: z
       .object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) })
       .optional(),
+    /** Older backups: a verified card's last four digits (the status is never imported). */
     ghanaCardLast4: z
       .string()
       .regex(/^\d{4}$/)
       .optional(),
+    onboardingCompletedAt: timestamp.optional(),
     verification: z.object({ phone: z.boolean(), location: z.boolean(), ghanaCard: z.boolean() }),
   })
   .superRefine((profile, ctx) => {

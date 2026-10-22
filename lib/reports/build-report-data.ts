@@ -3,6 +3,7 @@ import { isProfileComplete } from '@/lib/calculations/credit-score';
 import { currentYearMonthly } from '@/lib/calculations/finance';
 import { checkEligibility } from '@/lib/calculations/loan';
 import { formatDate, formatGHS } from '@/lib/format';
+import { GHANA_CARD_LABELS, cropNames, formatFarmSize } from '@/lib/profile';
 import type { FarmStats } from '@/hooks/use-farm-stats';
 import type { FarmRecord, MomoTransaction, Profile, ReportType } from '@/types';
 
@@ -11,7 +12,17 @@ export interface ReportData {
   type: ReportType;
   title: string;
   generatedAt: string; // ISO timestamp
-  farmer: { name: string; farm: string; region: string; phone: string; acres: string };
+  farmer: {
+    name: string;
+    farm: string;
+    region: string;
+    constituency: string;
+    community: string;
+    phone: string;
+    /** The farm size in the farmer's own unit ("2 hectares"). */
+    acres: string;
+    crops: string;
+  };
   summary: { label: string; value: string }[];
   table?: {
     title: string;
@@ -167,6 +178,7 @@ function loanReadiness({
     records,
     score: credit.score,
     rules: stats.loanRules,
+    ghanaCard: profile?.ghanaCard.status ?? 'not_provided',
   });
   const strong = stats.profit > 0 && eligibility.eligible;
 
@@ -218,7 +230,7 @@ function loanReadiness({
           `Profile complete: ${isProfileComplete(profile) ? 'Yes' : 'No'}`,
           `Phone number: ${status(profile?.verification.phone ?? false)}`,
           `Farm location: ${status(profile?.verification.location ?? false)}`,
-          `Ghana Card: ${status(profile?.verification.ghanaCard ?? false)}`,
+          `Ghana Card: ${GHANA_CARD_LABELS[profile?.ghanaCard.status ?? 'not_provided']}`,
         ].join('\n'),
       },
     ],
@@ -277,8 +289,14 @@ export function buildReportData(type: ReportType, source: ReportSource): ReportD
       name: profile?.name.trim() || 'Not provided',
       farm: profile?.farmName.trim() || 'Not provided',
       region: profile?.region || 'Not provided',
+      constituency: profile?.constituency || 'Not provided',
+      community: profile?.community || 'Not provided',
       phone: profile?.phone.trim() || 'Not provided',
-      acres: profile && profile.acres > 0 ? `${profile.acres} acres` : 'Not provided',
+      acres:
+        profile && profile.acres > 0
+          ? formatFarmSize(profile.acres, profile.sizeUnit)
+          : 'Not provided',
+      crops: profile && cropNames(profile).length ? cropNames(profile).join(', ') : 'Not provided',
     },
     ...BUILDERS[type]({ ...source, now }),
   };

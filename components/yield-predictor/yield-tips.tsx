@@ -6,9 +6,9 @@ import { CropTile } from '@/components/ui/crop-icon';
 import { findCrop } from '@/lib/calculations/yield';
 import { formatGHS } from '@/lib/format';
 import { usePlatformStore } from '@/store/platform-store';
-import type { Crop } from '@/types';
+import type { YieldCrop } from '@/types';
 
-export function YieldTips({ crop }: { crop: Exclude<Crop, 'Other'> }) {
+export function YieldTips({ crop }: { crop: YieldCrop }) {
   // The admin's crop data, falling back to the built-in figures for a crop it has removed.
   const crops = usePlatformStore((s) => s.crops);
   const data = findCrop(crop, crops) ?? findCrop(crop);

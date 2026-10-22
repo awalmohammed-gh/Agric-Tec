@@ -2,6 +2,7 @@ import { getCurrentAdmin, requirePermission } from '@/lib/admin/admin-session';
 import { withAudit } from '@/lib/admin/audit';
 import { hashGhanaCard } from '@/lib/admin/card-hash';
 import { canBulkApprove, isRejectReason, parseLocation } from '@/lib/admin/verification-queue';
+import { rejectionMessage } from '@/lib/verification';
 import { readProfile, readUsers, writeProfile, writeUsers } from '@/lib/admin/farmer-data';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
 import { ghanaCard, ghanaPhone, maskGhanaCard, normalizePhone } from '@/lib/profile';
@@ -27,18 +28,15 @@ function find(id: string): VerificationRequest {
 const save = (updated: VerificationRequest) =>
   write(read().map((v) => (v.id === updated.id ? updated : v)));
 
-/** The four digits kept from a masked card ("GHA-******123-4" → "1234"). */
-const last4FromMasked = (masked: string) => masked.replace(/\D/g, '').slice(-4);
-
 /** Marks the check as passed on the farmer's profile (and lifts a pending-verification status). */
 function applyToProfile(request: VerificationRequest): void {
   const profile = readProfile(request.userId);
-  const last4 = request.kind === 'ghanaCard' ? last4FromMasked(request.submittedValue) : undefined;
+  const card = request.kind === 'ghanaCard';
   // Phone and location are saved by the farmer's own profile store first; rewriting an already
   // verified profile here could race that save, so only write when something changes.
   const changed =
     !profile.verification[request.kind] ||
-    (last4 !== undefined && profile.ghanaCardLast4 !== last4);
+    (card && profile.ghanaCard.masked !== request.submittedValue);
   // An approved location also fills in the farm's coordinates if the profile has none yet.
   const gps =
     request.kind === 'location' && !profile.gps ? parseLocation(request.submittedValue) : null;
@@ -46,8 +44,13 @@ function applyToProfile(request: VerificationRequest): void {
     writeProfile({
       ...profile,
       verification: { ...profile.verification, [request.kind]: true },
-      ...(request.kind === 'ghanaCard' && {
-        ghanaCardLast4: last4FromMasked(request.submittedValue),
+      ...(card && {
+        ghanaCard: {
+          status: 'verified',
+          masked: request.submittedValue,
+          ...(request.valueHash && { hash: request.valueHash }),
+          submittedAt: request.submittedAt,
+        },
       }),
       ...(gps && { gps }),
     });
@@ -63,6 +66,42 @@ function applyToProfile(request: VerificationRequest): void {
 }
 
 const farmerName = (userId: string) => readProfile(userId).name || 'a farmer';
+
+/** The card on the profile follows its latest request: pending, or rejected with the reason. */
+function setProfileCard(request: VerificationRequest): void {
+  const profile = readProfile(request.userId);
+  writeProfile({
+    ...profile,
+    ghanaCard: {
+      status: request.status === 'rejected' ? 'rejected' : 'pending',
+      masked: request.submittedValue,
+      ...(request.valueHash && { hash: request.valueHash }),
+      submittedAt: request.submittedAt,
+      ...(request.status === 'rejected' && { rejectedReason: rejectionMessage(request) }),
+    },
+  });
+}
+
+const MASKED_CARD = /^GHA-\*{6}\d{3}-\d$/;
+
+/** Queues a Ghana Card for review from its mask and hash (the full number is never stored). */
+function queueCard(userId: string, masked: string, valueHash?: string): VerificationRequest {
+  if (!MASKED_CARD.test(masked)) throw new Error('Enter a valid Ghana Card number.');
+  if (read().some((v) => v.userId === userId && v.kind === 'ghanaCard' && v.status === 'pending'))
+    throw new Error('Your Ghana Card is already waiting for review.');
+  const request: VerificationRequest = {
+    id: generateId(),
+    userId,
+    kind: 'ghanaCard',
+    submittedValue: masked,
+    ...(valueHash && { valueHash }),
+    status: 'pending',
+    submittedAt: new Date().toISOString(),
+  };
+  write([request, ...read()]);
+  setProfileCard(request);
+  return request;
+}
 
 export const verificationsService = {
   /** A farmer's own requests, newest first (called by the farmer app, so no admin check). */
@@ -98,7 +137,6 @@ export const verificationsService = {
   ): Promise<VerificationRequest> {
     await delay();
     let submittedValue: string;
-    let valueHash: string | undefined;
     if (kind === 'ghanaCard') {
       const trimmed = value.trim().toUpperCase();
       const full = ghanaCard.test(trimmed);
@@ -108,12 +146,12 @@ export const verificationsService = {
           ? trimmed
           : '';
       if (!last4) throw new Error('Enter a Ghana Card number such as GHA-123456789-0.');
-      submittedValue = maskGhanaCard(last4);
       // Only a hash of the full number is kept, for the reviewer's duplicate check.
-      if (full) valueHash = await hashGhanaCard(trimmed);
-      if (read().some((v) => v.userId === userId && v.kind === kind && v.status === 'pending')) {
-        throw new Error('Your Ghana Card is already waiting for review.');
-      }
+      return queueCard(
+        userId,
+        maskGhanaCard(last4),
+        full ? await hashGhanaCard(trimmed) : undefined,
+      );
     } else if (kind === 'phone') {
       if (!ghanaPhone.test(value.trim())) throw new Error('Enter a valid Ghana phone number.');
       submittedValue = normalizePhone(value);
@@ -123,20 +161,32 @@ export const verificationsService = {
     }
 
     const now = new Date().toISOString();
-    const instant = kind !== 'ghanaCard';
     const request: VerificationRequest = {
       id: generateId(),
       userId,
       kind,
       submittedValue,
-      ...(valueHash && { valueHash }),
-      status: instant ? 'approved' : 'pending',
+      status: 'approved',
       submittedAt: now,
-      ...(instant && { reviewedBy: 'Automatic check', reviewedAt: now }),
+      reviewedBy: 'Automatic check',
+      reviewedAt: now,
     };
     write([request, ...read()]);
-    if (instant) applyToProfile(request);
+    applyToProfile(request);
     return request;
+  },
+
+  /**
+   * Onboarding's Ghana Card: the browser sends only the masked number and the SHA-256 hash it
+   * computed, so the full number never reaches storage. Pending until an admin approves it.
+   */
+  async submitCardFingerprint(
+    userId: string,
+    masked: string,
+    valueHash: string,
+  ): Promise<VerificationRequest> {
+    await delay();
+    return queueCard(userId, masked, valueHash);
   },
 
   async approve(id: string): Promise<VerificationRequest> {
@@ -202,6 +252,7 @@ export const verificationsService = {
           ...(cleanNote ? { note: cleanNote } : {}),
         };
         save(updated);
+        if (updated.kind === 'ghanaCard') setProfileCard(updated);
         return updated;
       },
     );

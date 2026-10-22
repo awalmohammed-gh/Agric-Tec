@@ -10,6 +10,7 @@ import type {
   LoanPartner,
   MomoTransaction,
   Profile,
+  YieldCrop,
 } from '@/types';
 
 export type AdminRole = 'analyst' | 'support' | 'admin' | 'super_admin';
@@ -264,7 +265,8 @@ export interface Lender extends LoanPartner {
 
 export type LenderInput = Omit<Lender, 'id' | 'createdAt'>;
 
-export type KnownCrop = Exclude<Crop, 'Other'>;
+/** Crops with yield data (the crop content an admin edits). */
+export type KnownCrop = YieldCrop;
 
 /** Editable crop data. The seed defaults come from constants/crops.ts. */
 export interface CropContent {

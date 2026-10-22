@@ -87,6 +87,8 @@ export function useFarmStats() {
     borrowingPower: borrowingLimit(annualizedNetProfit(records), loanRules),
     readiness,
     recordCount: records.length,
+    /** Loans unlock only with a verified Ghana Card. */
+    ghanaCard: profile?.ghanaCard.status ?? 'not_provided',
     profileComplete,
     hasData: records.length > 0 || momo.length > 0,
   };

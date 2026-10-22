@@ -7,6 +7,7 @@ import { totalExpenses, totalIncome } from '@/lib/calculations/finance';
 import { generateId } from '@/lib/utils';
 import { chatService } from '@/services/chat.service';
 import { useFarmStore } from '@/store/farm-store';
+import { cropNames } from '@/lib/profile';
 import { useProfileStore } from '@/store/profile-store';
 import type { ChatMessage, StoreStatus } from '@/types';
 
@@ -96,13 +97,14 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       const context: AssistantContext = {
         farmerName: profile?.name || 'Farmer',
         region: profile?.region || '',
-        primaryCrops: profile?.primaryCrops ?? [],
+        primaryCrops: profile ? cropNames(profile) : [],
         score: credit.score,
         income: totalIncome(records),
         expenses: totalExpenses(records),
         recordCount: records.length,
         creditFactors: credit,
         bands: platform.creditConfig.bands,
+        ghanaCard: profile?.ghanaCard.status ?? 'not_provided',
       };
       const reply = await getAssistantReply(trimmed, context, {
         knowledge: platform.knowledge,

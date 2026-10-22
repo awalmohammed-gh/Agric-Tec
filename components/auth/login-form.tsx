@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { FormField, fieldErrorId } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { SUSPENDED_MESSAGE } from '@/services/auth.service';
+import { onboardingService } from '@/services/onboarding.service';
 import { useAuthStore } from '@/store/auth-store';
 import { usePlatformStore } from '@/store/platform-store';
 
@@ -47,9 +48,10 @@ export function LoginForm({ next, reason }: { next: string; reason?: LoginReason
   async function onSubmit(values: LoginValues) {
     setFormError(null);
     try {
-      await signIn(values.email, values.password);
+      const session = await signIn(values.email, values.password);
       toast.success('Welcome back!');
-      router.replace(next);
+      // Farm setup unfinished → onboarding (it resumes on the step where they stopped).
+      router.replace(await onboardingService.destinationAfterSignIn(session.userId, next));
       router.refresh();
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Could not sign in');

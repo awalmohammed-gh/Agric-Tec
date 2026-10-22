@@ -6,6 +6,7 @@ import { UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { DEFAULT_AFTER_LOGIN } from '@/components/auth/auth-schemas';
 import { Button } from '@/components/ui/button';
+import { onboardingService } from '@/services/onboarding.service';
 import { useAuthStore } from '@/store/auth-store';
 
 export function GuestButton({ next = DEFAULT_AFTER_LOGIN }: { next?: string }) {
@@ -17,8 +18,9 @@ export function GuestButton({ next = DEFAULT_AFTER_LOGIN }: { next?: string }) {
     setLoading(true);
     try {
       // Reuses the one guest account on this device, so demo data never disappears.
-      await continueAsGuest();
-      router.replace(next);
+      const session = await continueAsGuest();
+      // Guests go through onboarding too (with a "Fill with demo details" shortcut).
+      router.replace(await onboardingService.destinationAfterSignIn(session.userId, next));
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not start guest mode');

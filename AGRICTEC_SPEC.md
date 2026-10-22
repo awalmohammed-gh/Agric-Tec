@@ -54,6 +54,9 @@ agrictec/
 │   │   ├── layout.tsx              # Centered glass card on the shared page background
 │   │   ├── login/page.tsx
 │   │   └── signup/page.tsx
+│   ├── (onboarding)/
+│   │   ├── layout.tsx              # Brand, sign-out, one centred card (max 640px)
+│   │   └── onboarding/page.tsx     # The six-step farm setup wizard
 │   └── (main)/
 │       ├── layout.tsx              # Sidebar + Topbar shell, auth guard
 │       ├── loading.tsx             # Skeleton
@@ -94,7 +97,13 @@ agrictec/
 │   ├── market/
 │   ├── profile/
 │   ├── settings/
-│   └── auth/
+│   ├── auth/
+│   └── onboarding/
+│       ├── onboarding-wizard.tsx  step-progress.tsx  wizard-nav.tsx  radio-cards.tsx
+│       ├── step-farm-name.tsx  step-location.tsx  farm-map.tsx (client only)
+│       ├── step-farm-size.tsx  step-crops.tsx  step-farm-type.tsx
+│       ├── step-ghana-card.tsx  step-review.tsx
+│       └── onboarding-schemas.ts   # One zod schema per step + the full profile check
 │
 ├── lib/
 │   ├── utils.ts                    # cn(), generateId()
@@ -118,6 +127,7 @@ agrictec/
 │   ├── momo.service.ts
 │   ├── diagnoses.service.ts
 │   ├── profile.service.ts
+│   ├── onboarding.service.ts       # draft (resume), complete, the onboarded cookie
 │   ├── market.service.ts           # mock prices + weather
 │   └── loans.service.ts            # partner offers
 │
@@ -125,6 +135,7 @@ agrictec/
 │   ├── auth-store.ts
 │   ├── farm-store.ts               # records, momo, diagnoses
 │   ├── profile-store.ts
+│   ├── onboarding-store.ts         # wizard step, answers, review jumps
 │   ├── chat-store.ts
 │   └── settings-store.ts           # language, notification toggles
 │
@@ -198,14 +209,26 @@ export interface Diagnosis {
   imageThumb?: string; date: string;
 }
 
+export type FarmType = 'Smallholder' | 'Commercial' | 'Cooperative' | 'Out-grower';
+export type SizeUnit = 'acres' | 'hectares';
+export type GhanaCardStatus = 'not_provided' | 'pending' | 'verified' | 'rejected';
+
 export interface Profile {
-  userId: string; name: string; phone: string; email: string;
-  region: string; farmName: string; acres: number;
-  farmType: 'Smallholder' | 'Commercial' | 'Cooperative';
-  primaryCrops: string[];
+  userId: string;
+  name: string; email: string; phone: string;
+  farmName: string; useNameAsFarmName: boolean;
+  region: string; constituency: string; community?: string;
   gps?: { lat: number; lng: number };
-  verification: { phone: boolean; location: boolean; ghanaCard: boolean };
+  acres: number; sizeUnit: SizeUnit;          // acres always stored; unit for display
+  primaryCrops: string[]; otherCrops?: string;
+  farmType: FarmType; cooperativeName?: string; outgrowerCompany?: string;
+  // Never the full card number: a mask (GHA-******789-0) and a SHA-256 hash only.
+  ghanaCard: { status: GhanaCardStatus; masked?: string; hash?: string; submittedAt?: string; rejectedReason?: string };
+  verification: { phone: boolean; location: boolean; ghanaCard: boolean }; // ghanaCard true only when status === 'verified'
+  onboardingCompletedAt?: string;
 }
+
+export interface OnboardingDraft { userId: string; currentStep: number; data: Partial<Profile>; updatedAt: string; }
 
 export interface ChatMessage { id: string; role: 'user' | 'ai'; content: string; createdAt: string; }
 
@@ -275,6 +298,20 @@ The active state comes from `usePathname()`. The footer shows the avatar initial
 - Add a **"Continue as guest (demo)"** option that creates a persistent demo user ID **once**. The old app generated a new random ID on every load and lost the user's data.
 - Every `(main)` route redirects to `/login` when there is no session.
 - Sign Out is only visible when signed in. On sign out, clear the session and redirect.
+
+### 7.1a Onboarding (`/onboarding`)
+- **Journey:** sign up (or sign in, or continue as guest) → if `profile.onboardingCompletedAt` is missing → `/onboarding` → six steps and a review → `/dashboard`. Until it is finished no app page opens: `proxy.ts` redirects with the `agrictec_onboarded` cookie (set on completion, cleared on sign-out), and the DataLoader checks the profile itself (the cookie is only a hint). An onboarded farmer visiting `/onboarding` goes to `/dashboard`; without a session it goes to `/login`.
+- **Steps** (react-hook-form + one zod schema each; Continue validates only the current step and focuses the first error):
+  1. **Farm name** (2–80 characters) with "Use my name as the farm name" (fills and locks the field). Guests get "Fill with demo details".
+  2. **Location:** region (16), constituency (disabled until a region is picked; only that region's list, from `constants/constituencies.ts`), optional community, and an optional OpenStreetMap pin (react-leaflet, loaded with `next/dynamic` and `ssr: false`): click to drop, drag to move, "Use my current location", pins outside Ghana (lat 4.5–11.2, lng −3.3–1.3) refused, `formatGPS()` under the map, and a friendly message when tiles can't load.
+  3. **Farm size** (> 0, up to 10,000) in acres or hectares; always stored in acres (1 ha = 2.47105 acres) with the unit kept for display, and a live conversion.
+  4. **Crops:** multi-select chips (icons, never emoji), at least one; "Other" asks for the name(s). Crops without yield data are not offered in the Yield Predictor.
+  5. **Farm type:** radio cards (Smallholder, Commercial, Cooperative, Out-grower); a cooperative needs its name, an out-grower may name the company.
+  6. **Ghana Card (optional):** "I have a Ghana Card" (auto-formatted `GHA-XXXXXXXXX-X`, ownership confirmation; only the mask and a SHA-256 hash are kept) or "I'll do this later" (amber warning: no loans until verified). Submitted cards are **pending** in the admin's verifications queue until approved.
+  - **Review:** every answer with an Edit link back to its step, a static map preview, a required confirmation, then "Complete setup".
+- Every Continue saves a draft (`onboarding.service.ts`), so a refresh resumes on the same step with the same answers. "Sign out" keeps the draft.
+- **Loans need a verified Ghana Card:** `checkEligibility()` adds "Verify your Ghana Card to apply for loans." (or "…being reviewed…" while pending); `/loans` shows a lock banner with "Verify now"; Apply and Check eligibility are disabled; the loans service refuses too; the assistant and recommendations say "Verify your Ghana Card to unlock loan offers." instead of promising a loan. The dashboard shows a dismissible "Add your Ghana Card to unlock loans" card while none is provided.
+- The profile page edits every onboarding field later with the same step components, and shows the card status (Not provided / Pending review / Verified / Rejected + reason) with add or resubmit.
 
 ### 7.2 Dashboard
 - **AI Insight banner.** With zero records, show an onboarding message. Otherwise, show an insight that rotates every 15 seconds and is derived from the user's real data (expense ratio, best crop, record count). Include an "Add Record" button.
@@ -347,8 +384,8 @@ The active state comes from `usePathname()`. The footer shows the avatar initial
 - Show a label: "Indicative prices — demo data".
 
 ### 7.11 Profile
-- **Personal:** full name, phone (MoMo, Ghana-validated), email, and region (all 16 Ghana regions).
-- **Farm:** farm name, total acreage, farm type, primary crops (multi-select chips), and GPS.
+- **Personal:** full name, phone (MoMo, Ghana-validated) and email.
+- **Farm details:** everything from onboarding (farm name, region, constituency, community, map pin, size in the farmer's unit, crops, farm type), each part edited in a dialog with the onboarding step's own component.
 - **"Get Current Location":** use `navigator.geolocation` and store `{lat, lng}`. Display it through `formatGPS()` with correct N/S/E/W hemispheres and absolute values. The old app always printed "N" and "W" and showed negative numbers.
 - **Digital Identity Verification grid:** Account, Phone, Farm Location, and Ghana Card, each marked Verified or Pending based on real profile state. Ghana Card uses a mock input with the format `GHA-XXXXXXXXX-X`.
 - Saving updates the sidebar name and avatar immediately and shows a toast.

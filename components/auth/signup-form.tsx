@@ -8,7 +8,6 @@ import { AlertCircle, UserPlus } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
-  DEFAULT_AFTER_LOGIN,
   passwordStrength,
   signupSchema,
   type PasswordStrength,
@@ -60,7 +59,8 @@ export function SignupForm() {
       await profileStore.load(session.userId);
       await profileStore.save({ name: values.name, email: session.email });
       toast.success('Account created');
-      router.replace(DEFAULT_AFTER_LOGIN);
+      // Next: the farm setup. The app opens once it is finished.
+      router.replace('/onboarding');
       router.refresh();
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Could not create your account');

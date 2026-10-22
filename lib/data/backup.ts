@@ -1,5 +1,6 @@
 import { backupSchema, type DataBackup } from '@/lib/data/backup-schema';
-import { safeProfile } from '@/lib/profile';
+import { readProfile } from '@/lib/admin/farmer-data';
+import { normalizeProfile, safeProfile } from '@/lib/profile';
 import { defaultProfile } from '@/services/profile.service';
 import { FARMER_ADMIN_META } from '@/lib/admin/keys';
 import { assertWritable } from '@/lib/read-only';
@@ -69,7 +70,11 @@ export async function importDataBackup(input: DataBackup): Promise<void> {
   const rebind = <T extends { userId: string }>(items: T[]) =>
     items.map((item) => ({ ...item, userId }));
   storage.replaceUser(userId, {
-    profile: safeProfile({ ...data.profile, userId }),
+    // The Ghana Card status is never taken from a file: it stays as the review service set it.
+    profile: safeProfile({
+      ...normalizeProfile(userId, data.profile),
+      ghanaCard: readProfile(userId).ghanaCard,
+    }),
     records: rebind(data.records),
     momo: rebind(data.momo),
     diagnoses: rebind(data.diagnoses),

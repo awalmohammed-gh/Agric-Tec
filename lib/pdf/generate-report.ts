@@ -103,8 +103,11 @@ export async function generateReportPDF(input: ReportData | ReportData[]): Promi
     farmerField('Farmer', data.farmer.name, MARGIN, y);
     farmerField('Phone', data.farmer.phone, MARGIN + 64, y);
     farmerField('Farm', data.farmer.farm, MARGIN, y + 12);
-    farmerField('Acreage', data.farmer.acres, MARGIN + 64, y + 12);
+    farmerField('Farm size', data.farmer.acres, MARGIN + 64, y + 12);
     farmerField('Region', data.farmer.region, MARGIN, y + 24);
+    farmerField('Constituency', data.farmer.constituency, MARGIN + 64, y + 24);
+    farmerField('Community', data.farmer.community, MARGIN, y + 36);
+    farmerField('Crops', data.farmer.crops, MARGIN + 64, y + 36);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
@@ -115,7 +118,7 @@ export async function generateReportPDF(input: ReportData | ReportData[]): Promi
     doc.setTextColor(...INK);
     doc.text(formatGeneratedAt(data.generatedAt), PAGE_W - MARGIN, y + 4.5, { align: 'right' });
 
-    y += 33;
+    y += 45;
     doc.setDrawColor(226, 232, 240);
     doc.line(MARGIN, y, PAGE_W - MARGIN, y);
     y += 9;

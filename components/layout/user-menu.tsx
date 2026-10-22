@@ -26,7 +26,11 @@ export function UserMenu() {
 
   const name = profile?.name.trim() || 'New Farmer';
   const initial = (profile?.name.trim()[0] ?? 'N').toUpperCase();
-  const farmType = profile?.farmType ?? 'Smallholder';
+  // The farm's name first, then "<Farm type> • <Constituency>".
+  const title = profile?.farmName.trim() || name;
+  const subtitle = [profile?.farmType ?? 'Smallholder', profile?.constituency]
+    .filter(Boolean)
+    .join(' • ');
 
   const items = () =>
     Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
@@ -167,8 +171,8 @@ export function UserMenu() {
           {initial}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="text-text block truncate text-sm font-semibold">{name}</span>
-          <span className="text-text-mute block truncate text-xs">{farmType} Farmer</span>
+          <span className="text-text block truncate text-sm font-semibold">{title}</span>
+          <span className="text-text-mute block truncate text-xs">{subtitle}</span>
         </span>
         <ChevronsUpDown size={16} aria-hidden="true" className="text-text-mute shrink-0" />
       </button>

@@ -21,8 +21,11 @@ function ReportDocument({ data }: { data: ReportData }) {
     ['Farmer', data.farmer.name],
     ['Farm', data.farmer.farm],
     ['Region', data.farmer.region],
+    ['Constituency', data.farmer.constituency],
+    ['Community', data.farmer.community],
     ['Phone', data.farmer.phone],
-    ['Acreage', data.farmer.acres],
+    ['Farm size', data.farmer.acres],
+    ['Crops', data.farmer.crops],
     ['Generated', formatGeneratedAt(data.generatedAt)],
   ];
 

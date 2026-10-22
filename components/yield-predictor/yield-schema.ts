@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { CROPS } from '@/constants/crops';
-import type { Crop } from '@/types';
+import { YIELD_CROPS } from '@/constants/crops';
 
-export const YIELD_CROPS = CROPS.filter((crop): crop is Exclude<Crop, 'Other'> => crop !== 'Other');
+// Only crops with yield data are offered (Pepper, Okra… have none).
+export { YIELD_CROPS };
 
 export const yieldSchema = z.object({
   crop: z.enum(YIELD_CROPS),

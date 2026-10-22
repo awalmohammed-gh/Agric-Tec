@@ -5,6 +5,7 @@ import type {
   EligibilityIssue,
   EligibilityResult,
   FarmRecord,
+  GhanaCardStatus,
   LoanPartner,
   RepaymentResult,
 } from '@/types';
@@ -38,6 +39,15 @@ export function monthlyRepayment(
   };
 }
 
+/** Loans need a verified Ghana Card. What to tell a farmer whose card isn't verified yet. */
+export const ghanaCardLoanMessage = (status: GhanaCardStatus) =>
+  status === 'pending'
+    ? 'Your Ghana Card is being reviewed. You can apply once it is verified.'
+    : 'Verify your Ghana Card to apply for loans.';
+
+/** The line the assistant and recommendations use instead of promising a loan. */
+export const LOANS_LOCKED_HINT = 'Verify your Ghana Card to unlock loan offers.';
+
 /**
  * Checks every eligibility rule and collects ALL failing reasons, not just the first.
  * `rules` come from the admin's credit config. A chosen lender's own minimum score replaces
@@ -49,16 +59,23 @@ export function checkEligibility({
   score,
   partner,
   rules = DEFAULT_CREDIT_CONFIG.eligibility,
+  ghanaCard = 'verified',
 }: {
   amount: number;
   records: FarmRecord[];
   score: number;
   partner?: LoanPartner;
   rules?: EligibilityRules;
+  /** The farmer's Ghana Card status: loans need a verified card. */
+  ghanaCard?: GhanaCardStatus;
 }): EligibilityResult {
   const issues: EligibilityIssue[] = [];
   const maxAffordable = borrowingLimit(annualizedNetProfit(records), rules);
   const minScore = partner?.minScore ?? rules.minScore;
+
+  if (ghanaCard !== 'verified') {
+    issues.push({ code: 'ghana-card', message: ghanaCardLoanMessage(ghanaCard) });
+  }
 
   if (records.length < rules.minRecords) {
     issues.push({

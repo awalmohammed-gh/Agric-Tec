@@ -122,7 +122,14 @@ export const farmersService = {
         if (patch.acres !== undefined && (!Number.isFinite(patch.acres) || patch.acres < 0)) {
           throw new Error('Acres must be zero or more.');
         }
-        writeProfile({ ...profile, ...patch, userId: id });
+        // A new region: the old constituency belonged to the previous one.
+        const regionChanged = patch.region !== undefined && patch.region !== profile.region;
+        writeProfile({
+          ...profile,
+          ...patch,
+          ...(regionChanged && { constituency: '' }),
+          userId: id,
+        });
         return buildFarmerAccount(findUser(id));
       },
     );
@@ -343,6 +350,8 @@ export const farmersService = {
             { header: 'Email', value: (f) => f.email },
             { header: 'Phone', value: (f) => f.profile.phone },
             { header: 'Region', value: (f) => f.profile.region },
+            { header: 'Constituency', value: (f) => f.profile.constituency },
+            { header: 'Community', value: (f) => f.profile.community ?? '' },
             { header: 'Farm', value: (f) => f.profile.farmName },
             { header: 'Farm type', value: (f) => f.profile.farmType },
             { header: 'Acres', value: (f) => f.profile.acres },
@@ -355,6 +364,8 @@ export const farmersService = {
               header: 'Ghana Card verified',
               value: (f) => yesNo(f.profile.verification.ghanaCard),
             },
+            // The status only: never a card number, not even the masked one.
+            { header: 'Ghana Card status', value: (f) => f.profile.ghanaCard.status },
             { header: 'Status', value: (f) => f.status },
             { header: 'Suspension reason', value: (f) => f.suspendedReason ?? '' },
             { header: 'Credit score', value: (f) => f.stats.score },

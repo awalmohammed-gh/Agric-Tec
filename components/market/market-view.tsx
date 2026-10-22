@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { locationLabel } from '@/lib/profile';
 import { marketService, type WeatherSnapshot } from '@/services/market.service';
 import { useProfileStore } from '@/store/profile-store';
 import type { MarketPrice, PriceTrends } from '@/types';
@@ -71,7 +72,11 @@ export function MarketView() {
   return (
     <>
       <div className="grid grid-cols-1 gap-5 @3xl:grid-cols-2">
-        <WeatherCard weather={state.weather} region={profile?.region} />
+        {/* "<Constituency>, <Region>" (the card adds ", Ghana"). */}
+        <WeatherCard
+          weather={state.weather}
+          region={profile ? locationLabel(profile) : undefined}
+        />
         <WeatherAdvisory
           weather={state.weather}
           primaryCrops={primaryCrops}

@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/card';
 import { ScoreRing } from '@/components/ui/score-ring';
 import type { FarmerAbilities } from '@/lib/admin/farmer-list';
 import { formatDate } from '@/lib/format';
+import { locationLabel } from '@/lib/profile';
 import type { FarmerAccount } from '@/types/admin';
 
 export interface HeaderActions {
@@ -45,7 +46,7 @@ export function FarmerHeader({
 }) {
   const name = farmer.profile.name || farmer.email;
   const facts = [
-    { icon: MapPin, text: farmer.profile.region },
+    { icon: MapPin, text: locationLabel(farmer.profile) || farmer.profile.region },
     { icon: Phone, text: farmer.profile.phone || 'No phone' },
     { icon: Mail, text: farmer.email },
     { icon: Calendar, text: `Joined ${formatDate(new Date(farmer.createdAt))}` },

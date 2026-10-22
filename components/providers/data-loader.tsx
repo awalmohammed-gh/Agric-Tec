@@ -14,6 +14,7 @@ import {
   impersonatedSession,
 } from '@/lib/admin/impersonation';
 import { authService } from '@/services/auth.service';
+import { onboardingService } from '@/services/onboarding.service';
 import { storage } from '@/services/storage';
 import { loadAllStores, signOutAndReset, useAuthStore, usePlatformStore } from '@/store';
 
@@ -77,6 +78,9 @@ export function DataLoader({ children }: { children: ReactNode }) {
         await signOutAndReset();
         return { redirect: `/login?reason=${status}` };
       }
+      // The proxy's cookie is only a hint: the profile decides. No app page until the farm
+      // setup is finished (it resumes on the step where the farmer stopped).
+      if (!(await onboardingService.isComplete(session.userId))) return { redirect: '/onboarding' };
       await loadAllStores(session.userId);
       return 'ready';
     }

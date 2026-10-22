@@ -19,7 +19,6 @@ import { PhoneVerifyModal } from '@/components/profile/phone-verify-modal';
 import { Badge, type BadgeColor } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
-import { maskGhanaCard } from '@/lib/profile';
 import { rejectionMessage } from '@/lib/verification';
 import { cn } from '@/lib/utils';
 import { usePlatformStore } from '@/store/platform-store';
@@ -29,7 +28,7 @@ type CheckState = 'verified' | 'review' | 'rejected' | 'todo';
 
 const STATE_BADGE: Record<CheckState, { label: string; color: BadgeColor; icon: LucideIcon }> = {
   verified: { label: 'Verified', color: 'green', icon: Check },
-  review: { label: 'Under review', color: 'gold', icon: Hourglass },
+  review: { label: 'Pending review', color: 'gold', icon: Hourglass },
   rejected: { label: 'Rejected', color: 'red', icon: Ban },
   todo: { label: 'Not verified', color: 'blue', icon: Circle },
 };
@@ -38,6 +37,8 @@ interface CheckItem {
   title: string;
   icon: LucideIcon;
   state: CheckState;
+  /** Overrides the badge text (the Ghana Card says "Not provided" rather than "Not verified"). */
+  badgeLabel?: string;
   detail: string;
   action?: { label: string; run: () => void };
 }
@@ -51,18 +52,21 @@ export function VerificationGrid() {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
 
-  const cardState: CheckState = profile?.verification.ghanaCard
-    ? 'verified'
-    : cardRequest?.status === 'pending'
-      ? 'review'
-      : cardRequest?.status === 'rejected'
-        ? 'rejected'
-        : 'todo';
+  // The card's status lives on the profile (onboarding, this page, and the admin's review).
+  const card = profile?.ghanaCard;
+  const cardState: CheckState =
+    card?.status === 'verified'
+      ? 'verified'
+      : card?.status === 'pending' || cardRequest?.status === 'pending'
+        ? 'review'
+        : card?.status === 'rejected'
+          ? 'rejected'
+          : 'todo';
   const cardDetail: Record<CheckState, string> = {
-    verified: maskGhanaCard(profile?.ghanaCardLast4),
-    review: `${cardRequest?.submittedValue ?? 'Your card'} is waiting for review. This usually takes one working day.`,
-    rejected: rejectionMessage(cardRequest ?? {}),
-    todo: 'Verify your identity in demo mode.',
+    verified: card?.masked ?? 'Verified',
+    review: `${card?.masked ?? cardRequest?.submittedValue ?? 'Your card'} is waiting for review. This usually takes one working day.`,
+    rejected: card?.rejectedReason ?? rejectionMessage(cardRequest ?? {}),
+    todo: 'Not provided. Add your Ghana Card to unlock loans.',
   };
 
   const items: CheckItem[] = [
@@ -101,6 +105,7 @@ export function VerificationGrid() {
       title: 'Ghana Card',
       icon: BadgeCheck,
       state: cardState,
+      ...(cardState === 'todo' && { badgeLabel: 'Not provided' }),
       detail: cardDetail[cardState],
       action: {
         label: cardState === 'rejected' ? 'Try again' : 'Verify',
@@ -121,7 +126,7 @@ export function VerificationGrid() {
         </div>
       </CardHeader>
       <div className="mb-5 grid grid-cols-1 gap-3 @xl:grid-cols-2 @4xl:grid-cols-4">
-        {items.map(({ title, icon: Icon, state, detail, action }) => {
+        {items.map(({ title, icon: Icon, state, badgeLabel, detail, action }) => {
           const badge = STATE_BADGE[state];
           const BadgeIcon = badge.icon;
           const verified = state === 'verified';
@@ -141,7 +146,7 @@ export function VerificationGrid() {
                 />
                 <Badge color={badge.color}>
                   <BadgeIcon size={11} aria-hidden="true" />
-                  {badge.label}
+                  {badgeLabel ?? badge.label}
                 </Badge>
               </div>
               <p className="text-text mt-3 text-sm font-semibold">{title}</p>

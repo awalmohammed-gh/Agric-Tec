@@ -214,7 +214,7 @@ export const RISK_RULES: RiskRule[] = [
         subjects,
         'shared_ghana_card',
         'medium',
-        (s) => (s.profile.verification.ghanaCard ? (s.profile.ghanaCardLast4 ?? '') : ''),
+        (s) => (s.profile.verification.ghanaCard ? (s.profile.ghanaCard.masked ?? '') : ''),
         (others) =>
           `A verified Ghana Card ending in the same digits is on ${others} other account${others === 1 ? '' : 's'}.`,
       ),

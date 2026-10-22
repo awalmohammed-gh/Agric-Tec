@@ -5,8 +5,21 @@ import type { AccountStatus, Role } from '@/types/admin';
 export type { AccountStatus, Role } from '@/types/admin';
 
 export type RecordType = 'income' | 'expense' | 'activity';
+/** Crops with yield data (base yield, price, tips): the ones the yield predictor offers. */
+export type YieldCrop =
+  'Maize' | 'Cassava' | 'Rice' | 'Cocoa' | 'Yam' | 'Plantain' | 'Groundnut' | 'Tomato';
+/** Every crop a farmer can grow in the app ('Other' carries a free-text name in otherCrops). */
 export type Crop =
-  'Maize' | 'Cassava' | 'Rice' | 'Cocoa' | 'Yam' | 'Plantain' | 'Groundnut' | 'Tomato' | 'Other';
+  | YieldCrop
+  | 'Pepper'
+  | 'Okra'
+  | 'Soybean'
+  | 'Sorghum'
+  | 'Millet'
+  | 'Cashew'
+  | 'Oil Palm'
+  | 'Vegetables'
+  | 'Other';
 
 export interface FarmRecord {
   id: string; // crypto.randomUUID(), never Date.now()
@@ -46,20 +59,54 @@ export interface Diagnosis {
   date: string;
 }
 
+export type FarmType = 'Smallholder' | 'Commercial' | 'Cooperative' | 'Out-grower';
+export type SizeUnit = 'acres' | 'hectares';
+export type GhanaCardStatus = 'not_provided' | 'pending' | 'verified' | 'rejected';
+
+/** The Ghana Card on a profile. Never the full number: a mask and a SHA-256 fingerprint only. */
+export interface GhanaCardInfo {
+  status: GhanaCardStatus;
+  /** e.g. GHA-******789-0 (last four digits, including the check digit). */
+  masked?: string;
+  /** SHA-256 of the full number, for the admin's duplicate check. */
+  hash?: string;
+  submittedAt?: string;
+  rejectedReason?: string;
+}
+
 export interface Profile {
   userId: string;
   name: string;
-  phone: string;
   email: string;
-  region: string;
+  phone: string;
   farmName: string;
-  acres: number;
-  farmType: 'Smallholder' | 'Commercial' | 'Cooperative';
-  primaryCrops: string[];
+  useNameAsFarmName: boolean;
+  region: string;
+  constituency: string;
+  community?: string;
   gps?: { lat: number; lng: number };
-  /** Last four digits only, including the check digit. Never the full Ghana Card number. */
-  ghanaCardLast4?: string;
+  /** Always stored in acres; sizeUnit is how the farmer entered it (and sees it). */
+  acres: number;
+  sizeUnit: SizeUnit;
+  primaryCrops: string[];
+  /** The crop names typed under "Other". */
+  otherCrops?: string;
+  farmType: FarmType;
+  cooperativeName?: string;
+  outgrowerCompany?: string;
+  ghanaCard: GhanaCardInfo;
+  /** ghanaCard is true only when ghanaCard.status is 'verified'. */
   verification: { phone: boolean; location: boolean; ghanaCard: boolean };
+  /** Set when the onboarding wizard is finished; the app is closed until then. */
+  onboardingCompletedAt?: string;
+}
+
+/** The onboarding wizard's progress, saved on every Continue so a farmer can resume. */
+export interface OnboardingDraft {
+  userId: string;
+  currentStep: number;
+  data: Partial<Profile>;
+  updatedAt: string;
 }
 
 export interface ChatMessage {
@@ -154,7 +201,12 @@ export interface YieldResult {
   pricePerTonne: number;
 }
 
-export type EligibilityIssueCode = 'records' | 'affordability' | 'score' | 'lender-max';
+export type EligibilityIssueCode =
+  | 'records'
+  | 'affordability'
+  | 'score'
+  | 'lender-max'
+  | 'ghana-card';
 
 export interface EligibilityIssue {
   code: EligibilityIssueCode;

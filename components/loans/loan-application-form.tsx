@@ -28,6 +28,7 @@ import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { FormField, fieldErrorId } from '@/components/ui/form-field';
 import { LOAN_PERIODS, LOAN_PURPOSES } from '@/constants/loan-partners';
 import { useFarmStats } from '@/hooks/use-farm-stats';
+import { VERIFY_CARD_FIRST, useGhanaCardStatus } from '@/hooks/use-ghana-card';
 import { checkEligibility, monthlyRepayment } from '@/lib/calculations/loan';
 import { formatGHS } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,8 @@ export function LoanApplicationForm({ className }: { className?: string }) {
   const { credit, borrowingPower: maxAffordable, loanRules } = useFarmStats();
   const lenders = usePlatformStore((s) => s.lenders);
   const openConfirm = useLoanStore((s) => s.openConfirm);
+  const ghanaCard = useGhanaCardStatus();
+  const locked = ghanaCard !== 'verified';
   const [result, setResult] = useState<CheckResult | null>(null);
   // The slider reaches the largest active lender's limit.
   const sliderMax = lenders.length
@@ -110,6 +113,7 @@ export function LoanApplicationForm({ className }: { className?: string }) {
         score: credit.score,
         partner,
         rules: loanRules,
+        ghanaCard,
       }),
       repayment: monthlyRepayment(values.amount, partner.rate, values.months),
     });
@@ -331,9 +335,26 @@ export function LoanApplicationForm({ className }: { className?: string }) {
                   : `No lender offers ${period}-month loans. Try another period.`}
               </p>
             )}
-            <Button type="submit" icon={ShieldCheck} className="mt-4 w-full">
-              Check eligibility
-            </Button>
+            {/* Locked until the Ghana Card is verified (the banner above explains why). */}
+            <span title={locked ? VERIFY_CARD_FIRST : undefined} className="mt-4 block">
+              <Button
+                type="submit"
+                icon={ShieldCheck}
+                disabled={locked}
+                aria-describedby={locked ? 'loan-card-locked' : undefined}
+                className="w-full"
+              >
+                Check eligibility
+              </Button>
+            </span>
+            {locked && (
+              <p
+                id="loan-card-locked"
+                className="text-ink-gold mt-2 text-center text-xs font-semibold"
+              >
+                {VERIFY_CARD_FIRST}
+              </p>
+            )}
             <p className="text-text-mute mt-2 text-center text-[11px]">
               Estimates only. The lender sets final terms.
             </p>

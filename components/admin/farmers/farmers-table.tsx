@@ -76,12 +76,17 @@ function FarmerName({ farmer }: { farmer: FarmerAccount }) {
   );
 }
 
-/** Region over the main crop (then "+N" more; all of them in the tooltip). */
+/** Constituency and region over the main crop (then "+N" more; all of them in the tooltip). */
 function FarmCell({ farmer }: { farmer: FarmerAccount }) {
   const crops = farmer.profile.primaryCrops;
   return (
     <span className="block min-w-0">
-      <span className="text-text block whitespace-nowrap">{farmer.profile.region}</span>
+      <span className="text-text block whitespace-nowrap">
+        {farmer.profile.constituency && (
+          <span className="text-text-dim">{farmer.profile.constituency}, </span>
+        )}
+        {farmer.profile.region}
+      </span>
       {crops.length > 0 ? (
         <span
           title={crops.join(', ')}
@@ -154,18 +159,26 @@ function VerifiedIcons({ farmer }: { farmer: FarmerAccount }) {
     { label: 'Location', icon: MapPin, done: v.location },
     { label: 'Ghana Card', icon: BadgeCheck, done: v.ghanaCard },
   ];
+  // A card waiting for review shows gold ("Ghana Card pending review").
+  const cardPending = farmer.profile.ghanaCard.status === 'pending';
+  const stateOf = (label: string, done: boolean) =>
+    `${label} ${done ? 'verified' : label === 'Ghana Card' && cardPending ? 'pending review' : 'not verified'}`;
   return (
     <span className="inline-flex items-center gap-1">
       {items.map(({ label, icon: Icon, done }) => (
         <span
           key={label}
-          title={`${label} ${done ? 'verified' : 'not verified'}`}
+          title={stateOf(label, done)}
           className={cn(
             'inline-flex size-6 items-center justify-center rounded-md',
-            done ? 'bg-accent/15 text-ink-green' : 'bg-glass-strong text-text-mute/60',
+            done
+              ? 'bg-accent/15 text-ink-green'
+              : label === 'Ghana Card' && cardPending
+                ? 'bg-gold/15 text-ink-gold'
+                : 'bg-glass-strong text-text-mute/60',
           )}
         >
-          <Icon size={13} aria-label={`${label} ${done ? 'verified' : 'not verified'}`} />
+          <Icon size={13} aria-label={stateOf(label, done)} />
         </span>
       ))}
     </span>

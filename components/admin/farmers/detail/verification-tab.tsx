@@ -11,7 +11,7 @@ import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { useCan } from '@/hooks/admin/use-can';
 import { KIND_LABEL } from '@/lib/admin/verification-queue';
 import { formatDate, formatGPS } from '@/lib/format';
-import { maskGhanaCard } from '@/lib/profile';
+import { GHANA_CARD_LABELS } from '@/lib/profile';
 import { cn } from '@/lib/utils';
 import { verificationsService } from '@/services/admin/verifications.service';
 import type { VerificationRequest } from '@/types/admin';
@@ -40,7 +40,9 @@ export function VerificationTab({ data, reload }: TabProps) {
       kind: 'ghanaCard' as const,
       icon: BadgeCheck,
       done: profile.verification.ghanaCard,
-      detail: maskGhanaCard(profile.ghanaCardLast4),
+      detail: profile.ghanaCard.masked
+        ? `${profile.ghanaCard.masked} · ${GHANA_CARD_LABELS[profile.ghanaCard.status]}`
+        : GHANA_CARD_LABELS[profile.ghanaCard.status],
     },
   ];
 

@@ -38,9 +38,13 @@ export const useProfileStore = create<ProfileState>()((set, get) => {
           throw new Error('Your phone number changed. Send a new code.');
         const phone = normalizePhone(partial.phone ?? current.phone);
         const phoneChanged = normalizePhone(current.phone) !== phone;
+        // The Ghana Card status belongs to the verification service (an admin may have approved
+        // or rejected it since this tab loaded): keep the stored one unless this save sets it.
+        const stored = await profileService.get(userId);
         const merged: Profile = {
           ...current,
           ...partial,
+          ghanaCard: partial.ghanaCard ?? stored.ghanaCard,
           userId,
           phone,
           verification: {

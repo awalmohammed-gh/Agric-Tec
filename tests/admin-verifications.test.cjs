@@ -125,7 +125,8 @@ test('approving a Ghana Card verifies the profile and raises the score (audited)
   await verificationsService.approve(card.id);
   const after = await farmersService.get(card.userId);
   assert.equal(after.profile.verification.ghanaCard, true, 'profile shows Verified');
-  assert.equal(after.profile.ghanaCardLast4, card.submittedValue.replace(/\D/g, ''));
+  assert.equal(after.profile.ghanaCard.masked, card.submittedValue);
+  assert.equal(after.profile.ghanaCard.status, 'verified');
   assert.ok(after.stats.score > before.stats.score, `${before.stats.score} → ${after.stats.score}`);
   if (before.status === 'pending_verification') assert.equal(after.status, 'active');
 

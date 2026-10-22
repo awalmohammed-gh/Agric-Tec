@@ -106,8 +106,9 @@ function originalScore(records, momo, profile) {
   const checks = [
     isProfileComplete(profile),
     profile?.verification.phone ?? false,
-    profile?.verification.location ?? false,
-    profile?.verification.ghanaCard ?? false,
+    // Onboarding: a map pin counts for the location; the card only when verified.
+    Boolean(profile?.gps) || (profile?.verification.location ?? false),
+    profile?.ghanaCard?.status === 'verified',
   ];
   const verification = (checks.filter(Boolean).length / checks.length) * 100;
   const weighted =
@@ -149,6 +150,10 @@ test('with the default config, every credit score is identical to before', async
     ['records', 'affordability', 'score'],
   );
   assert.match(result.reasons[1], /3× your yearly profit/);
+  // Loans also need a verified Ghana Card.
+  const unverified = checkEligibility({ amount: 0, records: [], score: 800, ghanaCard: 'pending' });
+  assert.equal(unverified.issues[0].code, 'ghana-card');
+  assert.match(unverified.reasons[0], /being reviewed/);
 });
 
 test('admin credit rules change the farmer’s score and eligibility', async () => {

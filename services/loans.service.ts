@@ -3,6 +3,7 @@
 
 import { readFarmerData } from '@/lib/admin/farmer-data';
 import { calculateCreditScore } from '@/lib/calculations/credit-score';
+import { ghanaCardLoanMessage } from '@/lib/calculations/loan';
 import { configService } from '@/services/admin/config.service';
 import { lendersService } from '@/services/admin/lenders.service';
 import {
@@ -52,6 +53,9 @@ export const loansService = {
     data: LoanApplicationInput,
     scoreAtApplication: number,
   ): Promise<LoanApplication> {
+    // Loans need a verified Ghana Card (the page disables Apply too; this is the real check).
+    const card = readFarmerData(userId).profile.ghanaCard.status;
+    if (card !== 'verified') throw new Error(ghanaCardLoanMessage(card));
     return loanApplicationsService.create({ ...data, userId, scoreAtApplication });
   },
 };

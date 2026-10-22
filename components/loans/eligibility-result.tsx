@@ -19,6 +19,7 @@ const FIXES: Record<EligibilityIssueCode, { label: string; href: string } | null
   affordability: { label: 'Add records', href: '/records' },
   score: { label: 'Complete profile', href: '/settings/profile' },
   'lender-max': null,
+  'ghana-card': { label: 'Verify Ghana Card', href: '/settings/verification' },
 };
 
 export interface EligibilityResultProps {

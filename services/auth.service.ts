@@ -52,6 +52,8 @@ function setSessionCookie(): void {
 
 function clearSessionCookie(): void {
   document.cookie = `${SESSION_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+  // The onboarding hint belongs to the session (services/onboarding.service.ts sets it).
+  document.cookie = `agrictec_onboarded=; path=/; max-age=0; SameSite=Lax`;
 }
 
 function startSession(user: StoredUser): Session {
@@ -66,6 +68,9 @@ function startSession(user: StoredUser): Session {
   };
   storage.set(SESSION_KEY, session);
   setSessionCookie();
+  // A new session starts without the onboarding hint (a previous user's must not carry over);
+  // the sign-in page sets it again once it has checked this farmer's profile.
+  document.cookie = `agrictec_onboarded=; path=/; max-age=0; SameSite=Lax`;
   return session;
 }
 

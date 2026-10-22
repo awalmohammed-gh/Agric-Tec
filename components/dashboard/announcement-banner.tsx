@@ -99,7 +99,7 @@ export function AnnouncementCard({
           <span className="sr-only">{style.label}: </span>
           {announcement.title}
         </p>
-        <p className="text-text mt-0.5 text-sm whitespace-pre-line wrap-anywhere">
+        <p className="text-text mt-0.5 text-sm wrap-anywhere whitespace-pre-line">
           {announcement.message}
         </p>
       </div>

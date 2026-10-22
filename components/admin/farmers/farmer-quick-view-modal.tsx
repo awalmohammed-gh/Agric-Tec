@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { scoreLabel } from '@/lib/calculations/credit-score';
 import { formatDate, formatGHS } from '@/lib/format';
+import { GHANA_CARD_LABELS, cropNames, formatFarmSize, locationLabel } from '@/lib/profile';
 import { cn } from '@/lib/utils';
 import { farmersService } from '@/services/admin/farmers.service';
 import type { CreditScoreBreakdown } from '@/types';
@@ -129,13 +130,22 @@ export function FarmerQuickViewModal({
                 </h3>
                 <DetailList>
                   <DetailRow label="Phone">{account.profile.phone || null}</DetailRow>
-                  <DetailRow label="Region">{account.profile.region}</DetailRow>
+                  <DetailRow label="Location">
+                    {locationLabel(account.profile) || null}
+                    {account.profile.community ? ` · ${account.profile.community}` : ''}
+                  </DetailRow>
                   <DetailRow label="Farm">
                     {account.profile.farmName || '—'} · {account.profile.farmType} ·{' '}
-                    {account.profile.acres} acres
+                    {formatFarmSize(account.profile.acres, account.profile.sizeUnit)}
                   </DetailRow>
                   <DetailRow label="Crops">
-                    {account.profile.primaryCrops.join(', ') || null}
+                    {cropNames(account.profile).join(', ') || null}
+                  </DetailRow>
+                  <DetailRow label="Ghana Card">
+                    {GHANA_CARD_LABELS[account.profile.ghanaCard.status]}
+                    {account.profile.ghanaCard.masked
+                      ? ` · ${account.profile.ghanaCard.masked}`
+                      : ''}
                   </DetailRow>
                   <DetailRow label="Joined">{formatDate(new Date(account.createdAt))}</DetailRow>
                   <DetailRow label="Last active">

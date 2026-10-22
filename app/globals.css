@@ -358,6 +358,39 @@
   animation: typing 1.4s ease-in-out infinite;
 }
 
+/* Onboarding: each step fades and slides in (the reduced-motion rule below turns it off). */
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-step-in {
+  animation: stepIn 0.28s ease-out both;
+}
+
+/* Onboarding map: keep Leaflet's own z-indexes inside the map, and draw the farm pin (a
+   divIcon with only this class, instead of Leaflet's image marker). */
+.leaflet-container {
+  z-index: 0;
+  font: inherit;
+}
+
+.farm-pin {
+  border-radius: 9999px;
+  background: #10b981;
+  border: 3px solid #ffffff;
+  box-shadow:
+    0 0 0 4px rgba(16, 185, 129, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+}
+
 /* Glass surface: tint + border. No backdrop blur here: content scrolls, and a blurred element
    over moving content is re-blurred every frame (measured: the main cause of scroll jank).
    Fixed chrome that sits over the page (sidebar, top bar, mobile bar) adds its own blur. */

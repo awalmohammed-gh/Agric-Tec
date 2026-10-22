@@ -311,7 +311,8 @@ test('the audit log has no update or delete, and other guards hold', async () =>
   await verificationsService.approve(request.id);
   const verified = await farmersService.get(request.userId);
   assert.equal(verified.profile.verification.ghanaCard, true);
-  assert.equal(verified.profile.ghanaCardLast4, request.submittedValue.replace(/\D/g, ''));
+  assert.equal(verified.profile.ghanaCard.masked, request.submittedValue);
+  assert.equal(verified.profile.ghanaCard.status, 'verified');
 
   // A farmer password reset returns a temporary password that never reaches the log.
   const temp = await farmersService.resetPassword(request.userId);

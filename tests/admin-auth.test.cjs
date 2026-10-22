@@ -98,9 +98,16 @@ test('proxy: admin and farmer doors are separate', () => {
   // Farmer rules are unchanged.
   assert.equal(route('/dashboard'), '/login?next=%2Fdashboard');
   assert.equal(route('/dashboard', { agrictec_admin: '1' }), '/login?next=%2Fdashboard');
-  assert.equal(route('/login', { agrictec_session: '1' }), '/dashboard');
+  const onboarded = { agrictec_session: '1', agrictec_onboarded: '1' };
+  assert.equal(route('/login', onboarded), '/dashboard');
   assert.equal(route('/signup', { agrictec_session: '1' }), 'next');
-  assert.equal(route('/records', { agrictec_session: '1' }), 'next');
+  assert.equal(route('/records', onboarded), 'next');
+  // Onboarding: the app stays closed until the farm setup is finished.
+  assert.equal(route('/login', { agrictec_session: '1' }), '/onboarding');
+  assert.equal(route('/records', { agrictec_session: '1' }), '/onboarding');
+  assert.equal(route('/onboarding', { agrictec_session: '1' }), 'next');
+  assert.equal(route('/onboarding', onboarded), '/dashboard');
+  assert.equal(route('/onboarding'), '/login');
 });
 
 test('forms: safe "next" paths and the new-password policy', () => {

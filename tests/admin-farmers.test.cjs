@@ -169,8 +169,10 @@ test('CSV export has full profile fields, score and totals, but no secrets', asy
   }
   assert.ok(!columns.some((c) => /password|hash/i.test(c)), 'no password columns');
   assert.ok(
-    !columns.some((c) => /card/i.test(c) && c !== 'Ghana Card verified'),
-    'only a yes/no for the Ghana Card',
+    !columns.some(
+      (c) => /card/i.test(c) && c !== 'Ghana Card verified' && c !== 'Ghana Card status',
+    ),
+    'only a yes/no and the status for the Ghana Card',
   );
   assert.equal(rows.length, 60, 'one row per farmer, guests left out');
 
@@ -179,15 +181,22 @@ test('CSV export has full profile fields, score and totals, but no secrets', asy
   for (const user of users) assert.ok(!csv.includes(user.passwordHash));
   const cardColumn = columns.indexOf('Ghana Card verified');
   assert.ok(rows.every((row) => ['Yes', 'No'].includes(row.split(',')[cardColumn])));
+  const statusColumn = columns.indexOf('Ghana Card status');
+  assert.ok(
+    rows.every((row) =>
+      ['not_provided', 'pending', 'verified', 'rejected'].includes(row.split(',')[statusColumn]),
+    ),
+  );
   assert.ok(!csv.includes('GHA-'), 'no card numbers');
   // A farmer's card digits never appear in their own row's text columns. (Numeric columns are
   // skipped: an income can coincidentally equal four card digits, which is not a leak.)
   const numeric = /GHS|Acres|GPS|score|Records|MoMo|Diagnoses/i;
   const textColumns = columns.map((c, i) => (numeric.test(c) ? -1 : i)).filter((i) => i >= 0);
-  for (const f of farmers.filter((x) => x.profile.ghanaCardLast4)) {
+  for (const f of farmers.filter((x) => x.profile.ghanaCard.masked)) {
+    const digits = f.profile.ghanaCard.masked.replace(/\D/g, '');
     const row = rows.find((r) => r.startsWith(`${f.userId},`)).split(',');
     assert.ok(
-      textColumns.every((i) => !row[i].includes(f.profile.ghanaCardLast4)),
+      textColumns.every((i) => !row[i].includes(digits)),
       `${f.userId}: card digits not in the export`,
     );
   }

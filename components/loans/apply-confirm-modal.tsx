@@ -8,6 +8,7 @@ import { findPartner } from '@/components/loans/loan-schema';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { useFarmStats } from '@/hooks/use-farm-stats';
+import { useGhanaCardStatus } from '@/hooks/use-ghana-card';
 import { checkEligibility, monthlyRepayment } from '@/lib/calculations/loan';
 import { formatGHS } from '@/lib/format';
 import { useFarmStore } from '@/store/farm-store';
@@ -23,6 +24,7 @@ function ApplyContent({ draft, onClose }: { draft: LoanDraft; onClose: () => voi
   const { credit, creditLabel, loanRules } = useFarmStats();
   const lenders = usePlatformStore((s) => s.lenders);
   const submit = useLoanStore((s) => s.submit);
+  const ghanaCard = useGhanaCardStatus();
   const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [application, setApplication] = useState<LoanApplication | null>(null);
@@ -36,6 +38,7 @@ function ApplyContent({ draft, onClose }: { draft: LoanDraft; onClose: () => voi
     score: credit.score,
     partner,
     rules: loanRules,
+    ghanaCard,
   });
   const repayment = monthlyRepayment(draft.amount, partner.rate, draft.months);
 

@@ -1,8 +1,9 @@
-import type { Crop, YieldInput } from '@/types';
+import type { Crop, YieldCrop, YieldInput } from '@/types';
 
-type KnownCrop = Exclude<Crop, 'Other'>;
+type KnownCrop = YieldCrop;
 
-export const CROPS: Crop[] = [
+/** Crops with yield data: the yield predictor offers only these. */
+export const YIELD_CROPS: YieldCrop[] = [
   'Maize',
   'Cassava',
   'Rice',
@@ -11,8 +12,24 @@ export const CROPS: Crop[] = [
   'Plantain',
   'Groundnut',
   'Tomato',
+];
+
+/** Every crop a farmer can pick (onboarding, records, profile). 'Other' is always last. */
+export const CROPS: Crop[] = [
+  ...YIELD_CROPS,
+  'Pepper',
+  'Okra',
+  'Soybean',
+  'Sorghum',
+  'Millet',
+  'Cashew',
+  'Oil Palm',
+  'Vegetables',
   'Other',
 ];
+
+export const isYieldCrop = (crop: string): crop is YieldCrop =>
+  (YIELD_CROPS as string[]).includes(crop);
 
 /** Average yield in tonnes per acre under baseline conditions. */
 export const BASE_YIELD_PER_ACRE: Record<KnownCrop, number> = {
