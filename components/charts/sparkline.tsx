@@ -6,6 +6,8 @@ export interface SparklineProps {
   /** Accessible summary, e.g. "Income trend over the last 6 months". */
   ariaLabel: string;
   className?: string;
+  /** Under the line: a soft gradient (default), or nothing for a flat, line-only look. */
+  fill?: 'gradient' | 'none';
 }
 
 const W = 120;
@@ -16,7 +18,7 @@ const PAD = 3;
  * Tiny SVG trend line with a soft gradient fill. Draws in `currentColor`, so set the colour
  * with a text class (e.g. text-ink-green). No Chart.js needed, so it is cheap to render many.
  */
-export function Sparkline({ data, ariaLabel, className }: SparklineProps) {
+export function Sparkline({ data, ariaLabel, className, fill = 'gradient' }: SparklineProps) {
   const gradientId = `spark-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const values = data.length > 1 ? data : [0, 0];
   const min = Math.min(...values);
@@ -45,13 +47,17 @@ export function Sparkline({ data, ariaLabel, className }: SparklineProps) {
       aria-label={ariaLabel}
       className={cn('h-9 w-full overflow-visible', className)}
     >
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="currentColor" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#${gradientId})`} />
+      {fill === 'gradient' && (
+        <>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="currentColor" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={area} fill={`url(#${gradientId})`} />
+        </>
+      )}
       <path
         d={line}
         fill="none"

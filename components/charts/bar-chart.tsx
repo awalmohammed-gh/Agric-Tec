@@ -18,8 +18,13 @@ export interface BarChartProps {
   datasets: BarDataset[];
   /** Width ÷ height. Ignored when `height` is set. */
   aspectRatio?: number;
-  /** Fixed height in px; the chart then fills the full width at any screen size. */
-  height?: number;
+  /**
+   * Fixed height in px, or 'fill' to take the full height of its parent (give the parent a
+   * height). Either way the chart fills the full width.
+   */
+  height?: number | 'fill';
+  /** The widest a bar may get, in px (default 36). */
+  maxBarThickness?: number;
   /** Hide the built-in legend when the card already explains the colours. */
   showLegend?: boolean;
   ariaLabel?: string;
@@ -40,6 +45,7 @@ export function BarChart({
   className,
   horizontal = false,
   onBarClick,
+  maxBarThickness = 36,
 }: BarChartProps) {
   const { baseOptions } = useChartTheme();
 
@@ -52,7 +58,7 @@ export function BarChart({
       borderColor: ds.colorsPerBar ?? ds.color,
       borderRadius: 6,
       borderSkipped: false,
-      maxBarThickness: 36,
+      maxBarThickness,
     })),
   };
 
@@ -79,7 +85,16 @@ export function BarChart({
   };
 
   return (
-    <div className={className} style={height ? { height, position: 'relative' } : undefined}>
+    <div
+      className={className}
+      style={
+        height === 'fill'
+          ? { height: '100%', position: 'relative' }
+          : height
+            ? { height, position: 'relative' }
+            : undefined
+      }
+    >
       <Bar data={data} options={options} aria-label={ariaLabel} role="img" />
     </div>
   );

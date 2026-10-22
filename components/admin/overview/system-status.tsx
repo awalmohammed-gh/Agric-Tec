@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
+import { Panel, PanelLink } from '@/components/admin/overview/panel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCan } from '@/hooks/admin/use-can';
 import type { PlatformStatus } from '@/hooks/admin/use-platform-status';
@@ -14,7 +13,7 @@ const FEATURES: { key: keyof FeatureFlags; label: string }[] = [
   { key: 'guestMode', label: 'Guest mode' },
   { key: 'aiAssistant', label: 'AI Assistant' },
   { key: 'cropDoctor', label: 'Crop Doctor' },
-  { key: 'yieldPredictor', label: 'Yield Predictor' },
+  { key: 'yieldPredictor', label: 'Yield' },
   { key: 'loans', label: 'Loans' },
   { key: 'market', label: 'Market' },
   { key: 'pdfReports', label: 'PDF reports' },
@@ -22,91 +21,89 @@ const FEATURES: { key: keyof FeatureFlags; label: string }[] = [
 
 const ago = (iso: string) => formatDistanceToNowStrict(new Date(iso), { addSuffix: true });
 
-/** Feature flags (green on, grey off), maintenance, credit rules version, seed date and storage. */
+/** Is the farmer app up, which features are on, and the platform's housekeeping facts. */
 export function SystemStatus({ status }: { status: PlatformStatus | null }) {
   const canSettings = useCan('settings.manage');
+  const down = status?.flags.maintenanceMode;
 
   return (
-    <Card>
-      <CardHeader>
-        <div>
-          <CardTitle>System status</CardTitle>
-          <CardSub>What farmers can use right now</CardSub>
-        </div>
-        {canSettings && (
-          <Link href="/admin/settings" className="text-ink-purple text-xs font-semibold">
-            Settings
-          </Link>
-        )}
-      </CardHeader>
+    <Panel
+      title="System"
+      description="What farmers can use right now"
+      action={canSettings && <PanelLink href="/admin/settings">Settings</PanelLink>}
+    >
       {!status ? (
         <div className="space-y-2" role="status" aria-label="Loading system status">
-          <Skeleton className="h-6 w-full" />
-          <Skeleton className="h-6 w-full" />
-          <Skeleton className="h-6 w-2/3" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-16 w-full" />
         </div>
       ) : (
         <div className="space-y-4">
           <p
             className={cn(
-              'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold',
-              status.flags.maintenanceMode
-                ? 'bg-danger/10 text-ink-red'
-                : 'bg-accent/10 text-ink-green',
+              'flex items-center gap-2.5 text-sm font-semibold',
+              down ? 'text-ink-red' : 'text-ink-green',
             )}
           >
-            <span
-              aria-hidden="true"
-              className={cn(
-                'size-2.5 rounded-full',
-                status.flags.maintenanceMode ? 'bg-danger' : 'bg-accent',
+            <span aria-hidden="true" className="relative flex size-2.5">
+              {!down && (
+                <span className="bg-accent absolute inline-flex size-full animate-ping rounded-full opacity-50 motion-reduce:hidden" />
               )}
-            />
-            {status.flags.maintenanceMode ? 'Maintenance mode is ON' : 'Farmer app is online'}
+              <span
+                className={cn(
+                  'relative inline-flex size-2.5 rounded-full',
+                  down ? 'bg-danger' : 'bg-accent',
+                )}
+              />
+            </span>
+            {down ? 'Maintenance mode is on' : 'Farmer app is online'}
           </p>
 
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm" aria-label="Features">
+          <ul className="flex flex-wrap gap-1.5" aria-label="Features">
             {FEATURES.map((feature) => {
               const on = Boolean(status.flags[feature.key]);
               return (
-                <li key={feature.key} className="flex items-center gap-2">
+                <li
+                  key={feature.key}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs',
+                    on ? 'border-border text-text' : 'border-border/60 text-text-mute',
+                  )}
+                >
                   <span
                     aria-hidden="true"
-                    className={cn(
-                      'size-2 shrink-0 rounded-full',
-                      on ? 'bg-accent' : 'bg-text-mute/40',
-                    )}
+                    className={cn('size-1.5 rounded-full', on ? 'bg-accent' : 'bg-text-mute/50')}
                   />
-                  <span className={on ? 'text-text' : 'text-text-mute'}>{feature.label}</span>
+                  {feature.label}
                   <span className="sr-only">{on ? 'on' : 'off'}</span>
                 </li>
               );
             })}
           </ul>
 
-          <dl className="border-border divide-border divide-y border-t text-sm">
-            <div className="flex justify-between gap-3 py-2">
+          <dl className="border-border grid grid-cols-3 gap-3 border-t pt-3 text-xs">
+            <div className="min-w-0">
               <dt className="text-text-mute">Credit rules</dt>
-              <dd className="text-text text-right">
-                Version {status.creditConfig.version}
-                <span className="text-text-mute block text-xs">
-                  edited {ago(status.creditConfig.updatedAt)} by {status.creditConfig.updatedBy}
-                </span>
+              <dd className="text-text mt-0.5 font-semibold">v{status.creditConfig.version}</dd>
+              <dd className="text-text-mute truncate" title={`by ${status.creditConfig.updatedBy}`}>
+                {ago(status.creditConfig.updatedAt)}
               </dd>
             </div>
-            <div className="flex justify-between gap-3 py-2">
-              <dt className="text-text-mute">Demo data seeded</dt>
-              <dd className="text-text">{status.seededAt ? ago(status.seededAt) : 'Not seeded'}</dd>
+            <div className="min-w-0">
+              <dt className="text-text-mute">Demo data</dt>
+              <dd className="text-text mt-0.5 truncate font-semibold">
+                {status.seededAt ? ago(status.seededAt) : 'Not seeded'}
+              </dd>
             </div>
-            <div className="flex justify-between gap-3 py-2">
-              <dt className="text-text-mute">Storage used</dt>
-              <dd className="text-text tabular-nums">
-                ≈ {Math.round(status.storageBytes / 1024).toLocaleString()} KB
+            <div className="min-w-0">
+              <dt className="text-text-mute">Storage</dt>
+              <dd className="text-text mt-0.5 font-semibold tabular-nums">
+                {Math.round(status.storageBytes / 1024).toLocaleString()} KB
               </dd>
             </div>
           </dl>
         </div>
       )}
-    </Card>
+    </Panel>
   );
 }

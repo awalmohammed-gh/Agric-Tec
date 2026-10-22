@@ -1,48 +1,72 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { BarChart } from '@/components/charts/bar-chart';
-import { useChartTheme } from '@/components/charts/use-chart-theme';
-import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
+import { ChevronDown } from 'lucide-react';
+import { MeterBar, Panel } from '@/components/admin/overview/panel';
 import { farmersByRegion } from '@/lib/admin/analytics';
 import { regionHref } from '@/lib/admin/overview';
+import { cn } from '@/lib/utils';
 import { useAdminDataStore } from '@/store/admin/admin-data-store';
 
-/** Farmers in all 16 regions, most first. Clicking a bar opens the farmers list for that region. */
-export function RegionChart() {
-  const router = useRouter();
+const TOP = 7;
+
+/** Farmers per region, most first. Each row opens the farmers list for that region. */
+export function RegionChart({ className }: { className?: string }) {
   const farmers = useAdminDataStore((s) => s.farmers);
-  const { palette } = useChartTheme();
+  const [showAll, setShowAll] = useState(false);
   const regions = farmersByRegion(farmers);
+  const total = regions.reduce((sum, r) => sum + r.count, 0);
+  const max = Math.max(1, regions[0]?.count ?? 0);
+  const covered = regions.filter((r) => r.count > 0).length;
+  const shown = showAll ? regions : regions.slice(0, TOP);
 
   return (
-    <Card>
-      <CardHeader>
-        <div>
-          <CardTitle>Farmers by region</CardTitle>
-          <CardSub>All farmers · click a bar to see that region</CardSub>
-        </div>
-      </CardHeader>
-      <BarChart
-        horizontal
-        labels={regions.map((r) => r.region)}
-        datasets={[{ label: 'Farmers', data: regions.map((r) => r.count), color: palette.purple }]}
-        height={420}
-        showLegend={false}
-        onBarClick={(index) => router.push(regionHref(regions[index].region))}
-        ariaLabel={`Farmers by region: ${regions.map((r) => `${r.region} ${r.count}`).join(', ')}`}
-      />
-      {/* The canvas can't be focused, so keyboard and screen-reader users get the same links. */}
-      <ul className="sr-only" aria-label="Open the farmers list for a region">
-        {regions.map((r) => (
+    <Panel
+      title="Regions"
+      description={`Farmers in ${covered} of ${regions.length} regions`}
+      className={className}
+    >
+      <ul className="space-y-0.5">
+        {shown.map((r, index) => (
           <li key={r.region}>
-            <Link href={regionHref(r.region)}>
-              {r.region}: {r.count} farmers
+            <Link
+              href={regionHref(r.region)}
+              className="hover:bg-glass-strong -mx-2 grid min-h-10 grid-cols-[1.25rem_minmax(0,6.5rem)_minmax(0,1fr)_2rem] items-center gap-2.5 rounded-lg px-2 transition-colors"
+            >
+              <span className="text-text-mute text-xs tabular-nums">{index + 1}</span>
+              <span className="text-text truncate text-sm">{r.region}</span>
+              <MeterBar
+                value={r.count}
+                max={max}
+                barClassName={cn(index < 3 ? 'bg-purple' : 'bg-purple/50')}
+              />
+              <span className="text-text text-right text-sm font-semibold tabular-nums">
+                {r.count}
+                <span className="sr-only">
+                  {' '}
+                  farmers, {total ? Math.round((r.count / total) * 100) : 0}%
+                </span>
+              </span>
             </Link>
           </li>
         ))}
       </ul>
-    </Card>
+      {regions.length > TOP && (
+        <button
+          type="button"
+          aria-expanded={showAll}
+          onClick={() => setShowAll((v) => !v)}
+          className="text-ink-purple mt-2 inline-flex min-h-9 items-center gap-1 text-xs font-semibold"
+        >
+          {showAll ? 'Show top regions' : `Show all ${regions.length} regions`}
+          <ChevronDown
+            size={14}
+            aria-hidden="true"
+            className={cn('transition-transform', showAll && 'rotate-180')}
+          />
+        </button>
+      )}
+    </Panel>
   );
 }

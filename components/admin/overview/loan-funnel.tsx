@@ -2,114 +2,119 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { Ban, ChevronRight, CircleAlert } from 'lucide-react';
-import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
+import { Ban, CircleAlert } from 'lucide-react';
+import { MeterBar, Panel, PanelLink } from '@/components/admin/overview/panel';
 import { useCan } from '@/hooks/admin/use-can';
 import { DATE_RANGES, loanStageReach, type DateRange } from '@/lib/admin/overview';
+import { cn } from '@/lib/utils';
 import { useAdminDataStore } from '@/store/admin/admin-data-store';
 
+/** Each stage's bar steps down in strength, so the drop-off reads at a glance (flat colours). */
+const STAGE_BAR = ['bg-purple', 'bg-purple/85', 'bg-purple/70', 'bg-purple/55', 'bg-purple/40'];
+
 /**
- * Submitted → Under review → Approved → Disbursed → Repaid, counting every application that
- * reached each step (from its history), with the conversion between steps. Rejected and
- * defaulted sit to the side.
+ * How far applications made in the period got: Submitted → Under review → Approved →
+ * Disbursed → Repaid (from each application's history), with the conversion between steps.
+ * Rejected and defaulted are counted beside the path. Each row opens the filtered list.
  */
-export function LoanFunnel({ range }: { range: DateRange }) {
+export function LoanFunnel({ range, className }: { range: DateRange; className?: string }) {
   const apps = useAdminDataStore((s) => s.applications);
   const canLoans = useCan('loans.view');
   const { stages, rejected, defaulted, total } = loanStageReach(apps, range);
   const max = Math.max(1, stages[0]?.reached ?? 0);
   const rangeLabel = DATE_RANGES.find((r) => r.value === range)?.label.toLowerCase() ?? '';
+  const completion = total ? Math.round(((stages.at(-1)?.reached ?? 0) / total) * 100) : 0;
 
-  const step = (status: string, children: ReactNode) =>
+  const row = (href: string, children: ReactNode, key: string) =>
     canLoans ? (
       <Link
-        href={`/admin/loans?status=${status}`}
-        className="hover:border-purple/50 block h-full rounded-xl border border-transparent transition-colors"
+        key={key}
+        href={href}
+        className="hover:bg-glass-strong -mx-2 grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_3rem_3.5rem] items-center gap-3 rounded-lg px-2 py-2 transition-colors"
       >
         {children}
       </Link>
     ) : (
-      children
+      <div
+        key={key}
+        className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_3rem_3.5rem] items-center gap-3 py-2"
+      >
+        {children}
+      </div>
     );
 
   return (
-    <Card>
-      <CardHeader>
-        <div>
-          <CardTitle>Loan funnel</CardTitle>
-          <CardSub>
-            {total} application{total === 1 ? '' : 's'} made {rangeLabel}
-          </CardSub>
-        </div>
-      </CardHeader>
-      <div className="flex flex-col gap-4 xl:flex-row">
-        <ol className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-5" aria-label="Loan pipeline">
-          {stages.map((stage, index) => (
-            <li key={stage.status} className="relative">
-              {step(
-                stage.status,
-                <div className="bg-glass h-full rounded-xl p-3">
-                  <p className="text-text-mute text-xs font-semibold">{stage.label}</p>
-                  <p className="font-display text-text mt-1 text-2xl font-bold tabular-nums">
-                    {stage.reached}
-                  </p>
-                  <div
-                    aria-hidden="true"
-                    className="bg-glass-strong mt-2 h-1.5 overflow-hidden rounded-full"
-                  >
-                    <div
-                      className="h-full rounded-full bg-linear-to-r from-[#7c3aed] to-[#a855f7]"
-                      style={{ width: `${(stage.reached / max) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-text-dim mt-2 text-xs">
-                    {index === 0
-                      ? 'Started'
-                      : stage.conversion === null
-                        ? '—'
-                        : `${stage.conversion}% of previous`}
-                  </p>
-                </div>,
-              )}
-              {index < stages.length - 1 && (
-                <ChevronRight
-                  size={16}
-                  aria-hidden="true"
-                  className="text-text-mute absolute top-1/2 -right-2.5 z-10 hidden -translate-y-1/2 sm:block"
+    <Panel
+      title="Loan pipeline"
+      description={`${total} application${total === 1 ? '' : 's'} made ${rangeLabel}`}
+      action={canLoans && <PanelLink href="/admin/loans">Open pipeline</PanelLink>}
+      className={className}
+    >
+      <ol aria-label="Stages reached">
+        {stages.map((stage, index) => (
+          <li key={stage.status}>
+            {row(
+              `/admin/loans?status=${stage.status}`,
+              <>
+                <span className="text-text truncate text-sm">{stage.label}</span>
+                <MeterBar
+                  value={stage.reached}
+                  max={max}
+                  barClassName={STAGE_BAR[index] ?? 'bg-purple/40'}
                 />
-              )}
-            </li>
-          ))}
-        </ol>
-        <ul className="grid grid-cols-2 gap-2 xl:w-44 xl:grid-cols-1" aria-label="Ended early">
-          <li>
-            {step(
-              'rejected',
-              <div className="border-danger/30 bg-danger/5 h-full rounded-xl border p-3">
-                <p className="text-ink-red flex items-center gap-1.5 text-xs font-semibold">
-                  <Ban size={13} aria-hidden="true" /> Rejected
-                </p>
-                <p className="font-display text-text mt-1 text-xl font-bold tabular-nums">
-                  {rejected}
-                </p>
-              </div>,
+                <span className="text-text text-right text-sm font-semibold tabular-nums">
+                  {stage.reached}
+                </span>
+                <span className="text-text-mute text-right text-xs tabular-nums">
+                  {index === 0 ? '100%' : stage.conversion === null ? '—' : `${stage.conversion}%`}
+                  <span className="sr-only">
+                    {index === 0 ? ' started' : ' of the previous stage'}
+                  </span>
+                </span>
+              </>,
+              stage.status,
             )}
           </li>
-          <li>
-            {step(
-              'defaulted',
-              <div className="border-danger/30 bg-danger/5 h-full rounded-xl border p-3">
-                <p className="text-ink-red flex items-center gap-1.5 text-xs font-semibold">
-                  <CircleAlert size={13} aria-hidden="true" /> Defaulted
-                </p>
-                <p className="font-display text-text mt-1 text-xl font-bold tabular-nums">
-                  {defaulted}
-                </p>
-              </div>,
-            )}
-          </li>
-        </ul>
+        ))}
+      </ol>
+
+      <div className="border-border mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-4 text-xs">
+        <p className="text-text-mute">
+          <span className="text-text font-semibold">{completion}%</span> repaid in full
+        </p>
+        {(
+          [
+            ['rejected', 'Rejected', rejected, Ban],
+            ['defaulted', 'Defaulted', defaulted, CircleAlert],
+          ] as const
+        ).map(([status, label, count, Icon]) => {
+          const content = (
+            <>
+              <Icon size={13} aria-hidden="true" />
+              {label}
+              <span className="text-text font-semibold tabular-nums">{count}</span>
+            </>
+          );
+          const style = cn(
+            'inline-flex min-h-8 items-center gap-1.5 rounded-lg px-2',
+            count ? 'text-ink-red' : 'text-text-mute',
+          );
+          return canLoans ? (
+            <Link
+              key={status}
+              href={`/admin/loans?status=${status}`}
+              className={cn(style, 'hover:bg-glass-strong transition-colors')}
+            >
+              {content}
+            </Link>
+          ) : (
+            <span key={status} className={style}>
+              {content}
+            </span>
+          );
+        })}
+        <p className="text-text-mute ml-auto hidden sm:block">% = share of the previous stage</p>
       </div>
-    </Card>
+    </Panel>
   );
 }
