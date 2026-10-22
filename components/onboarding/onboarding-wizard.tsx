@@ -126,7 +126,15 @@ export function OnboardingWizard() {
       {...props}
       onFillDemo={isGuest ? () => void run(() => store().fillDemo(DEMO_DETAILS)) : undefined}
     />,
-    <StepLocation key="1" {...props} />,
+    <StepLocation
+      key="1"
+      {...props}
+      onDraft={(patch) =>
+        void store()
+          .saveProgress(patch)
+          .catch(() => {})
+      }
+    />,
     <StepFarmSize key="2" {...props} />,
     <StepCrops key="3" {...props} />,
     <StepFarmType key="4" {...props} />,

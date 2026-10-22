@@ -11,6 +11,8 @@ export interface StepProps {
   formId: string;
   data: Partial<Profile>;
   onSubmit: (patch: Partial<Profile>) => Promise<void> | void;
+  /** Saves answers as they change, before Continue (the onboarding wizard's draft). */
+  onDraft?: (patch: Partial<Profile>) => void;
 }
 
 /**

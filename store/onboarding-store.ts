@@ -22,6 +22,11 @@ interface OnboardingState {
   back: () => void;
   /** Guests: fills every step with sample answers and opens the review. */
   fillDemo: (patch: Partial<Profile>) => Promise<void>;
+  /**
+   * Saves answers as they are given (e.g. the location and pin), staying on the same step, so
+   * nothing is lost if the page closes before Continue.
+   */
+  saveProgress: (patch: Partial<Profile>) => Promise<void>;
   complete: () => Promise<Profile>;
 }
 
@@ -91,6 +96,14 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
     const merged = { ...data, ...patch };
     await onboardingService.saveDraft(userId, REVIEW_STEP, merged);
     set({ data: merged, step: REVIEW_STEP, reached: REVIEW_STEP, returnToReview: false });
+  },
+
+  saveProgress: async (patch) => {
+    const { userId, data, step } = get();
+    if (!userId) return;
+    const merged = { ...data, ...patch };
+    set({ data: merged });
+    await onboardingService.saveDraft(userId, step, merged);
   },
 
   complete: async () => {
