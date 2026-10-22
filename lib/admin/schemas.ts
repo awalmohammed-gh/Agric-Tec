@@ -62,7 +62,13 @@ export const creditConfigInputSchema = z
 
 export const creditConfigSchema = z.intersection(
   creditConfigInputSchema,
-  z.object({ version: z.number().int().min(1), updatedAt: timestamp, updatedBy: z.string() }),
+  z.object({
+    version: z.number().int().min(1),
+    updatedAt: timestamp,
+    updatedBy: z.string(),
+    note: z.string().max(500).optional(),
+    restoredFrom: z.number().int().min(1).optional(),
+  }),
 );
 
 export const featureFlagsSchema = z.object({

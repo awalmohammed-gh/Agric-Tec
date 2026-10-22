@@ -149,6 +149,10 @@ export interface CreditConfig {
   eligibility: { minRecords: number; minScore: number; maxProfitMultiplier: number };
   updatedAt: string;
   updatedBy: string;
+  /** Why this version was published (required when publishing from the console). */
+  note?: string;
+  /** Set when this version copies an older one. */
+  restoredFrom?: number;
 }
 
 export interface FeatureFlags {

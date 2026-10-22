@@ -283,6 +283,43 @@
   max-height: 90dvh;
 }
 
+/* Admin range sliders: a flat two-tone track (set --range-fill to the filled %), round thumb. */
+@layer components {
+  .range-flat {
+    appearance: none;
+    height: 6px;
+    border-radius: 9999px;
+    cursor: pointer;
+    /* Hard colour stops: two flat colours, no blend. */
+    background: linear-gradient(
+      to right,
+      var(--purple) var(--range-fill, 0%),
+      var(--glass-strong) var(--range-fill, 0%)
+    );
+  }
+  .range-flat::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background: #fff;
+    border: 3px solid var(--purple);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  }
+  .range-flat::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 9999px;
+    background: #fff;
+    border: 3px solid var(--purple);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  }
+  .range-flat:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 6px;
+  }
+}
+
 /* Admin console: the navigation sidebar slides in from the left (below 1024px) */
 @keyframes slideInLeft {
   from {

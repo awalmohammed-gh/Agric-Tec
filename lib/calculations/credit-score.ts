@@ -67,21 +67,88 @@ export function calculateCreditScore(
   ];
   const verification = (checks.filter(Boolean).length / checks.length) * 100;
 
+  return scoreFromFactors(
+    { paymentHistory, recordCompleteness, incomeStability, momoActivity, verification },
+    weights,
+  );
+}
+
+export type CreditFactors = Omit<CreditScoreBreakdown, 'score'>;
+
+/** Weights the five factors (0–100 each) and maps the result onto 300–850. */
+export function scoreFromFactors(
+  factors: CreditFactors,
+  weights: CreditConfig['weights'],
+): CreditScoreBreakdown {
   const weighted =
-    paymentHistory * (weights.paymentHistory / 100) +
-    recordCompleteness * (weights.recordCompleteness / 100) +
-    incomeStability * (weights.incomeStability / 100) +
-    momoActivity * (weights.momoActivity / 100) +
-    verification * (weights.verification / 100); // 0–100
+    factors.paymentHistory * (weights.paymentHistory / 100) +
+    factors.recordCompleteness * (weights.recordCompleteness / 100) +
+    factors.incomeStability * (weights.incomeStability / 100) +
+    factors.momoActivity * (weights.momoActivity / 100) +
+    factors.verification * (weights.verification / 100); // 0–100
   const score = Math.round(300 + (clamp(weighted, 0, 100) / 100) * 550); // 300–850
 
   return {
     score,
-    paymentHistory: Math.round(paymentHistory),
-    recordCompleteness: Math.round(recordCompleteness),
-    incomeStability: Math.round(incomeStability),
-    momoActivity: Math.round(momoActivity),
-    verification: Math.round(verification),
+    paymentHistory: Math.round(factors.paymentHistory),
+    recordCompleteness: Math.round(factors.recordCompleteness),
+    incomeStability: Math.round(factors.incomeStability),
+    momoActivity: Math.round(factors.momoActivity),
+    verification: Math.round(factors.verification),
+  };
+}
+
+/** The raw quantities behind a score, for trying out numbers without real records. */
+export interface ScoreCounts {
+  /** Months with any record or MoMo entry, counted back from this month. */
+  activeMonths: number;
+  records: number;
+  momo: number;
+  income: number;
+  expenses: number;
+  /** Of profile complete, phone, location and Ghana Card (0–4). */
+  verifiedChecks: number;
+}
+
+/** The five factors for custom numbers, under a config's targets (same rules as real data). */
+export function factorsFromCounts(counts: ScoreCounts, config: CreditConfig): CreditFactors {
+  const { targets } = config;
+  const window = Math.max(1, targets.monthsWindow);
+  const income = Math.max(0, counts.income);
+  const expenses = Math.max(0, counts.expenses);
+  let incomeStability = 0;
+  if (income > 0) {
+    incomeStability =
+      income >= expenses
+        ? // The same 1-decimal profit margin as finance.profitMargin.
+          Math.min(100, 50 + Math.round(((income - expenses) / income) * 1000) / 10)
+        : Math.max(0, 50 - (expenses / income - 1) * 100);
+  }
+  return {
+    paymentHistory: (clamp(counts.activeMonths, 0, window) / window) * 100,
+    recordCompleteness: Math.min(
+      100,
+      ((Math.max(0, counts.records) + Math.max(0, counts.momo)) / targets.recordsForFull) * 100,
+    ),
+    incomeStability,
+    momoActivity: Math.min(100, (Math.max(0, counts.momo) / targets.momoForFull) * 100),
+    verification: (clamp(counts.verifiedChecks, 0, 4) / 4) * 100,
+  };
+}
+
+/** Points each factor adds on the 300–850 scale (they sum, with 300, to about the score). */
+export function factorPoints(
+  factors: CreditFactors,
+  weights: CreditConfig['weights'],
+): Record<keyof CreditFactors, number> {
+  const points = (key: keyof CreditFactors) =>
+    Math.round(factors[key] * (weights[key] / 100) * 5.5 * 10) / 10;
+  return {
+    paymentHistory: points('paymentHistory'),
+    recordCompleteness: points('recordCompleteness'),
+    incomeStability: points('incomeStability'),
+    momoActivity: points('momoActivity'),
+    verification: points('verification'),
   };
 }
 

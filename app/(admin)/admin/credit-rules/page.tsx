@@ -1,19 +1,17 @@
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { CreditRulesPage } from '@/components/admin/credit-rules/credit-rules-page';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
 
 export const metadata: Metadata = { title: 'Credit Rules' };
 
-/** Guarded by credit.configure. Built in phase A11. */
-export default function CreditRulesPage() {
+/**
+ * Credit rules: super_admin only (credit.configure). Edited as a draft with a live impact
+ * preview; publishing is checked and audited again by the service.
+ */
+export default function CreditRules() {
   return (
-    <AdminPlaceholder
-      permission="credit.configure"
-      phase="A11"
-      features={[
-        'Edit score weights, targets, bands and loan eligibility',
-        'A simulator showing how farmers’ scores would change',
-        'Version history with restore',
-      ]}
-    />
+    <RequirePermission permission="credit.configure">
+      <CreditRulesPage />
+    </RequirePermission>
   );
 }
