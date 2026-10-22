@@ -6,6 +6,7 @@ import {
   RotateCcw,
   Save,
   ShieldAlert,
+  ShieldCheck,
   Stethoscope,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -140,6 +141,23 @@ export function DiagnosisCard({
             </li>
           ))}
         </ol>
+
+        {result.prevention && result.prevention.length > 0 && (
+          <>
+            <h5 className="text-text mt-5 flex items-center gap-2 text-sm font-bold">
+              <ShieldCheck size={16} aria-hidden="true" className="text-ink-green" />
+              Prevention
+            </h5>
+            <ul className="mt-2.5 space-y-2">
+              {result.prevention.map((tip, i) => (
+                <li key={i} className="text-text-dim flex gap-2.5 text-sm leading-relaxed">
+                  <Check size={15} aria-hidden="true" className="text-ink-green mt-0.5 shrink-0" />
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         <div className="bg-gold/10 text-ink-gold mt-4 flex gap-2 rounded-xl p-3 text-xs leading-relaxed">
           <ShieldAlert size={16} aria-hidden="true" className="mt-0.5 shrink-0" />

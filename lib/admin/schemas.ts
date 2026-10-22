@@ -4,6 +4,8 @@
 import { z } from 'zod';
 import { CROPS } from '@/constants/crops';
 import { REGIONS } from '@/constants/regions';
+import { MESSAGE_MAX, TITLE_MAX } from '@/lib/admin/announcements';
+import { ASSISTANT_FALLBACK_ID } from '@/lib/admin/defaults';
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const timestamp = z.iso.datetime({ offset: true });
@@ -172,31 +174,47 @@ const assistantReplySchema = z.object({
 });
 
 export const assistantKbSchema = z.array(
-  z.object({
-    id: text(80),
-    keywords: z.array(z.string().trim().toLowerCase().min(1).max(60)).min(1).max(30),
-    reply: assistantReplySchema,
-    active: z.boolean(),
-    priority: z.number().int().min(0).max(1000),
-  }),
+  z
+    .object({
+      id: text(80),
+      // The fallback reply (no match) has no keywords; every other item needs at least one.
+      keywords: z.array(z.string().trim().toLowerCase().min(1).max(60)).max(30),
+      reply: assistantReplySchema,
+      active: z.boolean(),
+      priority: z.number().int().min(0).max(1000),
+    })
+    .refine((item) => item.id === ASSISTANT_FALLBACK_ID || item.keywords.length > 0, {
+      path: ['keywords'],
+      message: 'Add at least one keyword.',
+    }),
 );
 
 export const diagnosesContentSchema = z.array(
-  z.object({
-    id: text(80),
-    disease: text(80),
-    severity: z.enum(['None', 'Moderate', 'High']),
-    confidence: z.number().min(0).max(100),
-    treatment: text(1000),
-    crop: z.enum(CROPS).optional(),
-    active: z.boolean(),
-  }),
+  z
+    .object({
+      id: text(80),
+      disease: text(80),
+      severity: z.enum(['None', 'Moderate', 'High']),
+      confidence: z.number().min(0).max(100),
+      confidenceMin: z.number().int().min(1).max(100).optional(),
+      confidenceMax: z.number().int().min(1).max(100).optional(),
+      treatment: text(1000),
+      prevention: z.array(text(240)).max(8).optional(),
+      crop: z.enum(CROPS).optional(),
+      active: z.boolean(),
+    })
+    .refine(
+      (d) =>
+        (d.confidenceMin === undefined) === (d.confidenceMax === undefined) &&
+        (d.confidenceMin === undefined || d.confidenceMin <= (d.confidenceMax ?? 0)),
+      { path: ['confidenceMax'], message: 'The confidence range must run from low to high.' },
+    ),
 );
 
 export const announcementInputSchema = z
   .object({
-    title: text(80),
-    message: text(500),
+    title: text(TITLE_MAX),
+    message: text(MESSAGE_MAX),
     type: z.enum(['info', 'success', 'warning', 'critical']),
     audience: z.discriminatedUnion('kind', [
       z.object({ kind: z.literal('all') }),

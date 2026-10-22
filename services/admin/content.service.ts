@@ -1,8 +1,10 @@
 // Market, weather, crop, assistant and crop-doctor content. Reads are open (the farmer app uses
 // them); every save needs content.manage and is audited. Defaults equal the old constants.
 
+import { getCurrentAdmin } from '@/lib/admin/admin-session';
 import { withAudit } from '@/lib/admin/audit';
 import {
+  ASSISTANT_FALLBACK_ID,
   DEFAULT_ASSISTANT_KB,
   DEFAULT_CROP_CONTENT,
   DEFAULT_DIAGNOSES,
@@ -19,11 +21,25 @@ import {
 } from '@/lib/admin/schemas';
 import { delay, storage } from '@/services/storage';
 import type { MarketPrice, Weather } from '@/types';
-import type { AssistantKnowledgeItem, CropContent, DiagnosisContent } from '@/types/admin';
+import type {
+  AssistantKnowledgeItem,
+  ContentMeta,
+  CropContent,
+  DiagnosisContent,
+} from '@/types/admin';
 import type { z } from 'zod';
 
 /** A deep copy of a stored value (or the default), so callers can never mutate shared defaults. */
 const read = <T>(key: string, fallback: T): T => structuredClone(storage.get<T>(key, fallback));
+
+/** Remembers who saved a content key, for "Last updated by X on date". */
+function stampMeta(key: string): void {
+  const meta = storage.get<Record<string, ContentMeta>>(PLATFORM_KEYS.contentMeta, {});
+  storage.set(PLATFORM_KEYS.contentMeta, {
+    ...meta,
+    [key]: { by: getCurrentAdmin()?.name ?? 'Admin', at: new Date().toISOString() },
+  });
+}
 
 /** Validates, audits and stores one content key. */
 function saveContent<T>(
@@ -45,12 +61,27 @@ function saveContent<T>(
     async () => {
       const valid = parseOrThrow(schema, value);
       storage.set(key, valid);
+      stampMeta(key);
       return valid;
     },
   );
 }
 
+const DEFAULT_FALLBACK = DEFAULT_ASSISTANT_KB.find((i) => i.id === ASSISTANT_FALLBACK_ID)!;
+
+/** Older saved knowledge has no fallback item: add the default one so it can be edited. */
+const withFallback = (items: AssistantKnowledgeItem[]) =>
+  items.some((i) => i.id === ASSISTANT_FALLBACK_ID)
+    ? items
+    : [...items, structuredClone(DEFAULT_FALLBACK)];
+
 export const contentService = {
+  /** Who last saved each content type (keyed by PLATFORM_KEYS value). */
+  async getContentMeta(): Promise<Record<string, ContentMeta>> {
+    await delay();
+    return read<Record<string, ContentMeta>>(PLATFORM_KEYS.contentMeta, {});
+  },
+
   async getMarketPrices(): Promise<MarketPrice[]> {
     await delay();
     return read<MarketPrice[]>(PLATFORM_KEYS.market, DEFAULT_MARKET_PRICES);
@@ -89,6 +120,7 @@ export const contentService = {
       async () => {
         const valid = weather ? parseOrThrow(weatherSchema, weather) : null;
         storage.set(PLATFORM_KEYS.weatherOverride, valid);
+        stampMeta(PLATFORM_KEYS.weatherOverride);
         return valid;
       },
     );
@@ -110,18 +142,21 @@ export const contentService = {
     );
   },
 
-  /** Highest priority first. */
+  /** Highest priority first; the fallback (no match) reply is always included, last. */
   async getAssistantKb(): Promise<AssistantKnowledgeItem[]> {
     await delay();
-    return [
-      ...read<AssistantKnowledgeItem[]>(PLATFORM_KEYS.assistantKb, DEFAULT_ASSISTANT_KB),
-    ].sort((a, b) => b.priority - a.priority);
+    return withFallback(
+      read<AssistantKnowledgeItem[]>(PLATFORM_KEYS.assistantKb, DEFAULT_ASSISTANT_KB),
+    ).sort((a, b) => b.priority - a.priority);
   },
 
   async saveAssistantKb(items: AssistantKnowledgeItem[]): Promise<AssistantKnowledgeItem[]> {
     await delay();
     if (new Set(items.map((i) => i.id)).size !== items.length) {
       throw new Error('Each assistant reply needs a unique ID.');
+    }
+    if (!items.some((i) => i.id === ASSISTANT_FALLBACK_ID)) {
+      throw new Error('The fallback reply can’t be deleted.');
     }
     return saveContent(
       PLATFORM_KEYS.assistantKb,

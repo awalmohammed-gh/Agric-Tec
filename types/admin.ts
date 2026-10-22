@@ -281,6 +281,18 @@ export interface CropContent {
 export interface DiagnosisContent extends DiagnosisResult {
   id: string;
   active: boolean;
+  /**
+   * The confidence a result shows, picked within this range (repeatably per photo). Without a
+   * range, `confidence` is used as it is.
+   */
+  confidenceMin?: number;
+  confidenceMax?: number;
+}
+
+/** Who last saved a content type, and when. */
+export interface ContentMeta {
+  by: string;
+  at: string;
 }
 
 export type CreditConfigInput = Omit<CreditConfig, 'version' | 'updatedAt' | 'updatedBy'>;

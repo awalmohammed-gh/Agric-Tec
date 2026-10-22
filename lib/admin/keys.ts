@@ -13,6 +13,8 @@ export const PLATFORM_KEYS = {
   crops: 'platform:content:crops',
   assistantKb: 'platform:content:assistant-kb',
   diagnoses: 'platform:content:diagnoses',
+  /** Who last saved each content type, and when ("Last updated by X on date"). */
+  contentMeta: 'platform:content:meta',
   announcements: 'platform:announcements',
   verifications: 'platform:verifications',
   loanApplications: 'platform:loan-applications',

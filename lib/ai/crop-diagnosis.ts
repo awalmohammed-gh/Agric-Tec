@@ -6,18 +6,32 @@ import { delay } from '@/services/storage';
 import type { Crop, DiagnosisResult } from '@/types';
 import type { DiagnosisContent } from '@/types/admin';
 
-/** The fields a diagnosis result carries (the catalogue also has an id and an active flag). */
-const toResult = ({
+/**
+ * The fields a diagnosis result carries (the catalogue also has an id, an active flag and an
+ * optional confidence range). With a range, the confidence is picked within it from the photo's
+ * hash, so the same photo always gets the same number.
+ */
+const toResult = (
+  {
+    disease,
+    severity,
+    confidence,
+    confidenceMin,
+    confidenceMax,
+    treatment,
+    prevention,
+    crop,
+  }: DiagnosisContent,
+  hash: number,
+): DiagnosisResult => ({
   disease,
   severity,
-  confidence,
+  confidence:
+    confidenceMin !== undefined && confidenceMax !== undefined
+      ? confidenceMin + ((hash >>> 8) % (confidenceMax - confidenceMin + 1))
+      : confidence,
   treatment,
-  crop,
-}: DiagnosisContent): DiagnosisResult => ({
-  disease,
-  severity,
-  confidence,
-  treatment,
+  ...(prevention && prevention.length > 0 && { prevention: [...prevention] }),
   ...(crop && { crop }),
 });
 
@@ -46,6 +60,6 @@ export async function diagnoseCrop(
     ? active.filter((diagnosis) => diagnosis.crop === crop || !diagnosis.crop)
     : active;
   const candidates = forCrop.length ? forCrop : active;
-  const diagnosis = toResult(candidates[hash % candidates.length]);
+  const diagnosis = toResult(candidates[hash % candidates.length], hash);
   return { ...diagnosis, crop: crop ?? diagnosis.crop };
 }

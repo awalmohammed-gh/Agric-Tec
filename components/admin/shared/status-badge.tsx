@@ -3,13 +3,13 @@ import { LOAN_STATUS_LABELS } from '@/lib/admin/loan-status';
 import type {
   AccountStatus,
   AdminUser,
-  Announcement,
   LoanStatus,
   RiskFlag,
   VerificationRequest,
 } from '@/types/admin';
+import { announcementState, type AnnouncementState } from '@/lib/admin/announcements';
 
-export type AnnouncementState = 'live' | 'scheduled' | 'ended' | 'off';
+export type { AnnouncementState };
 
 /** Every status the console shows, by kind. */
 export interface StatusKinds {
@@ -75,14 +75,8 @@ export function statusStyle<K extends StatusKind>(kind: K, status: StatusKinds[K
   return STATUS_STYLES[kind][status];
 }
 
-/** Where an announcement is in its life: switched off, not started, live or over. */
-export function announcementState(a: Announcement, now = new Date()): AnnouncementState {
-  const time = now.toISOString();
-  if (!a.active) return a.endsAt && a.endsAt <= time ? 'ended' : 'off';
-  if (a.startsAt > time) return 'scheduled';
-  if (a.endsAt && a.endsAt <= time) return 'ended';
-  return 'live';
-}
+// The life cycle lives in lib/admin/announcements.ts (shared with the service and the list).
+export { announcementState };
 
 export function StatusBadge<K extends StatusKind>({
   kind,

@@ -1,6 +1,13 @@
 import { getCurrentAdmin, requirePermission } from '@/lib/admin/admin-session';
 import { withAudit } from '@/lib/admin/audit';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
+import {
+  canDelete,
+  canEdit,
+  canEnd,
+  inAudience,
+  needsCriticalConfirm,
+} from '@/lib/admin/announcements';
 import { announcementInputSchema, parseOrThrow } from '@/lib/admin/schemas';
 import { generateId } from '@/lib/utils';
 import { delay, storage } from '@/services/storage';
@@ -29,14 +36,7 @@ export function reaches(
   a: Announcement,
   profile: Pick<Profile, 'region' | 'primaryCrops'>,
 ): boolean {
-  switch (a.audience.kind) {
-    case 'all':
-      return true;
-    case 'region':
-      return a.audience.regions.includes(profile.region);
-    case 'crop':
-      return a.audience.crops.some((crop) => profile.primaryCrops.includes(crop));
-  }
+  return inAudience(a.audience, profile);
 }
 
 const SEVERITY: Record<Announcement['type'], number> = {
@@ -69,7 +69,13 @@ export const announcementsService = {
     return read().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
-  async create(input: AnnouncementInput): Promise<Announcement> {
+  /**
+   * Critical announcements to everyone need confirmedCritical (the form asks the admin first).
+   */
+  async create(
+    input: AnnouncementInput,
+    { confirmedCritical = false }: { confirmedCritical?: boolean } = {},
+  ): Promise<Announcement> {
     await delay();
     return withAudit(
       {
@@ -81,6 +87,8 @@ export const announcementsService = {
       },
       async () => {
         const valid = parseOrThrow(announcementInputSchema, input);
+        if (needsCriticalConfirm(valid) && !confirmedCritical)
+          throw new Error('Confirm sending a critical announcement to every farmer.');
         const announcement: Announcement = {
           ...valid,
           id: generateId(),
@@ -93,7 +101,12 @@ export const announcementsService = {
     );
   },
 
-  async update(id: string, patch: Partial<AnnouncementInput>): Promise<Announcement> {
+  /** Only before it starts (afterwards: end it and duplicate). Same critical rule as create. */
+  async update(
+    id: string,
+    patch: Partial<AnnouncementInput>,
+    { confirmedCritical = false }: { confirmedCritical?: boolean } = {},
+  ): Promise<Announcement> {
     await delay();
     const current = find(id);
     return withAudit(
@@ -107,7 +120,13 @@ export const announcementsService = {
         after: (a) => inputOf(a),
       },
       async () => {
+        if (!canEdit(current))
+          throw new Error(
+            'Only scheduled announcements can be edited. End it and duplicate it instead.',
+          );
         const valid = parseOrThrow(announcementInputSchema, { ...inputOf(current), ...patch });
+        if (needsCriticalConfirm(valid) && !needsCriticalConfirm(current) && !confirmedCritical)
+          throw new Error('Confirm sending a critical announcement to every farmer.');
         const updated: Announcement = { ...current, ...valid };
         write(read().map((a) => (a.id === id ? updated : a)));
         return updated;
@@ -130,6 +149,7 @@ export const announcementsService = {
         after: (a) => ({ active: a.active, endsAt: a.endsAt }),
       },
       async () => {
+        if (!canEnd(current)) throw new Error('This announcement has already ended.');
         const now = new Date().toISOString();
         const updated: Announcement = {
           ...current,
@@ -155,7 +175,11 @@ export const announcementsService = {
         before: current,
         after: () => ({ deleted: true }),
       },
-      async () => write(read().filter((a) => a.id !== id)),
+      async () => {
+        if (!canDelete(current))
+          throw new Error('Farmers are seeing this announcement now. End it before deleting.');
+        write(read().filter((a) => a.id !== id));
+      },
     );
   },
 

@@ -1,18 +1,14 @@
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { AssistantContent } from '@/components/admin/content/assistant-content';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
 
 export const metadata: Metadata = { title: 'AI Assistant' };
 
-/** Guarded by content.manage. Built in phase A12. */
+/** The assistant's knowledge base. Guarded by content.manage (checked again on save). */
 export default function AssistantContentPage() {
   return (
-    <AdminPlaceholder
-      permission="content.manage"
-      phase="A12"
-      features={[
-        'Edit the assistant’s replies, keywords and priorities',
-        'Placeholders such as {name} and {score}',
-      ]}
-    />
+    <RequirePermission permission="content.manage">
+      <AssistantContent />
+    </RequirePermission>
   );
 }

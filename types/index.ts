@@ -39,6 +39,8 @@ export interface Diagnosis {
   severity: Severity;
   confidence: number;
   treatment: string;
+  /** How to stop it coming back (from the admin's disease library). */
+  prevention?: string[];
   crop?: Crop;
   imageThumb?: string;
   date: string;

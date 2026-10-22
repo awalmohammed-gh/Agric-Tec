@@ -1,15 +1,23 @@
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { MarketPricesEditor } from '@/components/admin/content/market-prices-editor';
+import { WeatherOverride } from '@/components/admin/content/weather-override';
+import { PageHeader } from '@/components/admin/layout/page-header';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
 
 export const metadata: Metadata = { title: 'Market & Weather' };
 
-/** Guarded by content.manage. Built in phase A12. */
+/** Market prices and the weather override. Guarded by content.manage (checked again on save). */
 export default function MarketContentPage() {
   return (
-    <AdminPlaceholder
-      permission="content.manage"
-      phase="A12"
-      features={['Edit crop prices', 'Set or clear a weather override']}
-    />
+    <RequirePermission permission="content.manage">
+      <PageHeader
+        title="Market & weather"
+        description="The prices and weather farmers see. Saved changes reach the farmer app at once."
+      />
+      <div className="space-y-6">
+        <MarketPricesEditor />
+        <WeatherOverride />
+      </div>
+    </RequirePermission>
   );
 }

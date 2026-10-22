@@ -4,7 +4,11 @@
 // Replies come from the admin's knowledge items (content.service). The router walks the active
 // items by priority and uses the first whose keywords match, then fills in placeholders with the
 // farmer's own data. With the default items, every reply is the same as the original router's.
-import { DEFAULT_ASSISTANT_KB, DEFAULT_CROP_CONTENT } from '@/lib/admin/defaults';
+import {
+  ASSISTANT_FALLBACK_ID,
+  DEFAULT_ASSISTANT_KB,
+  DEFAULT_CROP_CONTENT,
+} from '@/lib/admin/defaults';
 import { scoreLabel } from '@/lib/calculations/credit-score';
 import { formatGHS } from '@/lib/format';
 import { marketService } from '@/services/market.service';
@@ -57,7 +61,7 @@ export const ASSISTANT_PLACEHOLDERS: { token: string; description: string }[] = 
   { token: '{tips:Cassava}', description: 'As a whole bullet: that crop’s tips (any crop name)' },
 ];
 
-/** Shown when no knowledge item matches. */
+/** Shown when no knowledge item matches and the knowledge has no fallback item. */
 const FALLBACK: AssistantReply = {
   title: 'Let me help',
   intro: 'For advice specific to this issue, contact your local MoFA extension officer.',
@@ -245,14 +249,42 @@ function render(reply: AssistantReply, values: Record<string, Value>): Assistant
   };
 }
 
-export async function getAssistantReply(
+/** What answered a message: the matching item, or the fallback (`item` null). */
+export interface ResolvedReply {
+  item: AssistantKnowledgeItem | null;
+  reply: AssistantReply;
+}
+
+/**
+ * The reply for a message, without the typing delay (the admin's test console uses this). When
+ * nothing matches, the admin's fallback item answers (or the built-in one).
+ */
+export async function resolveAssistantReply(
   message: string,
   ctx: AssistantContext,
   { knowledge = DEFAULT_ASSISTANT_KB, crops = DEFAULT_CROP_CONTENT }: AssistantContent = {},
+): Promise<ResolvedReply> {
+  const item = matchKnowledge(message, knowledge);
+  const fallback = knowledge.find((k) => k.id === ASSISTANT_FALLBACK_ID)?.reply ?? FALLBACK;
+  const template = item?.reply ?? fallback;
+  const values = await placeholderValues(tokensIn(template), ctx, crops);
+  return { item: item ?? null, reply: render(template, values) };
+}
+
+/** Renders any reply with a farmer's values (the admin's live preview). */
+export async function renderAssistantReply(
+  reply: AssistantReply,
+  ctx: AssistantContext,
+  crops: CropContent[] = DEFAULT_CROP_CONTENT,
+): Promise<AssistantReply> {
+  return render(reply, await placeholderValues(tokensIn(reply), ctx, crops));
+}
+
+export async function getAssistantReply(
+  message: string,
+  ctx: AssistantContext,
+  content: AssistantContent = {},
 ): Promise<AssistantReply> {
   await delay(700);
-  const item = matchKnowledge(message, knowledge);
-  if (!item) return { ...FALLBACK, bullets: [...(FALLBACK.bullets ?? [])] };
-  const values = await placeholderValues(tokensIn(item.reply), ctx, crops);
-  return render(item.reply, values);
+  return (await resolveAssistantReply(message, ctx, content)).reply;
 }

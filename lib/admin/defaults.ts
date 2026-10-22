@@ -104,6 +104,9 @@ export const DEFAULT_DIAGNOSES: DiagnosisContent[] = MOCK_DIAGNOSES.map((diagnos
   active: true,
 }));
 
+/** The assistant's "no match" reply: a knowledge item that can be edited but never deleted. */
+export const ASSISTANT_FALLBACK_ID = 'kb-fallback';
+
 /**
  * The assistant's original topics as editable knowledge items, in the original priority order.
  * Matching and placeholders are documented in lib/ai/assistant-replies.ts: a keyword matches when
@@ -272,6 +275,24 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
     reply: {
       title: 'You’re welcome!',
       intro: 'Happy farming, {name}! I’m here when you need a hand.',
+    },
+  },
+  // The reply when nothing matches. Editable, but it can't be deleted and has no keywords.
+  {
+    id: ASSISTANT_FALLBACK_ID,
+    keywords: [],
+    priority: 0,
+    active: true,
+    reply: {
+      title: 'Let me help',
+      intro: 'For advice specific to this issue, contact your local MoFA extension officer.',
+      bullets: [
+        'Maize planting seasons and cassava tips.',
+        'Fall armyworm, pests and fertilizer guidance.',
+        'Weather information and indicative cocoa prices.',
+        'Your credit score, farm income, expenses and profit.',
+      ],
+      tip: 'Tell me the crop and the issue, or choose a quick prompt below.',
     },
   },
 ];

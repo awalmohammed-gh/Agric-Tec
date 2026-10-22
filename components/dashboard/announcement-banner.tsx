@@ -57,47 +57,66 @@ export function AnnouncementBanner({ className }: { className?: string }) {
 
   return (
     <section aria-label="Announcements" className={cn('space-y-3', className)}>
-      {visible.map((announcement) => {
-        const style = TYPE_STYLE[announcement.type];
-        const Icon = style.icon;
-        return (
-          <div
-            key={announcement.id}
-            role={announcement.type === 'critical' ? 'alert' : 'status'}
-            className={cn('flex items-start gap-3 rounded-2xl border px-4 py-3', style.tone)}
-          >
-            <Icon size={20} aria-hidden="true" className="mt-0.5 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">
-                <span className="sr-only">{style.label}: </span>
-                {announcement.title}
-              </p>
-              <p className="text-text mt-0.5 text-sm whitespace-pre-line">{announcement.message}</p>
-            </div>
-            {announcement.dismissible && (
-              <button
-                type="button"
-                {...readOnlyProps(readOnly)}
-                onClick={
-                  readOnly
-                    ? undefined
-                    : () =>
-                        dismiss(announcement.id).catch(() =>
-                          toast.error('Could not save that. It may show again next time.'),
-                        )
-                }
-                aria-label={`Dismiss announcement: ${announcement.title}`}
-                className={cn(
-                  'hover:bg-glass-strong -mt-1 -mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-                  readOnly && READ_ONLY_CLASS,
-                )}
-              >
-                <X size={16} aria-hidden="true" />
-              </button>
-            )}
-          </div>
-        );
-      })}
+      {visible.map((announcement) => (
+        <AnnouncementCard
+          key={announcement.id}
+          announcement={announcement}
+          readOnly={readOnly}
+          onDismiss={() =>
+            dismiss(announcement.id).catch(() =>
+              toast.error('Could not save that. It may show again next time.'),
+            )
+          }
+        />
+      ))}
     </section>
+  );
+}
+
+/**
+ * One announcement as farmers see it. Also used by the admin's live preview, so both always
+ * match. Without `onDismiss`, the close button is shown but does nothing (preview).
+ */
+export function AnnouncementCard({
+  announcement,
+  onDismiss,
+  readOnly = false,
+}: {
+  announcement: Pick<Announcement, 'type' | 'title' | 'message' | 'dismissible'>;
+  onDismiss?: () => void;
+  readOnly?: boolean;
+}) {
+  const style = TYPE_STYLE[announcement.type];
+  const Icon = style.icon;
+  return (
+    <div
+      role={announcement.type === 'critical' ? 'alert' : 'status'}
+      className={cn('flex items-start gap-3 rounded-2xl border px-4 py-3', style.tone)}
+    >
+      <Icon size={20} aria-hidden="true" className="mt-0.5 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-bold wrap-anywhere">
+          <span className="sr-only">{style.label}: </span>
+          {announcement.title}
+        </p>
+        <p className="text-text mt-0.5 text-sm whitespace-pre-line wrap-anywhere">
+          {announcement.message}
+        </p>
+      </div>
+      {announcement.dismissible && (
+        <button
+          type="button"
+          {...readOnlyProps(readOnly)}
+          onClick={readOnly ? undefined : onDismiss}
+          aria-label={`Dismiss announcement: ${announcement.title}`}
+          className={cn(
+            'hover:bg-glass-strong -mt-1 -mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+            readOnly && READ_ONLY_CLASS,
+          )}
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
+      )}
+    </div>
   );
 }
