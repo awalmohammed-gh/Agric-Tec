@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useRef, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,8 @@ export interface ModalProps {
   closeOnBackdrop?: boolean;
   /** The modal holds a form with unsaved changes: closing it asks "Discard changes?" first. */
   dirty?: boolean;
+  /** Focused when the modal opens (default: the modal itself). */
+  initialFocus?: RefObject<HTMLElement | null>;
   className?: string;
   children: ReactNode;
 }
@@ -51,6 +53,7 @@ export function Modal({
   footer,
   closeOnBackdrop = true,
   dirty = false,
+  initialFocus,
   className,
   children,
 }: ModalProps) {
@@ -73,7 +76,7 @@ export function Modal({
     else onClose();
   }
 
-  useDialog({ open, active: mounted, panelRef, onClose: requestClose });
+  useDialog({ open, active: mounted, panelRef, initialFocus, onClose: requestClose });
 
   if (!mounted || !open) return null;
 

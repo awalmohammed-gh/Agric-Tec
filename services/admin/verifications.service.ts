@@ -1,5 +1,7 @@
 import { getCurrentAdmin, requirePermission } from '@/lib/admin/admin-session';
 import { withAudit } from '@/lib/admin/audit';
+import { hashGhanaCard } from '@/lib/admin/card-hash';
+import { canBulkApprove, isRejectReason, parseLocation } from '@/lib/admin/verification-queue';
 import { readProfile, readUsers, writeProfile, writeUsers } from '@/lib/admin/farmer-data';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
 import { ghanaCard, ghanaPhone, maskGhanaCard, normalizePhone } from '@/lib/profile';
@@ -37,13 +39,17 @@ function applyToProfile(request: VerificationRequest): void {
   const changed =
     !profile.verification[request.kind] ||
     (last4 !== undefined && profile.ghanaCardLast4 !== last4);
-  if (changed)
+  // An approved location also fills in the farm's coordinates if the profile has none yet.
+  const gps =
+    request.kind === 'location' && !profile.gps ? parseLocation(request.submittedValue) : null;
+  if (changed || gps)
     writeProfile({
       ...profile,
       verification: { ...profile.verification, [request.kind]: true },
       ...(request.kind === 'ghanaCard' && {
         ghanaCardLast4: last4FromMasked(request.submittedValue),
       }),
+      ...(gps && { gps }),
     });
   if (request.kind === 'ghanaCard') {
     writeUsers(
@@ -92,15 +98,19 @@ export const verificationsService = {
   ): Promise<VerificationRequest> {
     await delay();
     let submittedValue: string;
+    let valueHash: string | undefined;
     if (kind === 'ghanaCard') {
       const trimmed = value.trim().toUpperCase();
-      const last4 = ghanaCard.test(trimmed)
+      const full = ghanaCard.test(trimmed);
+      const last4 = full
         ? trimmed.replace(/\D/g, '').slice(-4)
         : /^\d{4}$/.test(trimmed)
           ? trimmed
           : '';
       if (!last4) throw new Error('Enter a Ghana Card number such as GHA-123456789-0.');
       submittedValue = maskGhanaCard(last4);
+      // Only a hash of the full number is kept, for the reviewer's duplicate check.
+      if (full) valueHash = await hashGhanaCard(trimmed);
       if (read().some((v) => v.userId === userId && v.kind === kind && v.status === 'pending')) {
         throw new Error('Your Ghana Card is already waiting for review.');
       }
@@ -119,6 +129,7 @@ export const verificationsService = {
       userId,
       kind,
       submittedValue,
+      ...(valueHash && { valueHash }),
       status: instant ? 'approved' : 'pending',
       submittedAt: now,
       ...(instant && { reviewedBy: 'Automatic check', reviewedAt: now }),
@@ -157,33 +168,58 @@ export const verificationsService = {
     );
   },
 
-  async reject(id: string, reason: string): Promise<VerificationRequest> {
+  /**
+   * Rejects with one of REJECT_REASONS and an optional note (required for "Other"). The farmer
+   * sees "Rejected: <reason>. Please resubmit." and the note, and can submit again.
+   */
+  async reject(id: string, reason: string, note = ''): Promise<VerificationRequest> {
     await delay();
     const request = find(id);
+    const cleanNote = note.trim();
     return withAudit(
       {
         permission: 'verifications.review',
         action: 'verification.reject',
         targetType: 'farmer',
         targetId: request.userId,
-        summary: `Rejected the ${KIND_LABELS[request.kind]} check for ${farmerName(request.userId)}: ${reason.trim()}`,
+        summary: `Rejected the ${KIND_LABELS[request.kind]} check for ${farmerName(request.userId)}: ${reason}`,
         before: { status: request.status },
-        after: (r) => ({ status: r.status, reason: r.reason }),
+        after: (r) => ({ status: r.status, reason: r.reason, note: r.note }),
       },
       async () => {
         if (request.status !== 'pending')
           throw new Error('This request has already been reviewed.');
-        if (reason.trim().length < 3) throw new Error('Tell the farmer why it was rejected.');
+        if (!isRejectReason(reason)) throw new Error('Choose a reason for the farmer.');
+        if (reason === 'Other' && cleanNote.length < 3)
+          throw new Error('Add a note explaining the reason.');
+        if (cleanNote.length > 300) throw new Error('Keep the note under 300 characters.');
         const updated: VerificationRequest = {
           ...request,
           status: 'rejected',
           reviewedBy: getCurrentAdmin()?.name ?? 'Admin',
           reviewedAt: new Date().toISOString(),
-          reason: reason.trim(),
+          reason,
+          ...(cleanNote ? { note: cleanNote } : {}),
         };
         save(updated);
         return updated;
       },
     );
+  },
+
+  /**
+   * Approves several phone or location checks at once (each one audited on its own). Ghana Cards
+   * are refused: each card must be reviewed one by one.
+   */
+  async approveMany(ids: string[]): Promise<VerificationRequest[]> {
+    requirePermission('verifications.review');
+    const requests = ids.map(find);
+    if (requests.some((r) => r.kind === 'ghanaCard'))
+      throw new Error('Ghana Cards must be reviewed one by one.');
+    if (requests.some((r) => !canBulkApprove(r)))
+      throw new Error('Some of these requests have already been reviewed.');
+    const approved: VerificationRequest[] = [];
+    for (const request of requests) approved.push(await verificationsService.approve(request.id));
+    return approved;
   },
 };

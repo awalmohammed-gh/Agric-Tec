@@ -25,7 +25,9 @@ import {
   PLATFORM_KEYS,
   SEED_FARMER_PREFIX,
 } from '@/lib/admin/keys';
+import { hashGhanaCard } from '@/lib/admin/card-hash';
 import { detectRisks } from '@/lib/admin/risk-rules';
+import type { RejectReason } from '@/lib/admin/verification-queue';
 import { maskGhanaCard } from '@/lib/profile';
 import { hashPassword, type StoredUser } from '@/services/auth.service';
 import { storage, userKey } from '@/services/storage';
@@ -305,10 +307,11 @@ const SUSPENDED_REASONS = [
   'Under investigation for a shared MoMo wallet with another account.',
 ];
 
-const REJECT_REASONS = [
-  'The photo of the card is unreadable.',
-  'The name on the card does not match the profile.',
-  'The card number has expired.',
+/** Reviewed-and-rejected cards in the history (reasons from the reviewer's list). */
+const SEED_REJECTIONS: { reason: RejectReason; note: string }[] = [
+  { reason: 'Unclear', note: 'The photo of the card is unreadable.' },
+  { reason: "Doesn't match name", note: 'The name on the card does not match your profile.' },
+  { reason: 'Number format invalid', note: 'Check the number on your card and try again.' },
 ];
 
 // ---------- Planted cases for the risk rules ----------
@@ -737,71 +740,125 @@ export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
     farmers.push({ user, data: { profile, records, momo, diagnoses, meta: { tags, adminNotes } } });
   });
 
-  // Verifications: about 12 pending Ghana Card checks, plus the history of reviewed ones.
-  const addVerification = (
+  // Verifications: 12 pending (8 Ghana Cards, 2 phone, 2 location), plus the reviewed history.
+  // Card numbers are made up per farmer and never stored: only the mask and a hash are kept.
+  // (Pending requests draw nothing from `rand`, so adding them keeps the rest of the seed fixed.)
+  const indexOf = (farmer: SeedFarmer) => farmers.indexOf(farmer);
+  const cardNumber = (seedIndex: number, last4: string) =>
+    `GHA-${100000 + ((seedIndex * 7919) % 900000)}${last4.slice(0, 3)}-${last4[3]}`;
+  const addVerification = async (
     farmer: SeedFarmer,
     status: VerificationRequest['status'],
-    last4: string,
     daysAgo: number,
-    reason?: string,
+    kind: VerificationRequest['kind'],
+    /** The full card number for ghanaCard; the phone or "lat, lng" otherwise. */
+    value: string,
+    rejection?: { reason: string; note: string },
   ) => {
+    const card = kind === 'ghanaCard';
     verifications.push({
       id: `seed-verif-${pad(verifications.length + 1)}`,
       userId: farmer.user.id,
-      kind: 'ghanaCard',
-      submittedValue: maskGhanaCard(last4),
+      kind,
+      submittedValue: card ? maskGhanaCard(value.replace(/\D/g, '').slice(-4)) : value,
+      ...(card && { valueHash: await hashGhanaCard(value) }),
       status,
       submittedAt: at(daysAgo, 10),
       ...(status !== 'pending' && {
         reviewedBy: reviewer('support'),
         reviewedAt: at(Math.max(0, daysAgo - 1), 15),
       }),
-      ...(reason && { reason }),
+      ...(rejection && { reason: rejection.reason, note: rejection.note }),
     });
   };
   const daysSince = (iso: string) => differenceInCalendarDays(today, new Date(iso));
+
+  // The planted duplicate: a second account submits the same card as Yaw Asante.
+  const yaw = farmers.find((f) => f.data.profile.name === 'Yaw Asante');
+  const yawLast4 = yaw && (pendingCards.get(yaw.user.id) ?? yaw.data.profile.ghanaCardLast4);
+  const firstPending = farmers.find((f) => pendingCards.has(f.user.id));
+  const duplicateOf =
+    yaw && yawLast4
+      ? cardNumber(indexOf(yaw), yawLast4)
+      : firstPending && cardNumber(indexOf(firstPending), pendingCards.get(firstPending.user.id)!);
+  const duplicateOwner = yaw && yawLast4 ? yaw : firstPending;
+
   for (const farmer of farmers) {
     const last4 = pendingCards.get(farmer.user.id);
     if (last4)
-      addVerification(
+      await addVerification(
         farmer,
         'pending',
-        last4,
         rand.int(0, Math.min(10, daysSince(farmer.user.createdAt))),
+        'ghanaCard',
+        cardNumber(indexOf(farmer), last4),
       );
   }
   const unverifiedActive = rand.shuffle(
     farmers.filter((f) => f.user.status === 'active' && !f.data.profile.verification.ghanaCard),
   );
+  const queued = new Set<string>();
+  let cardsQueued = 0;
   for (const farmer of unverifiedActive.slice(0, 6)) {
     let last4 = '';
     while (!last4 || usedCards.has(last4)) last4 = pad(rand.int(1000, 9999), 4);
     usedCards.add(last4);
-    addVerification(
+    const daysAgo = rand.int(0, Math.min(14, daysSince(farmer.user.createdAt)));
+    // Two cards from these farmers (the first reuses the duplicate number); the other slots
+    // become the phone and location checks below.
+    if (cardsQueued === 2 || farmer === duplicateOwner) continue;
+    const number =
+      cardsQueued === 0 && duplicateOf ? duplicateOf : cardNumber(indexOf(farmer), last4);
+    await addVerification(farmer, 'pending', daysAgo, 'ghanaCard', number);
+    queued.add(farmer.user.id);
+    cardsQueued++;
+  }
+  // Pending phone and location checks (for bulk approval): active farmers not yet verified.
+  const candidates = farmers.filter(
+    (f, i) => f.user.status === 'active' && !PLANTED_INDEXES.has(i) && !queued.has(f.user.id),
+  );
+  const phoneChecks = candidates.filter((f) => !f.data.profile.verification.phone).slice(0, 2);
+  const locationChecks = candidates
+    .filter((f) => !f.data.profile.verification.location && f.data.profile.gps)
+    .filter((f) => !phoneChecks.includes(f))
+    .slice(0, 2);
+  for (const [i, farmer] of phoneChecks.entries())
+    await addVerification(farmer, 'pending', 1 + i * 3, 'phone', farmer.data.profile.phone);
+  for (const [i, farmer] of locationChecks.entries()) {
+    const { lat, lng } = farmer.data.profile.gps!;
+    await addVerification(
       farmer,
       'pending',
-      last4,
-      rand.int(0, Math.min(14, daysSince(farmer.user.createdAt))),
+      2 + i * 2,
+      'location',
+      `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
     );
   }
+
   for (const farmer of unverifiedActive.slice(6, 9)) {
     let last4 = '';
     while (!last4 || usedCards.has(last4)) last4 = pad(rand.int(1000, 9999), 4);
     usedCards.add(last4);
-    addVerification(
+    const daysAgo = rand.int(2, Math.max(2, daysSince(farmer.user.createdAt)));
+    await addVerification(
       farmer,
       'rejected',
-      last4,
-      rand.int(2, Math.max(2, daysSince(farmer.user.createdAt))),
-      rand.pick(REJECT_REASONS),
+      daysAgo,
+      'ghanaCard',
+      cardNumber(indexOf(farmer), last4),
+      rand.pick(SEED_REJECTIONS),
     );
   }
   for (const farmer of farmers.filter((f) => f.data.profile.verification.ghanaCard)) {
-    addVerification(
+    const index = indexOf(farmer);
+    // The two planted shared-card accounts really do hold the same card.
+    const numberIndex = index === PLANTED.sharedCardB ? PLANTED.sharedCardA : index;
+    await addVerification(
       farmer,
       'approved',
-      farmer.data.profile.ghanaCardLast4 ?? '0000',
       rand.int(1, Math.max(1, daysSince(farmer.user.createdAt))),
+      'ghanaCard',
+      cardNumber(numberIndex, farmer.data.profile.ghanaCardLast4 ?? '0000'),
     );
   }
 

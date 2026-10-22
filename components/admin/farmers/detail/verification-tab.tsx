@@ -5,23 +5,16 @@ import { BadgeCheck, Check, MapPin, Smartphone, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { TabProps } from '@/components/admin/farmers/detail/types';
 import { StatusBadge } from '@/components/admin/shared/status-badge';
+import { RejectDialog } from '@/components/admin/verifications/reject-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
-import { FormField } from '@/components/ui/form-field';
-import { Modal } from '@/components/ui/modal';
-import { Textarea } from '@/components/ui/textarea';
 import { useCan } from '@/hooks/admin/use-can';
+import { KIND_LABEL } from '@/lib/admin/verification-queue';
 import { formatDate, formatGPS } from '@/lib/format';
 import { maskGhanaCard } from '@/lib/profile';
 import { cn } from '@/lib/utils';
 import { verificationsService } from '@/services/admin/verifications.service';
-import type { VerificationKind, VerificationRequest } from '@/types/admin';
-
-const KIND_LABEL: Record<VerificationKind, string> = {
-  phone: 'Phone',
-  location: 'Location',
-  ghanaCard: 'Ghana Card',
-};
+import type { VerificationRequest } from '@/types/admin';
 
 /** The three checks, the request history, and inline approve/reject for reviewers. */
 export function VerificationTab({ data, reload }: TabProps) {
@@ -29,7 +22,6 @@ export function VerificationTab({ data, reload }: TabProps) {
   const { profile } = data.detail.account;
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<VerificationRequest | null>(null);
-  const [reason, setReason] = useState('');
 
   const checks = [
     {
@@ -60,28 +52,6 @@ export function VerificationTab({ data, reload }: TabProps) {
       await reload();
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : 'Could not approve');
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  /** Closing the reject form drops the half-typed reason. */
-  function closeReject() {
-    setRejecting(null);
-    setReason('');
-  }
-
-  async function reject() {
-    if (!rejecting) return;
-    setBusyId(rejecting.id);
-    try {
-      await verificationsService.reject(rejecting.id, reason);
-      toast.success(`${KIND_LABEL[rejecting.kind]} rejected`);
-      setRejecting(null);
-      setReason('');
-      await reload();
-    } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : 'Could not reject');
     } finally {
       setBusyId(null);
     }
@@ -138,6 +108,7 @@ export function VerificationTab({ data, reload }: TabProps) {
                     Submitted {formatDate(new Date(request.submittedAt))}
                     {request.reviewedBy && ` · reviewed by ${request.reviewedBy}`}
                     {request.reason && ` · ${request.reason}`}
+                    {request.note && ` (${request.note})`}
                   </p>
                 </div>
                 <StatusBadge kind="verification" status={request.status} />
@@ -168,38 +139,15 @@ export function VerificationTab({ data, reload }: TabProps) {
         )}
       </Card>
 
-      <Modal
-        open={rejecting !== null}
-        onClose={closeReject}
-        title={`Reject ${rejecting ? KIND_LABEL[rejecting.kind] : ''} check`}
-        dirty={busyId === null && reason.trim() !== ''}
-        footer={
-          <>
-            <Button variant="ghost" onClick={closeReject}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              icon={X}
-              loading={busyId === rejecting?.id}
-              disabled={reason.trim().length < 3}
-              onClick={() => void reject()}
-            >
-              Reject
-            </Button>
-          </>
-        }
-      >
-        <FormField label="Reason (the farmer sees this)" htmlFor="reject-reason">
-          <Textarea
-            id="reject-reason"
-            rows={3}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. The photo of the card is unreadable."
-          />
-        </FormField>
-      </Modal>
+      <RejectDialog
+        request={rejecting}
+        farmerName={profile.name || data.detail.account.email}
+        onClose={() => setRejecting(null)}
+        onRejected={() => {
+          setRejecting(null);
+          void reload();
+        }}
+      />
     </div>
   );
 }

@@ -48,6 +48,8 @@ export interface AdminTableProps<T> {
   empty?: ReactNode;
   /** A purpose-built card per row on phones, instead of the default label/value list. */
   mobileCard?: (row: T, parts: AdminMobileCardParts) => ReactNode;
+  /** Shown on rows that can't be selected (see useAdminTable's canSelect). */
+  unselectableHint?: string;
 }
 
 /** Clicks on these inside a row do their own thing instead of opening the row. */
@@ -69,6 +71,7 @@ export function AdminTable<T>({
   loading = false,
   empty,
   mobileCard,
+  unselectableHint = 'Not available for bulk actions',
 }: AdminTableProps<T>) {
   const router = useRouter();
   const opensRow = Boolean(rowHref || onRowClick);
@@ -118,6 +121,16 @@ export function AdminTable<T>({
 
   const checkbox = (row: T) => {
     const id = getRowId(row);
+    // Rows that can't be bulk-selected keep the column aligned with an empty, labelled slot.
+    if (!table.canSelect(row))
+      return (
+        <span
+          title={unselectableHint}
+          className="border-border/60 inline-block size-4 rounded-[3px] border border-dashed align-middle"
+        >
+          <span className="sr-only">{unselectableHint}</span>
+        </span>
+      );
     return (
       <input
         type="checkbox"
@@ -206,8 +219,9 @@ export function AdminTable<T>({
                     type="checkbox"
                     checked={table.allOnPageSelected}
                     onChange={table.toggleAllOnPage}
+                    disabled={!table.anySelectableOnPage}
                     aria-label="Select all rows on this page"
-                    className="size-4 cursor-pointer accent-[#a855f7]"
+                    className="size-4 cursor-pointer accent-[#a855f7] disabled:cursor-not-allowed disabled:opacity-40"
                   />
                 </th>
               )}

@@ -29,6 +29,8 @@ export interface AdminTableOptions<T> {
   sortAccessors?: Record<string, (row: T) => Sortable>;
   initialSort?: TableSort;
   pageSize?: number;
+  /** Rows that may be ticked for bulk actions (default: all). */
+  canSelect?: (row: T) => boolean;
 }
 
 const RESERVED = new Set(['q', 'sort', 'dir', 'page']);
@@ -55,6 +57,7 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
     sortAccessors = {},
     initialSort,
     pageSize = 25,
+    canSelect = () => true,
   } = options;
   const router = useRouter();
   const pathname = usePathname();
@@ -141,9 +144,10 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
   const setPage = (next: number) => updateParams({ page: next > 1 ? String(next) : null }, false);
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // Selection survives paging and filtering, but forgets rows that no longer exist.
+  // Selection survives paging and filtering, but forgets rows that no longer exist (or can no
+  // longer be selected, e.g. a request someone else just reviewed).
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
-  const existingIds = new Set(rows.map(getRowId));
+  const existingIds = new Set(rows.filter(canSelect).map(getRowId));
   const selected: ReadonlySet<string> = new Set(
     [...selectedIds].filter((id) => existingIds.has(id)),
   );
@@ -157,7 +161,7 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
       return next;
     });
 
-  const pageIds = pageRows.map(getRowId);
+  const pageIds = pageRows.filter(canSelect).map(getRowId);
   const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
   /** Selects every row on this page, or clears them if they are all selected already. */
   const toggleAllOnPage = () =>
@@ -193,6 +197,9 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
     toggle,
     toggleAllOnPage,
     clearSelection,
+    canSelect,
+    /** Whether this page has any row that can be selected. */
+    anySelectableOnPage: pageIds.length > 0,
   };
 }
 

@@ -323,7 +323,7 @@ export function needsAttention(
     items.push({
       key: 'verifications',
       count: pending.length,
-      text: `${pending.length} Ghana Card ${plural(pending.length, 'verification', 'verifications')} pending (oldest ${oldest} ${plural(oldest, 'day', 'days')})`,
+      text: `${pending.length} ${plural(pending.length, 'verification', 'verifications')} pending (oldest ${oldest} ${plural(oldest, 'day', 'days')})`,
       href: '/admin/verifications',
       actionable: true,
     });

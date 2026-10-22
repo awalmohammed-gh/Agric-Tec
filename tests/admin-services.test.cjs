@@ -136,8 +136,12 @@ test('first admin login seeds ~60 farmers across all 16 regions', async () => {
 
   const pending = await verificationsService.list({ status: 'pending' });
   assert.equal(pending.length, 12);
-  assert.ok(
-    pending.every((v) => v.kind === 'ghanaCard' && /^GHA-\*{6}\d{3}-\d$/.test(v.submittedValue)),
+  const cards = pending.filter((v) => v.kind === 'ghanaCard');
+  assert.equal(cards.length, 8);
+  assert.ok(cards.every((v) => /^GHA-\*{6}\d{3}-\d$/.test(v.submittedValue) && v.valueHash));
+  assert.deepEqual(
+    pending.filter((v) => v.kind !== 'ghanaCard').map((v) => v.kind).sort(),
+    ['location', 'location', 'phone', 'phone'],
   );
 
   const apps = await loanApplicationsService.list();
@@ -300,7 +304,7 @@ test('the audit log has no update or delete, and other guards hold', async () =>
   assert.equal((await configService.getCreditHistory()).length, 2);
 
   // Approving a Ghana Card updates the farmer's profile.
-  const [request] = await verificationsService.list({ status: 'pending' });
+  const [request] = await verificationsService.list({ status: 'pending', kind: 'ghanaCard' });
   await verificationsService.approve(request.id);
   const verified = await farmersService.get(request.userId);
   assert.equal(verified.profile.verification.ghanaCard, true);

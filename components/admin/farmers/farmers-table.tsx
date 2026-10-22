@@ -25,6 +25,7 @@ import {
 } from '@/components/admin/shared/admin-table';
 import { RowMenu, type RowMenuItem } from '@/components/admin/shared/row-menu';
 import { StatusBadge } from '@/components/admin/shared/status-badge';
+import { InitialsAvatar } from '@/components/admin/shared/initials-avatar';
 import { AddNoteDialog, ReactivateDialog } from '@/components/admin/farmers/farmer-action-dialogs';
 import { ResetPasswordDialog } from '@/components/admin/farmers/detail/reset-password-dialog';
 import { FarmerQuickViewModal } from '@/components/admin/farmers/farmer-quick-view-modal';
@@ -44,6 +45,7 @@ import {
   FARMER_SEARCH_KEYS,
   FARMER_SORT,
 } from '@/lib/admin/farmer-list';
+import { bandTone, MAX_SCORE } from '@/lib/admin/score-tone';
 import { scoreLabel } from '@/lib/calculations/credit-score';
 import { downloadFile } from '@/lib/export/csv';
 import { formatCompactGHS, formatDate } from '@/lib/format';
@@ -53,48 +55,10 @@ import { riskService } from '@/services/admin/risk.service';
 import { useAdminDataStore } from '@/store/admin/admin-data-store';
 import type { FarmerAccount } from '@/types/admin';
 
-/** Score band → text colour and bar colour (flat tints, no gradients). */
-const BAND_TONE: Record<string, { text: string; bar: string }> = {
-  Building: { text: 'text-ink-red', bar: 'bg-danger' },
-  Fair: { text: 'text-ink-gold', bar: 'bg-gold' },
-  Good: { text: 'text-ink-green', bar: 'bg-accent' },
-  Excellent: { text: 'text-ink-purple', bar: 'bg-purple' },
-};
-
-/** The highest score a farmer can reach, for the score bar's width. */
-const MAX_SCORE = 850;
-
-/** Avatar tints, picked by name so each farmer keeps the same colour. */
-const AVATAR_TONES = [
-  'bg-purple/15 text-ink-purple',
-  'bg-info/15 text-ink-blue',
-  'bg-accent/15 text-ink-green',
-  'bg-gold/15 text-ink-gold',
-  'bg-danger/15 text-ink-red',
-];
-
 const nameOf = (f: FarmerAccount) => f.profile.name || f.email;
 
-function initials(name: string): string {
-  const parts = name.split(/[\s@.]+/).filter(Boolean);
-  return ((parts[0]?.[0] ?? '?') + (parts[1]?.[0] ?? '')).toUpperCase();
-}
-
 function FarmerAvatar({ farmer, size = 'md' }: { farmer: FarmerAccount; size?: 'md' | 'lg' }) {
-  const name = nameOf(farmer);
-  const tone = AVATAR_TONES[[...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 5];
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full font-bold',
-        size === 'lg' ? 'size-11 text-sm' : 'size-9 text-xs',
-        tone,
-      )}
-    >
-      {initials(name)}
-    </span>
-  );
+  return <InitialsAvatar name={nameOf(farmer)} size={size} />;
 }
 
 /** Name over email. */
@@ -143,7 +107,7 @@ function ScoreCell({
   bands: Parameters<typeof scoreLabel>[1];
 }) {
   const label = scoreLabel(farmer.stats.score, bands);
-  const tone = BAND_TONE[label] ?? BAND_TONE.Fair;
+  const tone = bandTone(label);
   return (
     <span className="block w-28">
       <span className="flex items-baseline gap-1.5 whitespace-nowrap">
@@ -440,7 +404,6 @@ export function FarmersTable() {
             )}
           </>
         }
-        className="mb-0"
       />
 
       <FarmersFilters table={table} farmers={people} regions={regions} crops={crops} tags={tags} />

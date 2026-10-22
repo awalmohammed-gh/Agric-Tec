@@ -3,6 +3,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { MultiSelect } from '@/components/admin/shared/multi-select';
+import { StatusTabs } from '@/components/admin/shared/status-tabs';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import type { AdminTableState, SortDir } from '@/hooks/admin/use-admin-table';
@@ -17,9 +18,9 @@ import type { FarmerAccount } from '@/types/admin';
 
 type AccountStatus = FarmerAccount['status'];
 
-/** The status tabs above the list (they set ?status=). */
-const STATUS_TABS: { value: AccountStatus | ''; label: string }[] = [
-  { value: '', label: 'All' },
+/** The status tabs above the list (they set ?status=; "all" clears it). */
+const STATUS_TABS: { value: AccountStatus | 'all'; label: string }[] = [
+  { value: 'all', label: 'All' },
   { value: 'active', label: 'Active' },
   { value: 'pending_verification', label: 'Pending' },
   { value: 'suspended', label: 'Suspended' },
@@ -144,47 +145,17 @@ export function FarmersFilters({
   const [panelOpen, setPanelOpen] = useState(panelCount > 0);
   const status = value('status');
   const sortValue = table.sort ? `${table.sort.key}:${table.sort.dir}` : 'joined:desc';
-  const countOf = (s: AccountStatus | '') =>
-    s ? farmers.filter((f) => f.status === s).length : farmers.length;
+  const countOf = (s: AccountStatus | 'all') =>
+    s === 'all' ? farmers.length : farmers.filter((f) => f.status === s).length;
 
   return (
     <div className="space-y-4">
-      {/* Status tabs */}
-      <div className="scrollbar-none overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden">
-        <div
-          role="group"
-          aria-label="Account status"
-          className="flex min-w-max gap-0.5 shadow-[inset_0_-1px_0_var(--border)] sm:gap-1"
-        >
-          {STATUS_TABS.map((tab) => {
-            const selected = status === tab.value;
-            return (
-              <button
-                key={tab.label}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => set('status', tab.value)}
-                className={cn(
-                  'inline-flex min-h-11 items-center gap-1.5 border-b-2 px-2 text-[13px] font-semibold transition-colors sm:gap-2 sm:px-3 sm:text-sm',
-                  selected
-                    ? 'border-purple text-text'
-                    : 'text-text-mute hover:text-text border-transparent',
-                )}
-              >
-                {tab.label}
-                <span
-                  className={cn(
-                    'rounded-md px-1.5 py-0.5 text-[11px] tabular-nums',
-                    selected ? 'bg-purple/15 text-ink-purple' : 'bg-glass-strong text-text-mute',
-                  )}
-                >
-                  {countOf(tab.value)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <StatusTabs
+        label="Account status"
+        tabs={STATUS_TABS.map((tab) => ({ ...tab, count: countOf(tab.value) }))}
+        value={(status || 'all') as AccountStatus | 'all'}
+        onChange={(next) => set('status', next === 'all' ? '' : next)}
+      />
 
       <div role="search" aria-label="Find farmers" className="space-y-3">
         {/* Search, filters and sort */}

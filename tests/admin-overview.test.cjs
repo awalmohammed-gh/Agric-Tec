@@ -146,7 +146,7 @@ test('needs attention: role-filtered items, appeals, and a red row for maintenan
   assert.equal(appeals.count, 2);
   assert.match(
     needsAttention(base, 'super_admin').find((i) => i.key === 'verifications').text,
-    /^12 Ghana Card verifications pending \(oldest \d+ days?\)$/,
+    /^12 verifications pending \(oldest \d+ days?\)$/,
   );
 
   // Support reviews risk and verifications, but can't decide loans or reactivate farmers.

@@ -20,6 +20,7 @@ import { Badge, type BadgeColor } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { maskGhanaCard } from '@/lib/profile';
+import { rejectionMessage } from '@/lib/verification';
 import { cn } from '@/lib/utils';
 import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
@@ -60,7 +61,7 @@ export function VerificationGrid() {
   const cardDetail: Record<CheckState, string> = {
     verified: maskGhanaCard(profile?.ghanaCardLast4),
     review: `${cardRequest?.submittedValue ?? 'Your card'} is waiting for review. This usually takes one working day.`,
-    rejected: `Not approved: ${cardRequest?.reason ?? 'please submit your card again'}.`,
+    rejected: rejectionMessage(cardRequest ?? {}),
     todo: 'Verify your identity in demo mode.',
   };
 

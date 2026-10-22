@@ -68,11 +68,14 @@ export function useDialog({
   open,
   active = true,
   panelRef,
+  initialFocus,
   onClose,
 }: {
   open: boolean;
   active?: boolean;
   panelRef: RefObject<HTMLElement | null>;
+  /** Focused on open instead of the panel itself (e.g. the first choice of a quick form). */
+  initialFocus?: RefObject<HTMLElement | null>;
   onClose: () => void;
 }): void {
   const dialogId = useId();
@@ -116,7 +119,7 @@ export function useDialog({
     const trigger = openingControl();
     if (dialogStack.length === 0) lockPageScroll();
     dialogStack.push(dialogId);
-    panelRef.current?.focus();
+    (initialFocus?.current ?? panelRef.current)?.focus();
 
     document.addEventListener('keydown', handleKeyDown);
 
@@ -128,5 +131,5 @@ export function useDialog({
       // Return focus to whatever opened the dialog (if it is still on the page).
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
-  }, [open, active, dialogId, panelRef]);
+  }, [open, active, dialogId, panelRef, initialFocus]);
 }

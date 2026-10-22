@@ -81,11 +81,19 @@ export interface VerificationRequest {
   kind: VerificationKind;
   /** Masked for ghanaCard. */
   submittedValue: string;
+  /**
+   * ghanaCard only: a SHA-256 hash of the full card number, so the same card on two accounts
+   * can be detected without ever storing the number itself.
+   */
+  valueHash?: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: string;
   reviewedBy?: string;
   reviewedAt?: string;
+  /** Why it was rejected (one of REJECT_REASONS). The farmer sees it. */
   reason?: string;
+  /** An optional note to the farmer with the rejection. */
+  note?: string;
 }
 
 export type LoanStatus =
