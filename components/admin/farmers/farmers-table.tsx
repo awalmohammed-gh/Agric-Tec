@@ -18,7 +18,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/admin/layout/page-header';
-import { AdminTable, type AdminColumn } from '@/components/admin/shared/admin-table';
+import {
+  AdminTable,
+  type AdminColumn,
+  type AdminMobileCardParts,
+} from '@/components/admin/shared/admin-table';
 import { RowMenu, type RowMenuItem } from '@/components/admin/shared/row-menu';
 import { StatusBadge } from '@/components/admin/shared/status-badge';
 import { AddNoteDialog, ReactivateDialog } from '@/components/admin/farmers/farmer-action-dialogs';
@@ -29,15 +33,13 @@ import { FarmersFilters } from '@/components/admin/farmers/farmers-filters';
 import { SuspendDialog } from '@/components/admin/farmers/suspend-dialog';
 import { TagEditor } from '@/components/admin/farmers/tag-editor';
 import { useViewAsFarmer } from '@/components/admin/farmers/use-view-as-farmer';
-import { Badge, type BadgeColor } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CROP_TONES, CropIcon, cropFromName } from '@/components/ui/crop-icon';
+import { CropIcon, cropFromName } from '@/components/ui/crop-icon';
 import { useAdminTable } from '@/hooks/admin/use-admin-table';
 import { useAdminRole } from '@/hooks/admin/use-can';
 import { usePlatformStatus } from '@/hooks/admin/use-platform-status';
 import {
   farmerAbilities,
-  farmerCountSummary,
   farmerFilterFns,
   FARMER_SEARCH_KEYS,
   FARMER_SORT,
@@ -51,14 +53,126 @@ import { riskService } from '@/services/admin/risk.service';
 import { useAdminDataStore } from '@/store/admin/admin-data-store';
 import type { FarmerAccount } from '@/types/admin';
 
-const BAND_COLOR: Record<string, BadgeColor> = {
-  Building: 'red',
-  Fair: 'gold',
-  Good: 'green',
-  Excellent: 'purple',
+/** Score band → text colour and bar colour (flat tints, no gradients). */
+const BAND_TONE: Record<string, { text: string; bar: string }> = {
+  Building: { text: 'text-ink-red', bar: 'bg-danger' },
+  Fair: { text: 'text-ink-gold', bar: 'bg-gold' },
+  Good: { text: 'text-ink-green', bar: 'bg-accent' },
+  Excellent: { text: 'text-ink-purple', bar: 'bg-purple' },
 };
 
+/** The highest score a farmer can reach, for the score bar's width. */
+const MAX_SCORE = 850;
+
+/** Avatar tints, picked by name so each farmer keeps the same colour. */
+const AVATAR_TONES = [
+  'bg-purple/15 text-ink-purple',
+  'bg-info/15 text-ink-blue',
+  'bg-accent/15 text-ink-green',
+  'bg-gold/15 text-ink-gold',
+  'bg-danger/15 text-ink-red',
+];
+
 const nameOf = (f: FarmerAccount) => f.profile.name || f.email;
+
+function initials(name: string): string {
+  const parts = name.split(/[\s@.]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? '?') + (parts[1]?.[0] ?? '')).toUpperCase();
+}
+
+function FarmerAvatar({ farmer, size = 'md' }: { farmer: FarmerAccount; size?: 'md' | 'lg' }) {
+  const name = nameOf(farmer);
+  const tone = AVATAR_TONES[[...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 5];
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'inline-flex shrink-0 items-center justify-center rounded-full font-bold',
+        size === 'lg' ? 'size-11 text-sm' : 'size-9 text-xs',
+        tone,
+      )}
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
+/** Name over email. */
+function FarmerName({ farmer }: { farmer: FarmerAccount }) {
+  return (
+    <span className="flex min-w-0 items-center gap-3">
+      <FarmerAvatar farmer={farmer} />
+      <span className="min-w-0">
+        <span className="block max-w-48 truncate">{nameOf(farmer)}</span>
+        <span className="text-text-mute block max-w-48 truncate text-xs font-normal">
+          {farmer.email}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+/** Region over the main crop (then "+N" more; all of them in the tooltip). */
+function FarmCell({ farmer }: { farmer: FarmerAccount }) {
+  const crops = farmer.profile.primaryCrops;
+  return (
+    <span className="block min-w-0">
+      <span className="text-text block whitespace-nowrap">{farmer.profile.region}</span>
+      {crops.length > 0 ? (
+        <span
+          title={crops.join(', ')}
+          className="text-text-mute mt-0.5 flex items-center gap-1 text-xs whitespace-nowrap"
+        >
+          <CropIcon crop={cropFromName(crops[0])} size={12} />
+          {crops[0]}
+          {crops.length > 1 && <span>+{crops.length - 1}</span>}
+        </span>
+      ) : (
+        <span className="text-text-mute mt-0.5 block text-xs">No crops yet</span>
+      )}
+    </span>
+  );
+}
+
+/** Score and band over a slim bar. */
+function ScoreCell({
+  farmer,
+  bands,
+}: {
+  farmer: FarmerAccount;
+  bands: Parameters<typeof scoreLabel>[1];
+}) {
+  const label = scoreLabel(farmer.stats.score, bands);
+  const tone = BAND_TONE[label] ?? BAND_TONE.Fair;
+  return (
+    <span className="block w-28">
+      <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+        <span className="text-text font-semibold tabular-nums">{farmer.stats.score}</span>
+        <span className={cn('text-xs font-semibold', tone.text)}>{label}</span>
+      </span>
+      <span aria-hidden="true" className="bg-glass-strong mt-1.5 block h-1 rounded-full">
+        <span
+          className={cn('block h-full rounded-full', tone.bar)}
+          style={{ width: `${Math.min(100, (farmer.stats.score / MAX_SCORE) * 100)}%` }}
+        />
+      </span>
+    </span>
+  );
+}
+
+/** Income over the number of records. */
+function IncomeCell({ farmer }: { farmer: FarmerAccount }) {
+  return (
+    <span className="block whitespace-nowrap">
+      <span className="text-text block font-semibold tabular-nums">
+        {formatCompactGHS(farmer.stats.income)}
+      </span>
+      <span className="text-text-mute block text-xs">
+        {farmer.stats.records} record{farmer.stats.records === 1 ? '' : 's'}
+      </span>
+    </span>
+  );
+}
 
 type Dialog =
   | { type: 'suspend'; farmers: FarmerAccount[] }
@@ -79,12 +193,16 @@ function VerifiedIcons({ farmer }: { farmer: FarmerAccount }) {
   return (
     <span className="inline-flex items-center gap-1">
       {items.map(({ label, icon: Icon, done }) => (
-        <Icon
+        <span
           key={label}
-          size={15}
-          aria-label={`${label} ${done ? 'verified' : 'not verified'}`}
-          className={done ? 'text-ink-green' : 'text-text-mute/50'}
-        />
+          title={`${label} ${done ? 'verified' : 'not verified'}`}
+          className={cn(
+            'inline-flex size-6 items-center justify-center rounded-md',
+            done ? 'bg-accent/15 text-ink-green' : 'bg-glass-strong text-text-mute/60',
+          )}
+        >
+          <Icon size={13} aria-label={`${label} ${done ? 'verified' : 'not verified'}`} />
+        </span>
       ))}
     </span>
   );
@@ -210,82 +328,34 @@ export function FarmersTable() {
       header: 'Farmer',
       sortable: true,
       primary: true,
-      cell: (f) => (
-        <span className="flex items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#a855f7] to-[#f5c451] text-xs font-bold text-[#1e1033]"
-          >
-            {(nameOf(f)[0] ?? '?').toUpperCase()}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate">{nameOf(f)}</span>
-            <span className="text-text-mute block truncate text-xs font-normal">{f.email}</span>
-          </span>
-        </span>
-      ),
+      cell: (f) => <FarmerName farmer={f} />,
     },
-    { key: 'region', header: 'Region', sortable: true, cell: (f) => f.profile.region },
+    // Columns appear as the screen widens; the Sort menu covers the hidden ones.
     {
-      key: 'crops',
-      header: 'Crops',
+      key: 'region',
+      header: 'Farm',
       sortable: true,
-      hideOnMobile: true,
-      cell: (f) => (
-        <span className="flex flex-wrap gap-1">
-          {f.profile.primaryCrops.map((name) => {
-            const crop = cropFromName(name);
-            return (
-              <span
-                key={name}
-                title={name}
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
-                  CROP_TONES[crop],
-                )}
-              >
-                <CropIcon crop={crop} size={12} />
-                {name}
-              </span>
-            );
-          })}
-        </span>
-      ),
+      className: 'hidden xl:table-cell',
+      cell: (f) => <FarmCell farmer={f} />,
     },
     {
       key: 'score',
-      header: 'Score',
+      header: 'Credit score',
       sortable: true,
-      cell: (f) => {
-        const label = scoreLabel(f.stats.score, bands);
-        return (
-          <span className="inline-flex items-center gap-1.5">
-            <span className="text-text font-semibold tabular-nums">{f.stats.score}</span>
-            <Badge color={BAND_COLOR[label]}>{label}</Badge>
-          </span>
-        );
-      },
-    },
-    {
-      key: 'records',
-      header: 'Records',
-      sortable: true,
-      align: 'right',
-      hideOnMobile: true,
-      cell: (f) => f.stats.records,
+      cell: (f) => <ScoreCell farmer={f} bands={bands} />,
     },
     {
       key: 'income',
       header: 'Income',
       sortable: true,
-      align: 'right',
-      cell: (f) => formatCompactGHS(f.stats.income),
+      className: 'hidden xl:table-cell',
+      cell: (f) => <IncomeCell farmer={f} />,
     },
     {
       key: 'verified',
       header: 'Verified',
       sortable: true,
-      hideOnMobile: true,
+      className: 'hidden min-[1400px]:table-cell',
       cell: (f) => <VerifiedIcons farmer={f} />,
     },
     {
@@ -298,22 +368,52 @@ export function FarmersTable() {
       key: 'joined',
       header: 'Joined',
       sortable: true,
-      hideOnMobile: true,
-      cell: (f) => <span className="whitespace-nowrap">{formatDate(new Date(f.createdAt))}</span>,
+      className: 'hidden min-[1440px]:table-cell',
+      cell: (f) => (
+        <span className="text-text-dim whitespace-nowrap">{formatDate(new Date(f.createdAt))}</span>
+      ),
     },
     {
       key: 'menu',
-      header: 'Actions',
+      header: '',
       className: 'w-12',
       cell: (f) => <RowMenu label={`Actions for ${nameOf(f)}`} items={menuItems(f)} />,
     },
   ];
 
+  /** Phones: name, status and menu on top; location; then score, income and verification. */
+  function mobileCard(f: FarmerAccount, { opener, checkbox }: AdminMobileCardParts) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          {checkbox && <span className="pt-3">{checkbox}</span>}
+          <FarmerAvatar farmer={f} size="lg" />
+          <div className="min-w-0 flex-1">
+            {opener(<span className="block truncate">{nameOf(f)}</span>)}
+            <p className="text-text-mute truncate text-xs">{f.email}</p>
+            <div className="mt-1.5">
+              <StatusBadge kind="account" status={f.status} />
+            </div>
+          </div>
+          <RowMenu label={`Actions for ${nameOf(f)}`} items={menuItems(f)} />
+        </div>
+        <div className="border-border grid grid-cols-2 gap-3 border-t pt-3 text-sm">
+          <FarmCell farmer={f} />
+          <ScoreCell farmer={f} bands={bands} />
+          <IncomeCell farmer={f} />
+          <span className="self-center">
+            <VerifiedIcons farmer={f} />
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="All Farmers"
-        description={farmerCountSummary(farmers)}
+        description="Search, filter and manage every farmer account."
         actions={
           <>
             {abilities.riskScan && (
@@ -334,7 +434,8 @@ export function FarmersTable() {
                 disabled={table.total === 0}
                 onClick={() => void exportFiltered()}
               >
-                Export all filtered
+                Export
+                <span className="sr-only"> all filtered farmers</span>
               </Button>
             )}
           </>
@@ -342,7 +443,7 @@ export function FarmersTable() {
         className="mb-0"
       />
 
-      <FarmersFilters table={table} regions={regions} crops={crops} tags={tags} />
+      <FarmersFilters table={table} farmers={people} regions={regions} crops={crops} tags={tags} />
 
       <AdminTable
         table={table}
@@ -353,6 +454,7 @@ export function FarmersTable() {
         rowLabel={nameOf}
         onRowClick={setQuickView}
         loading={status === 'loading' && people.length === 0}
+        mobileCard={mobileCard}
       />
 
       {abilities.select && (

@@ -1,27 +1,57 @@
 'use client';
 
-import { Search, X } from 'lucide-react';
+import { useId, useState, type ReactNode } from 'react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { MultiSelect } from '@/components/admin/shared/multi-select';
-import { STATUS_STYLES } from '@/components/admin/shared/status-badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import type { AdminTableState } from '@/hooks/admin/use-admin-table';
+import type { AdminTableState, SortDir } from '@/hooks/admin/use-admin-table';
 import {
   SCORE_BANDS,
   splitValues,
   VERIFICATION_FILTERS,
   type FarmerFilterName,
 } from '@/lib/admin/farmer-list';
+import { cn } from '@/lib/utils';
 import type { FarmerAccount } from '@/types/admin';
 
-const STATUS_OPTIONS = (['active', 'suspended', 'pending_verification'] as const).map((s) => ({
-  value: s,
-  label: STATUS_STYLES.account[s].label,
-}));
+type AccountStatus = FarmerAccount['status'];
+
+/** The status tabs above the list (they set ?status=). */
+const STATUS_TABS: { value: AccountStatus | ''; label: string }[] = [
+  { value: '', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'pending_verification', label: 'Pending' },
+  { value: 'suspended', label: 'Suspended' },
+];
 
 const RECORD_OPTIONS = [
   { value: 'yes', label: 'Has records' },
   { value: 'no', label: 'No records' },
+];
+
+/** Sort choices for phones and tablets, where some sortable columns are hidden. */
+const SORT_OPTIONS: { value: `${string}:${SortDir}`; label: string }[] = [
+  { value: 'joined:desc', label: 'Newest first' },
+  { value: 'joined:asc', label: 'Oldest first' },
+  { value: 'farmer:asc', label: 'Name A–Z' },
+  { value: 'region:asc', label: 'Region A–Z' },
+  { value: 'score:desc', label: 'Highest score' },
+  { value: 'score:asc', label: 'Lowest score' },
+  { value: 'income:desc', label: 'Highest income' },
+  { value: 'records:desc', label: 'Most records' },
+];
+
+/** Filters in the panel behind the Filters button (status has its own tabs). */
+const PANEL_FILTERS: FarmerFilterName[] = [
+  'region',
+  'crop',
+  'band',
+  'verification',
+  'records',
+  'tag',
+  'joinedFrom',
+  'joinedTo',
 ];
 
 const FILTER_LABELS: Record<FarmerFilterName, string> = {
@@ -37,15 +67,13 @@ const FILTER_LABELS: Record<FarmerFilterName, string> = {
   active: 'Active in',
 };
 
-/** A chip's text for an active filter, e.g. "Region: Northern, Ashanti". */
+/** A chip's text for an active filter, e.g. "Northern, Ashanti". */
 function chipText(name: FarmerFilterName, value: string): string {
   const many = (labels: Record<string, string>) =>
     splitValues(value)
       .map((v) => labels[v] ?? v)
       .join(', ');
   switch (name) {
-    case 'status':
-      return STATUS_OPTIONS.find((o) => o.value === value)?.label ?? value;
     case 'band':
       return many(Object.fromEntries(SCORE_BANDS.map((b) => [b.value, b.label])));
     case 'verification':
@@ -59,155 +87,288 @@ function chipText(name: FarmerFilterName, value: string): string {
   }
 }
 
+/** A visible label above a filter control. */
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 space-y-1.5">
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className="text-text-mute block text-xs font-semibold">
+          {label}
+        </label>
+      ) : (
+        <p aria-hidden="true" className="text-text-mute text-xs font-semibold">
+          {label}
+        </p>
+      )}
+      {children}
+    </div>
+  );
+}
+
 /**
- * Search plus every farmer filter. All of it lives in the URL (via useAdminTable), so a filtered
- * view survives a refresh and can be shared: ?region=Northern&crop=Maize&band=building
+ * Status tabs, search, sort and the filter panel. All of it lives in the URL (via useAdminTable),
+ * so a filtered view survives a refresh and can be shared: ?status=active&region=Northern
  */
 export function FarmersFilters({
   table,
+  farmers,
   regions,
   crops,
   tags,
 }: {
   table: AdminTableState<FarmerAccount>;
+  /** Everyone in the list, for the counts on the status tabs. */
+  farmers: FarmerAccount[];
   regions: string[];
   crops: string[];
   tags: string[];
 }) {
+  const id = useId();
   const value = (name: FarmerFilterName) => table.filters[name] ?? '';
   const set = (name: FarmerFilterName, next: string) => table.setFilter(name, next || null);
   const setMany = (name: FarmerFilterName) => (next: string[]) => set(name, next.join(','));
-  const active = (Object.keys(FILTER_LABELS) as FarmerFilterName[]).filter((name) => value(name));
+
+  // Chips for every active filter except status (the tabs already show it).
+  const chips = (Object.keys(FILTER_LABELS) as FarmerFilterName[]).filter(
+    (name) => name !== 'status' && value(name),
+  );
+  const panelCount = PANEL_FILTERS.filter((name) => value(name)).length;
+  const [panelOpen, setPanelOpen] = useState(panelCount > 0);
+  const status = value('status');
+  const sortValue = table.sort ? `${table.sort.key}:${table.sort.dir}` : 'joined:desc';
+  const countOf = (s: AccountStatus | '') =>
+    s ? farmers.filter((f) => f.status === s).length : farmers.length;
 
   return (
-    <div role="search" aria-label="Find farmers" className="space-y-3">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
-        <div className="relative sm:col-span-2 lg:col-span-1">
-          <Search
-            size={16}
-            aria-hidden="true"
-            className="text-text-mute pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2"
-          />
-          <Input
-            type="search"
-            aria-label="Search by name, email, phone or farm"
-            placeholder="Name, email, phone or farm"
-            value={table.query}
-            onChange={(e) => table.setQuery(e.target.value)}
-            className="pl-10"
-          />
+    <div className="space-y-4">
+      {/* Status tabs */}
+      <div className="scrollbar-none overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden">
+        <div
+          role="group"
+          aria-label="Account status"
+          className="flex min-w-max gap-0.5 shadow-[inset_0_-1px_0_var(--border)] sm:gap-1"
+        >
+          {STATUS_TABS.map((tab) => {
+            const selected = status === tab.value;
+            return (
+              <button
+                key={tab.label}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => set('status', tab.value)}
+                className={cn(
+                  'inline-flex min-h-11 items-center gap-1.5 border-b-2 px-2 text-[13px] font-semibold transition-colors sm:gap-2 sm:px-3 sm:text-sm',
+                  selected
+                    ? 'border-purple text-text'
+                    : 'text-text-mute hover:text-text border-transparent',
+                )}
+              >
+                {tab.label}
+                <span
+                  className={cn(
+                    'rounded-md px-1.5 py-0.5 text-[11px] tabular-nums',
+                    selected ? 'bg-purple/15 text-ink-purple' : 'bg-glass-strong text-text-mute',
+                  )}
+                >
+                  {countOf(tab.value)}
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <MultiSelect
-          label="Region"
-          options={regions.map((r) => ({ value: r, label: r }))}
-          value={splitValues(value('region'))}
-          onChange={setMany('region')}
-        />
-        <MultiSelect
-          label="Crop"
-          options={crops.map((c) => ({ value: c, label: c }))}
-          value={splitValues(value('crop'))}
-          onChange={setMany('crop')}
-        />
-        <MultiSelect
-          label="Score band"
-          options={SCORE_BANDS.map((b) => ({ value: b.value, label: b.label }))}
-          value={splitValues(value('band'))}
-          onChange={setMany('band')}
-        />
-        <label>
-          <span className="sr-only">Status</span>
-          <Select value={value('status')} onChange={(e) => set('status', e.target.value)}>
-            <option value="">All statuses</option>
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label>
-          <span className="sr-only">Verification</span>
-          <Select
-            value={value('verification')}
-            onChange={(e) => set('verification', e.target.value)}
-          >
-            <option value="">Any verification</option>
-            {VERIFICATION_FILTERS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label>
-          <span className="sr-only">Records</span>
-          <Select value={value('records')} onChange={(e) => set('records', e.target.value)}>
-            <option value="">With or without records</option>
-            {RECORD_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label>
-          <span className="sr-only">Tag</span>
-          <Select value={value('tag')} onChange={(e) => set('tag', e.target.value)}>
-            <option value="">Any tag</option>
-            {tags.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <fieldset className="flex items-center gap-2 sm:col-span-2">
-          <legend className="sr-only">Signed up between</legend>
-          <span className="text-text-mute shrink-0 text-xs">Joined</span>
-          <Input
-            type="date"
-            aria-label="Joined from"
-            value={value('joinedFrom')}
-            max={value('joinedTo') || undefined}
-            onChange={(e) => set('joinedFrom', e.target.value)}
-          />
-          <span className="text-text-mute text-xs">to</span>
-          <Input
-            type="date"
-            aria-label="Joined to"
-            value={value('joinedTo')}
-            min={value('joinedFrom') || undefined}
-            onChange={(e) => set('joinedTo', e.target.value)}
-          />
-        </fieldset>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <p className="text-text-dim font-semibold" aria-live="polite">
-          {table.total.toLocaleString()} {table.total === 1 ? 'farmer' : 'farmers'} found
-        </p>
-        {active.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => table.setFilter(name, null)}
-            aria-label={`Remove filter ${FILTER_LABELS[name]}: ${chipText(name, value(name))}`}
-            className="bg-purple/15 text-ink-purple hover:bg-purple/25 inline-flex min-h-7 items-center gap-1 rounded-full px-2.5 font-semibold transition-colors"
+      <div role="search" aria-label="Find farmers" className="space-y-3">
+        {/* Search, filters and sort */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              size={16}
+              aria-hidden="true"
+              className="text-text-mute pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2"
+            />
+            <Input
+              type="search"
+              aria-label="Search by name, email, phone or farm"
+              placeholder="Search name, email, phone or farm"
+              value={table.query}
+              onChange={(e) => table.setQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-expanded={panelOpen}
+              aria-controls={`${id}-panel`}
+              onClick={() => setPanelOpen((open) => !open)}
+              className={cn(
+                'inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-colors sm:flex-none',
+                panelOpen || panelCount
+                  ? 'border-purple/50 bg-purple/10 text-text'
+                  : 'border-border bg-bg-2 text-text-dim hover:text-text',
+              )}
+            >
+              <SlidersHorizontal size={16} aria-hidden="true" />
+              Filters
+              {panelCount > 0 && (
+                <span className="bg-purple inline-flex size-5 items-center justify-center rounded-full text-[11px] text-white">
+                  {panelCount}
+                  <span className="sr-only"> active</span>
+                </span>
+              )}
+            </button>
+            <label className="flex-1 sm:w-48 sm:flex-none xl:hidden">
+              <span className="sr-only">Sort by</span>
+              <Select
+                value={sortValue}
+                onChange={(e) => {
+                  const [key, dir] = e.target.value.split(':');
+                  table.setSort(key, dir === 'desc' ? 'desc' : 'asc');
+                }}
+              >
+                {!SORT_OPTIONS.some((o) => o.value === sortValue) && (
+                  <option value={sortValue}>Custom sort</option>
+                )}
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          </div>
+        </div>
+
+        {/* Filter panel */}
+        {panelOpen && (
+          <div
+            id={`${id}-panel`}
+            className="animate-fade-in border-border bg-glass grid grid-cols-1 gap-4 rounded-2xl border p-4 sm:grid-cols-2 lg:grid-cols-4"
           >
-            {FILTER_LABELS[name]}: {chipText(name, value(name))}
-            <X size={12} aria-hidden="true" />
-          </button>
-        ))}
-        {(active.length > 0 || table.query) && (
-          <button
-            type="button"
-            onClick={table.clearFilters}
-            className="text-ink-purple min-h-7 font-semibold hover:underline"
-          >
-            Clear filters
-          </button>
+            <Field label="Region">
+              <MultiSelect
+                label="Region"
+                options={regions.map((r) => ({ value: r, label: r }))}
+                value={splitValues(value('region'))}
+                onChange={setMany('region')}
+              />
+            </Field>
+            <Field label="Crop">
+              <MultiSelect
+                label="Crop"
+                options={crops.map((c) => ({ value: c, label: c }))}
+                value={splitValues(value('crop'))}
+                onChange={setMany('crop')}
+              />
+            </Field>
+            <Field label="Score band">
+              <MultiSelect
+                label="Score band"
+                options={SCORE_BANDS.map((b) => ({ value: b.value, label: b.label }))}
+                value={splitValues(value('band'))}
+                onChange={setMany('band')}
+              />
+            </Field>
+            <Field label="Verification" htmlFor={`${id}-verification`}>
+              <Select
+                id={`${id}-verification`}
+                value={value('verification')}
+                onChange={(e) => set('verification', e.target.value)}
+              >
+                <option value="">Any verification</option>
+                {VERIFICATION_FILTERS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Records" htmlFor={`${id}-records`}>
+              <Select
+                id={`${id}-records`}
+                value={value('records')}
+                onChange={(e) => set('records', e.target.value)}
+              >
+                <option value="">With or without records</option>
+                {RECORD_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Tag" htmlFor={`${id}-tag`}>
+              <Select
+                id={`${id}-tag`}
+                value={value('tag')}
+                onChange={(e) => set('tag', e.target.value)}
+              >
+                <option value="">Any tag</option>
+                {tags.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Joined from" htmlFor={`${id}-from`}>
+              <Input
+                id={`${id}-from`}
+                type="date"
+                value={value('joinedFrom')}
+                max={value('joinedTo') || undefined}
+                onChange={(e) => set('joinedFrom', e.target.value)}
+              />
+            </Field>
+            <Field label="Joined to" htmlFor={`${id}-to`}>
+              <Input
+                id={`${id}-to`}
+                type="date"
+                value={value('joinedTo')}
+                min={value('joinedFrom') || undefined}
+                onChange={(e) => set('joinedTo', e.target.value)}
+              />
+            </Field>
+          </div>
         )}
+
+        {/* Results and active filters */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <p className="text-text-dim font-semibold" aria-live="polite">
+            {table.total.toLocaleString()} {table.total === 1 ? 'farmer' : 'farmers'}
+          </p>
+          {chips.map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => table.setFilter(name, null)}
+              aria-label={`Remove filter ${FILTER_LABELS[name]}: ${chipText(name, value(name))}`}
+              className="border-border bg-glass text-text-dim hover:text-text hover:border-purple/50 inline-flex min-h-7 items-center gap-1.5 rounded-lg border px-2.5 transition-colors"
+            >
+              <span className="text-text-mute">{FILTER_LABELS[name]}:</span>
+              <span className="text-text font-semibold">{chipText(name, value(name))}</span>
+              <X size={12} aria-hidden="true" />
+            </button>
+          ))}
+          {(chips.length > 0 || status || table.query) && (
+            <button
+              type="button"
+              onClick={table.clearFilters}
+              className="text-ink-purple min-h-7 px-1 font-semibold hover:underline"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

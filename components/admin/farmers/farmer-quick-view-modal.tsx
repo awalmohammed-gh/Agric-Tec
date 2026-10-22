@@ -95,7 +95,7 @@ export function FarmerQuickViewModal({
               ))}
             <Link
               href={`/admin/farmers/${account.userId}`}
-              className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-linear-to-br from-[#7c3aed] to-[#a855f7] px-5 text-sm font-semibold text-white"
+              className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#7c3aed] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#6d28d9]"
             >
               Open full profile
               <ArrowRight

@@ -24,6 +24,12 @@ export interface AdminColumn<T> {
   hideOnMobile?: boolean;
 }
 
+/** What a custom phone card gets: the row's opener (its name as a link or button) and checkbox. */
+export interface AdminMobileCardParts {
+  opener: (content: ReactNode) => ReactNode;
+  checkbox: ReactNode;
+}
+
 export interface AdminTableProps<T> {
   table: AdminTableState<T>;
   columns: AdminColumn<T>[];
@@ -40,6 +46,8 @@ export interface AdminTableProps<T> {
   onRowClick?: (row: T) => void;
   loading?: boolean;
   empty?: ReactNode;
+  /** A purpose-built card per row on phones, instead of the default label/value list. */
+  mobileCard?: (row: T, parts: AdminMobileCardParts) => ReactNode;
 }
 
 /** Clicks on these inside a row do their own thing instead of opening the row. */
@@ -60,6 +68,7 @@ export function AdminTable<T>({
   onRowClick,
   loading = false,
   empty,
+  mobileCard,
 }: AdminTableProps<T>) {
   const router = useRouter();
   const opensRow = Boolean(rowHref || onRowClick);
@@ -151,28 +160,36 @@ export function AdminTable<T>({
             key={getRowId(row)}
             onClick={(event) => onRowMouseClick(event, row)}
             className={cn(
-              'border-border bg-glass rounded-2xl border p-4',
-              opensRow && 'cursor-pointer',
+              'border-border bg-glass rounded-2xl border p-4 transition-colors',
+              opensRow && 'active:bg-glass-strong cursor-pointer',
+              table.selected.has(getRowId(row)) && 'border-purple/40 bg-purple/10',
             )}
           >
-            <div className="flex items-start gap-3">
-              {selectable && <span className="pt-0.5">{checkbox(row)}</span>}
-              <dl className="min-w-0 flex-1 space-y-1.5">
-                {columns
-                  .filter((column) => !column.hideOnMobile)
-                  .map((column) => (
-                    <div
-                      key={column.key}
-                      className="flex items-start justify-between gap-3 text-sm"
-                    >
-                      <dt className="text-text-mute shrink-0 text-xs">{column.header}</dt>
-                      <dd className="min-w-0 text-right">
-                        {column.primary ? primaryCell(row, column.cell(row)) : column.cell(row)}
-                      </dd>
-                    </div>
-                  ))}
-              </dl>
-            </div>
+            {mobileCard ? (
+              mobileCard(row, {
+                opener: (content) => primaryCell(row, content),
+                checkbox: selectable ? checkbox(row) : null,
+              })
+            ) : (
+              <div className="flex items-start gap-3">
+                {selectable && <span className="pt-0.5">{checkbox(row)}</span>}
+                <dl className="min-w-0 flex-1 space-y-1.5">
+                  {columns
+                    .filter((column) => !column.hideOnMobile)
+                    .map((column) => (
+                      <div
+                        key={column.key}
+                        className="flex items-start justify-between gap-3 text-sm"
+                      >
+                        <dt className="text-text-mute shrink-0 text-xs">{column.header}</dt>
+                        <dd className="min-w-0 text-right">
+                          {column.primary ? primaryCell(row, column.cell(row)) : column.cell(row)}
+                        </dd>
+                      </div>
+                    ))}
+                </dl>
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -206,7 +223,7 @@ export function AdminTable<T>({
                       sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined
                     }
                     className={cn(
-                      'text-text-mute px-3 py-3 text-xs font-semibold whitespace-nowrap',
+                      'text-text-mute px-3 py-3 text-[11px] font-semibold tracking-wider whitespace-nowrap uppercase',
                       column.align === 'right' && 'text-right',
                       column.className,
                     )}
@@ -244,12 +261,12 @@ export function AdminTable<T>({
                     table.selected.has(id) && 'bg-purple/10',
                   )}
                 >
-                  {selectable && <td className="px-3 py-2.5">{checkbox(row)}</td>}
+                  {selectable && <td className="px-3 py-3">{checkbox(row)}</td>}
                   {columns.map((column) => (
                     <td
                       key={column.key}
                       className={cn(
-                        'text-text-dim px-3 py-2.5 align-middle',
+                        'text-text-dim px-3 py-3 align-middle',
                         column.align === 'right' && 'text-right tabular-nums',
                         column.className,
                       )}
