@@ -76,6 +76,7 @@ export function AddNoteDialog({
       open={farmer !== null}
       onClose={close}
       title={farmer ? `Note on ${nameOf(farmer)}` : 'Add note'}
+      dirty={!busy && text.trim() !== ''}
       footer={
         <>
           <Button variant="ghost" onClick={close} disabled={busy}>

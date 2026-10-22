@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-/** A label/value list for drawers and detail pages. Wrap DetailRow items in DetailList. */
+/** A label/value list for detail modals and detail pages. Wrap DetailRow items in DetailList. */
 export function DetailList({ children, className }: { children: ReactNode; className?: string }) {
   return <dl className={cn('divide-border divide-y', className)}>{children}</dl>;
 }

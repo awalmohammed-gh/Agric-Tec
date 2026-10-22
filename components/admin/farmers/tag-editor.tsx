@@ -31,24 +31,16 @@ export function TagEditor({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const open = farmers.length > 0;
+  // Re-mounted per opening, so the form always starts empty.
+  if (farmers.length === 0) return null;
   return (
-    <Modal
-      open={open}
+    <TagForm
+      key={farmers.map((f) => f.userId).join()}
+      farmers={farmers}
+      knownTags={knownTags}
       onClose={onClose}
-      title={`Add a tag to ${farmers.length} farmer${farmers.length === 1 ? '' : 's'}`}
-      size="sm"
-    >
-      {open && (
-        <TagForm
-          key={farmers.map((f) => f.userId).join()}
-          farmers={farmers}
-          knownTags={knownTags}
-          onClose={onClose}
-          onDone={onDone}
-        />
-      )}
-    </Modal>
+      onDone={onDone}
+    />
   );
 }
 
@@ -64,6 +56,7 @@ function TagForm({
   onDone: () => void;
 }) {
   const listId = useId();
+  const formId = useId();
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const tag = normalize(value);
@@ -92,42 +85,53 @@ function TagForm({
   }
 
   return (
-    <form
-      className="space-y-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void submit();
-      }}
+    <Modal
+      open
+      onClose={onClose}
+      title={`Add a tag to ${farmers.length} farmer${farmers.length === 1 ? '' : 's'}`}
+      size="sm"
+      dirty={!busy && value.trim() !== ''}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button type="submit" form={formId} icon={Tag} loading={busy} disabled={!tag}>
+            Add tag
+          </Button>
+        </>
+      }
     >
-      <FormField label="Tag" htmlFor="bulk-tag">
-        <Input
-          id="bulk-tag"
-          list={listId}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="e.g. pilot-2026"
-          maxLength={40}
-          autoComplete="off"
-        />
-        <datalist id={listId}>
-          {knownTags.map((t) => (
-            <option key={t} value={t} />
-          ))}
-        </datalist>
-      </FormField>
-      {tag && value.trim() !== tag && (
-        <p className="text-text-mute text-xs">
-          Saved as <span className="font-mono">{tag}</span>
-        </p>
-      )}
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose} disabled={busy}>
-          Cancel
-        </Button>
-        <Button type="submit" icon={Tag} loading={busy} disabled={!tag}>
-          Add tag
-        </Button>
-      </div>
-    </form>
+      <form
+        id={formId}
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+      >
+        <FormField label="Tag" htmlFor="bulk-tag">
+          <Input
+            id="bulk-tag"
+            list={listId}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="e.g. pilot-2026"
+            maxLength={40}
+            autoComplete="off"
+          />
+          <datalist id={listId}>
+            {knownTags.map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
+        </FormField>
+        {tag && value.trim() !== tag && (
+          <p className="text-text-mute text-xs">
+            Saved as <span className="font-mono">{tag}</span>
+          </p>
+        )}
+      </form>
+    </Modal>
   );
 }

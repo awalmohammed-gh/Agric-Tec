@@ -124,19 +124,19 @@ agrictec/
 ├── components/
 │   └── admin/
 │       ├── layout/        (admin-sidebar, admin-topbar, role-badge, no-access, impersonation-bar)
-│       ├── shared/        (filter-bar, bulk-action-bar, status-badge, kpi-card, detail-row, json-diff)
+│       ├── shared/        (filter-bar, bulk-action-bar, status-badge, kpi-card, detail-row, detail-modal, json-diff)
 │       ├── overview/
-│       ├── farmers/
-│       ├── verifications/
+│       ├── farmers/       (farmer-quick-view-modal, detail/edit-profile-modal, …)
+│       ├── verifications/ (review-modal)
 │       ├── loans/
-│       ├── lenders/
+│       ├── lenders/       (lender-form-modal)
 │       ├── credit-rules/
 │       ├── content/
 │       ├── announcements/
-│       ├── risk/
+│       ├── risk/          (risk-detail-modal)
 │       ├── reports/
-│       ├── team/
-│       ├── audit-log/
+│       ├── team/          (invite-modal)
+│       ├── audit-log/     (audit-detail-modal)
 │       └── settings/
 │
 ├── lib/admin/
@@ -314,7 +314,12 @@ The admin must be able to **control** the farmer app, so the farmer app has to r
   - The sidebar brand reads "AgriCtec **Admin**" with a gold "CONSOLE" tag.
   - The active nav items use a purple tint instead of emerald.
   - The top bar shows a `RoleBadge` (super_admin gold, admin purple, support blue, analyst grey).
-- Pages are **dense but readable**: tables with sticky headers, filter bars, bulk selection, pagination (25 per page), and right-side detail drawers.
+- Pages are **dense but readable**: tables with sticky headers, filter bars, bulk selection, pagination (25 per page), and detail views that open in a centered modal.
+- **Modals, not drawers:** every detail, edit and review view opens in the shared centered `Modal` (`components/ui/modal.tsx`) on a dimmed, blurred backdrop, at every screen size (never a bottom sheet or side panel).
+  - Sizes: sm 420px, md 560px, lg 760px, xl 960px, full 95vw. Header and footer stay fixed; the body scrolls inside the modal (max 90vh).
+  - Focus is trapped, Escape closes only the top-most modal, focus returns to the opener, and the page behind doesn't scroll.
+  - A form with unsaved changes asks "Discard changes?" before it closes.
+  - Shared views: `detail-modal` (lg), `farmer-quick-view-modal` (lg), `edit-profile-modal` (md), `review-modal` (lg, verifications), `lender-form-modal` (md), `risk-detail-modal` (xl), `audit-detail-modal` (xl), `invite-modal` (md, team).
 - Desktop-first, with every page still usable at 768px. Below 768px, tables become stacked cards.
 - Destructive actions use red `ConfirmDialog`s. **Permanent deletes require typing the target's name or email.**
 
@@ -380,7 +385,8 @@ All dates are relative to today. Add a **"Reset demo data"** action in System Se
 - TypeScript strict, with no `any`. No `innerHTML`.
 - Every list has search, filters, sorting, pagination, an empty state, a loading skeleton, and CSV export where it makes sense.
 - Every write shows a toast **and** creates an audit entry.
-- Accessibility: keyboard-usable tables, drawers and dialogs, plus `aria-sort`, `aria-current` and labelled controls.
+- Accessibility: keyboard-usable tables, centered modals and dialogs, plus `aria-sort`, `aria-current` and labelled controls.
+- No side drawers for content. All detail, edit and review views open in the shared centered Modal (components/ui/modal.tsx). The mobile navigation sidebar is the only slide-in panel.
 - `npm run build` passes with zero errors.
 
 ---

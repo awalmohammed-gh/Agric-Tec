@@ -65,6 +65,12 @@ export function VerificationTab({ data, reload }: TabProps) {
     }
   }
 
+  /** Closing the reject form drops the half-typed reason. */
+  function closeReject() {
+    setRejecting(null);
+    setReason('');
+  }
+
   async function reject() {
     if (!rejecting) return;
     setBusyId(rejecting.id);
@@ -164,11 +170,12 @@ export function VerificationTab({ data, reload }: TabProps) {
 
       <Modal
         open={rejecting !== null}
-        onClose={() => setRejecting(null)}
+        onClose={closeReject}
         title={`Reject ${rejecting ? KIND_LABEL[rejecting.kind] : ''} check`}
+        dirty={busyId === null && reason.trim() !== ''}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setRejecting(null)}>
+            <Button variant="ghost" onClick={closeReject}>
               Cancel
             </Button>
             <Button

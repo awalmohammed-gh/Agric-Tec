@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  AppWindow,
   Ban,
   BadgeCheck,
   Download,
   Eye,
   KeyRound,
   MapPin,
-  PanelRightOpen,
   RotateCcw,
   ScanSearch,
   Smartphone,
@@ -23,7 +23,7 @@ import { RowMenu, type RowMenuItem } from '@/components/admin/shared/row-menu';
 import { StatusBadge } from '@/components/admin/shared/status-badge';
 import { AddNoteDialog, ReactivateDialog } from '@/components/admin/farmers/farmer-action-dialogs';
 import { ResetPasswordDialog } from '@/components/admin/farmers/detail/reset-password-dialog';
-import { FarmerQuickView } from '@/components/admin/farmers/farmer-quick-view';
+import { FarmerQuickViewModal } from '@/components/admin/farmers/farmer-quick-view-modal';
 import { csvFileName, FarmersBulkActions } from '@/components/admin/farmers/farmers-bulk-actions';
 import { FarmersFilters } from '@/components/admin/farmers/farmers-filters';
 import { SuspendDialog } from '@/components/admin/farmers/suspend-dialog';
@@ -163,7 +163,7 @@ export function FarmersTable() {
         icon: UserRound,
         onSelect: () => router.push(`/admin/farmers/${farmer.userId}`),
       },
-      { label: 'Quick view', icon: PanelRightOpen, onSelect: () => setQuickView(farmer) },
+      { label: 'Quick view', icon: AppWindow, onSelect: () => setQuickView(farmer) },
       ...(abilities.suspend
         ? [
             farmer.status === 'suspended'
@@ -365,7 +365,7 @@ export function FarmersTable() {
         />
       )}
 
-      <FarmerQuickView
+      <FarmerQuickViewModal
         key={quickView?.userId ?? 'closed'}
         farmer={quickView}
         onClose={() => setQuickView(null)}

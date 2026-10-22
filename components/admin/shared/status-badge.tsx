@@ -28,7 +28,7 @@ interface StatusStyle {
   color: BadgeColor;
 }
 
-/** The single map from a status to its colour and label (lists, drawers and detail pages). */
+/** The single map from a status to its colour and label (lists, detail modals and detail pages). */
 export const STATUS_STYLES: { [K in StatusKind]: Record<StatusKinds[K], StatusStyle> } = {
   account: {
     active: { label: 'Active', color: 'green' },

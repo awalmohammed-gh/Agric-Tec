@@ -36,7 +36,7 @@ export interface AdminTableProps<T> {
   rowLabel?: (row: T) => string;
   /** A row opens a page… */
   rowHref?: (row: T) => string;
-  /** …or a drawer. */
+  /** …or a detail modal. */
   onRowClick?: (row: T) => void;
   loading?: boolean;
   empty?: ReactNode;
@@ -47,7 +47,7 @@ const INTERACTIVE = 'a, button, input, label, select, textarea';
 
 /**
  * The console's data table: sticky header, checkbox column, sortable headers (aria-sort), rows
- * that open a page or drawer, pagination and an empty state. Below 768px rows become cards.
+ * that open a page or a detail modal, pagination and an empty state. Below 768px rows become cards.
  */
 export function AdminTable<T>({
   table,
@@ -69,8 +69,13 @@ export function AdminTable<T>({
     else onRowClick?.(row);
   }
 
-  function onRowMouseClick(event: MouseEvent, row: T) {
+  function onRowMouseClick(event: MouseEvent<HTMLElement>, row: T) {
     if ((event.target as HTMLElement).closest(INTERACTIVE)) return;
+    // Focus the row's own link or button first, so a modal opened from the row hands focus back
+    // to this row when it closes (a tap on a card focuses nothing by itself).
+    event.currentTarget
+      .querySelector<HTMLElement>('[data-row-opener]')
+      ?.focus({ preventScroll: true });
     open(row);
   }
 
@@ -78,7 +83,11 @@ export function AdminTable<T>({
   function primaryCell(row: T, content: ReactNode) {
     if (rowHref) {
       return (
-        <Link href={rowHref(row)} className="text-text hover:text-ink-purple font-semibold">
+        <Link
+          href={rowHref(row)}
+          data-row-opener
+          className="text-text hover:text-ink-purple font-semibold"
+        >
           {content}
         </Link>
       );
@@ -87,6 +96,7 @@ export function AdminTable<T>({
       return (
         <button
           type="button"
+          data-row-opener
           onClick={() => onRowClick(row)}
           className="text-text hover:text-ink-purple text-left font-semibold"
         >

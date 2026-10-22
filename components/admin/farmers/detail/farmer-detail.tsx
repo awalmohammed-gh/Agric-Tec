@@ -11,7 +11,7 @@ import { ActivityTab } from '@/components/admin/farmers/detail/activity-tab';
 import { CreditTab } from '@/components/admin/farmers/detail/credit-tab';
 import { DeleteFarmerDialog } from '@/components/admin/farmers/detail/delete-farmer-dialog';
 import { DiagnosesTab } from '@/components/admin/farmers/detail/diagnoses-tab';
-import { EditProfileDrawer } from '@/components/admin/farmers/detail/edit-profile-drawer';
+import { EditProfileModal } from '@/components/admin/farmers/detail/edit-profile-modal';
 import { FarmerHeader } from '@/components/admin/farmers/detail/farmer-header';
 import { LoansTab } from '@/components/admin/farmers/detail/loans-tab';
 import { MomoTab } from '@/components/admin/farmers/detail/momo-tab';
@@ -183,7 +183,7 @@ export function FarmerDetail({ id }: { id: string }) {
         {tab === 'activity' && canAudit && <ActivityTab farmerId={id} version={version} />}
       </div>
 
-      <EditProfileDrawer
+      <EditProfileModal
         farmer={farmer}
         open={dialog === 'edit'}
         onClose={close}

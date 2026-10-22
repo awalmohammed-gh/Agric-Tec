@@ -35,23 +35,15 @@ export function SuspendDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const open = farmers.length > 0;
+  // Re-mounted per opening, so the form always starts empty.
+  if (farmers.length === 0) return null;
   return (
-    <Modal
-      open={open}
+    <SuspendForm
+      key={farmers.map((f) => f.userId).join()}
+      farmers={farmers}
       onClose={onClose}
-      title={farmers.length > 1 ? `Suspend ${farmers.length} farmers` : 'Suspend farmer'}
-    >
-      {/* Re-mounted per opening, so the form always starts empty. */}
-      {open && (
-        <SuspendForm
-          key={farmers.map((f) => f.userId).join()}
-          farmers={farmers}
-          onClose={onClose}
-          onDone={onDone}
-        />
-      )}
-    </Modal>
+      onDone={onDone}
+    />
   );
 }
 
@@ -97,82 +89,90 @@ function SuspendForm({
   }
 
   return (
-    <div className="space-y-4">
-      <p className="border-danger/40 bg-danger/10 text-ink-red rounded-xl border px-3.5 py-3 text-sm">
-        They will be signed out and blocked from logging in.
-      </p>
-
-      <div>
-        <p className="text-text-dim mb-2 text-xs font-semibold">
-          {targets.length === 1 ? 'Farmer' : `These ${targets.length} farmers`}
+    <Modal
+      open
+      onClose={onClose}
+      title={farmers.length > 1 ? `Suspend ${farmers.length} farmers` : 'Suspend farmer'}
+      dirty={!busy && (reason !== '' || note.trim() !== '')}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            icon={Ban}
+            loading={busy}
+            disabled={targets.length === 0}
+            onClick={() => void submit()}
+          >
+            {targets.length > 1 ? `Suspend ${targets.length} farmers` : 'Suspend'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <p className="border-danger/40 bg-danger/10 text-ink-red rounded-xl border px-3.5 py-3 text-sm">
+          They will be signed out and blocked from logging in.
         </p>
-        <ul className="border-border max-h-40 overflow-y-auto rounded-xl border px-3 py-2 text-sm">
-          {targets.map((f) => (
-            <li key={f.userId} className="text-text py-0.5">
-              {nameOf(f)} <span className="text-text-mute">· {f.email}</span>
-            </li>
-          ))}
-        </ul>
-        {skipped > 0 && (
-          <p className="text-text-mute mt-1.5 text-xs">
-            {skipped} already suspended {skipped === 1 ? 'farmer is' : 'farmers are'} skipped.
+
+        <div>
+          <p className="text-text-dim mb-2 text-xs font-semibold">
+            {targets.length === 1 ? 'Farmer' : `These ${targets.length} farmers`}
+          </p>
+          <ul className="border-border max-h-40 overflow-y-auto rounded-xl border px-3 py-2 text-sm">
+            {targets.map((f) => (
+              <li key={f.userId} className="text-text py-0.5">
+                {nameOf(f)} <span className="text-text-mute">· {f.email}</span>
+              </li>
+            ))}
+          </ul>
+          {skipped > 0 && (
+            <p className="text-text-mute mt-1.5 text-xs">
+              {skipped} already suspended {skipped === 1 ? 'farmer is' : 'farmers are'} skipped.
+            </p>
+          )}
+        </div>
+
+        <FormField label="Reason" htmlFor="suspend-reason">
+          <Select id="suspend-reason" value={reason} onChange={(e) => setReason(e.target.value)}>
+            <option value="">Choose a reason…</option>
+            {SUSPEND_REASONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+
+        <FormField label="Note (required)" htmlFor="suspend-note">
+          <Textarea
+            id="suspend-note"
+            rows={3}
+            maxLength={500}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="What happened, and what the farmer must do to be reactivated."
+          />
+        </FormField>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={notify}
+            onChange={(e) => setNotify(e.target.checked)}
+            className="size-4 accent-[#a855f7]"
+          />
+          <span className="text-text">Notify farmer</span>
+          <span className="text-text-mute text-xs">(demo: no message is sent)</span>
+        </label>
+
+        {error && (
+          <p role="alert" className="text-ink-red text-sm">
+            {error}
           </p>
         )}
       </div>
-
-      <FormField label="Reason" htmlFor="suspend-reason">
-        <Select id="suspend-reason" value={reason} onChange={(e) => setReason(e.target.value)}>
-          <option value="">Choose a reason…</option>
-          {SUSPEND_REASONS.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </Select>
-      </FormField>
-
-      <FormField label="Note (required)" htmlFor="suspend-note">
-        <Textarea
-          id="suspend-note"
-          rows={3}
-          maxLength={500}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="What happened, and what the farmer must do to be reactivated."
-        />
-      </FormField>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={notify}
-          onChange={(e) => setNotify(e.target.checked)}
-          className="size-4 accent-[#a855f7]"
-        />
-        <span className="text-text">Notify farmer</span>
-        <span className="text-text-mute text-xs">(demo: no message is sent)</span>
-      </label>
-
-      {error && (
-        <p role="alert" className="text-ink-red text-sm">
-          {error}
-        </p>
-      )}
-
-      <div className="border-border flex flex-wrap justify-end gap-2 border-t pt-4">
-        <Button variant="ghost" onClick={onClose} disabled={busy}>
-          Cancel
-        </Button>
-        <Button
-          variant="danger"
-          icon={Ban}
-          loading={busy}
-          disabled={targets.length === 0}
-          onClick={() => void submit()}
-        >
-          {targets.length > 1 ? `Suspend ${targets.length} farmers` : 'Suspend'}
-        </Button>
-      </div>
-    </div>
+    </Modal>
   );
 }

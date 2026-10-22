@@ -138,15 +138,6 @@
   }
 }
 
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
 /* Three bouncing dots (AI chat, Phase 11): animate each dot with a staggered delay */
 @keyframes typing {
   0%,
@@ -248,11 +239,51 @@
   animation: pulse 2s ease-in-out infinite;
 }
 
-@utility animate-slide-in {
-  animation: slideIn 0.3s ease-out both;
+/* Modals (components/ui/modal.tsx): the backdrop fades in; the panel fades in and grows from
+   0.95 to full size. With reduced motion the panel only fades. */
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
 }
 
-/* Admin console: the sidebar drawer slides in from the left (below 1024px) */
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@utility animate-backdrop-in {
+  animation: backdropIn 0.2s ease-out both;
+}
+
+@utility animate-modal-in {
+  animation: modalIn 0.2s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-modal-in {
+    animation-name: backdropIn;
+  }
+}
+
+/* The modal surface: the glass tint over a solid base, so text stays readable on the blur. */
+@utility modal-glass {
+  background-color: var(--bg-2);
+  background-image: linear-gradient(var(--glass-strong), var(--glass-strong));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+/* At most 90% of the screen height (dvh where supported, so phone toolbars don't cut it off). */
+@utility modal-height {
+  max-height: 90vh;
+  max-height: 90dvh;
+}
+
+/* Admin console: the navigation sidebar slides in from the left (below 1024px) */
 @keyframes slideInLeft {
   from {
     transform: translateX(-100%);
