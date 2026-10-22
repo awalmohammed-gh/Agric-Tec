@@ -9,6 +9,8 @@ import type { AdminUser, Permission } from '@/types/admin';
 /** An admin as stored. The hash never leaves the services: callers get an AdminUser. */
 export interface StoredAdmin extends AdminUser {
   passwordHash: string;
+  /** Set on the super admin when its sign-in came from .env (see lib/admin/super-admin.ts). */
+  configuredFrom?: string;
 }
 
 /**

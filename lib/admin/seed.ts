@@ -27,6 +27,7 @@ import {
 } from '@/lib/admin/keys';
 import { hashGhanaCard } from '@/lib/admin/card-hash';
 import { detectRisks } from '@/lib/admin/risk-rules';
+import { CONFIGURED_SUPER_ADMIN } from '@/lib/admin/super-admin';
 import type { RejectReason } from '@/lib/admin/verification-queue';
 import { maskGhanaCard } from '@/lib/profile';
 import { hashPassword, type StoredUser } from '@/services/auth.service';
@@ -404,18 +405,24 @@ export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
       daysAgo: 90,
     },
   ];
-  const admins: StoredAdmin[] = team.map((member) => ({
-    id: member.id,
-    name: member.name,
-    email: member.email,
-    role: member.role,
-    status: 'active',
-    // Only the super admin is forced to change the demo password at first login.
-    mustChangePassword: member.role === 'super_admin',
-    createdAt: at(member.daysAgo),
-    ...(member.id !== SUPER_ADMIN_ID && { createdBy: SUPER_ADMIN_ID }),
-    passwordHash: member.role === 'super_admin' ? superHash : teamHash,
-  }));
+  const owner = CONFIGURED_SUPER_ADMIN;
+  const admins: StoredAdmin[] = team.map((member) => {
+    const isSuper = member.id === SUPER_ADMIN_ID;
+    return {
+      id: member.id,
+      name: member.name,
+      // The owner's .env sign-in replaces the demo one (the password was chosen, so no forced
+      // change at first login). Otherwise the demo super admin must change its password.
+      email: isSuper && owner ? owner.email : member.email,
+      role: member.role,
+      status: 'active',
+      mustChangePassword: isSuper && !owner,
+      createdAt: at(member.daysAgo),
+      ...(!isSuper && { createdBy: SUPER_ADMIN_ID }),
+      passwordHash: isSuper ? (owner?.passwordHash ?? superHash) : teamHash,
+      ...(isSuper && owner && { configuredFrom: owner.fingerprint }),
+    };
+  });
   const reviewer = (role: 'admin' | 'support') =>
     role === 'admin' ? 'Efua Asantewaa' : rand.pick(['Kofi Adjei', 'Ama Serwaa']);
 

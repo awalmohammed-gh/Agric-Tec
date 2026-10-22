@@ -12,11 +12,13 @@ import {
   readAdmins,
   toAdminUser,
   writeAdmins,
+  type StoredAdmin,
   type StoredAdminSession,
 } from '@/lib/admin/admin-session';
 import { ADMIN_LOCKOUT_KEY, ADMIN_SESSION_KEY } from '@/lib/admin/keys';
 import { passwordProblem } from '@/lib/admin/passwords';
-import { seedPlatform } from '@/lib/admin/seed';
+import { seedPlatform, SUPER_ADMIN_ID } from '@/lib/admin/seed';
+import { CONFIGURED_SUPER_ADMIN } from '@/lib/admin/super-admin';
 import { formatCountdown } from '@/lib/format';
 import { hashPassword } from '@/services/auth.service';
 import { delay, storage } from '@/services/storage';
@@ -114,6 +116,34 @@ function endSession(admin: AdminUser | null, reason: SignOutReason): void {
   clearCookies();
 }
 
+/**
+ * Puts the owner's .env sign-in on the super admin of an install that was set up before it (or
+ * with different values). Applied once per .env value, so a password the owner later changes in
+ * the console is kept. Never takes an email another admin already uses.
+ */
+function applyConfiguredSuperAdmin(): void {
+  const owner = CONFIGURED_SUPER_ADMIN;
+  if (!owner) return;
+  const admins = readAdmins();
+  const current = admins.find((a) => a.id === SUPER_ADMIN_ID);
+  if (!current || current.configuredFrom === owner.fingerprint) return;
+  if (admins.some((a) => a.id !== SUPER_ADMIN_ID && a.email === owner.email)) return;
+  const updated: StoredAdmin = {
+    ...current,
+    email: owner.email,
+    passwordHash: owner.passwordHash,
+    mustChangePassword: false,
+    configuredFrom: owner.fingerprint,
+  };
+  writeAdmins(admins.map((a) => (a.id === SUPER_ADMIN_ID ? updated : a)));
+  appendAudit(toAdminUser(updated), {
+    action: 'admin.credentials_configured',
+    targetType: 'admin',
+    targetId: updated.id,
+    summary: `${updated.name}’s sign-in was set from the server configuration`,
+  });
+}
+
 export const adminAuthService = {
   /**
    * Seeds the demo platform on the first admin login, then checks the credentials. A farmer's
@@ -125,6 +155,7 @@ export const adminAuthService = {
     if (lock.locked && lock.until) throw new Error(lockedMessage(lock.until));
 
     await seedPlatform();
+    applyConfiguredSuperAdmin();
     const normalized = normalizeEmail(email);
     const admins = readAdmins();
     const stored = admins.find((a) => a.email === normalized);
