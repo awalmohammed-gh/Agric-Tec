@@ -6,6 +6,7 @@ import { announcementsService } from '@/services/admin/announcements.service';
 import { configService } from '@/services/admin/config.service';
 import { contentService } from '@/services/admin/content.service';
 import { lendersService } from '@/services/admin/lenders.service';
+import { riskService } from '@/services/admin/risk.service';
 import { verificationsService } from '@/services/admin/verifications.service';
 import { delay, storage, userKey } from '@/services/storage';
 import type { MarketPrice, Weather } from '@/types';
@@ -100,6 +101,11 @@ export const platformService = {
     const next = kept.includes(id) ? kept : [...kept, id];
     storage.set(dismissedKey(userId), next);
     return next;
+  },
+
+  /** Whether an admin confirmed a risk flag on this account (no details, just the state). */
+  async underReview(userId: string): Promise<boolean> {
+    return riskService.underReview(userId);
   },
 
   async listVerifications(userId: string): Promise<VerificationRequest[]> {

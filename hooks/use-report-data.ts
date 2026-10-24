@@ -1,6 +1,7 @@
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { buildReportData, type ReportData } from '@/lib/reports/build-report-data';
 import { useFarmStore } from '@/store/farm-store';
+import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
 import type { ReportType } from '@/types';
 
@@ -10,5 +11,6 @@ export function useReportBuilder(): (type: ReportType, now?: Date) => ReportData
   const momo = useFarmStore((s) => s.momo);
   const profile = useProfileStore((s) => s.profile);
   const stats = useFarmStats();
-  return (type, now) => buildReportData(type, { records, momo, profile, stats, now });
+  const underReview = usePlatformStore((s) => s.underReview);
+  return (type, now) => buildReportData(type, { records, momo, profile, stats, now, underReview });
 }

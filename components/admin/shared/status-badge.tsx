@@ -49,10 +49,11 @@ export const STATUS_STYLES: { [K in StatusKind]: Record<StatusKinds[K], StatusSt
     repaid: { label: LOAN_STATUS_LABELS.repaid, color: 'green' },
     defaulted: { label: LOAN_STATUS_LABELS.defaulted, color: 'red' },
   },
+  // Open needs a decision (gold); confirmed fraud is red, like the farmer's "Risk" tag.
   risk: {
-    open: { label: 'Open', color: 'red' },
-    dismissed: { label: 'Dismissed', color: 'blue' },
-    confirmed: { label: 'Confirmed', color: 'purple' },
+    open: { label: 'Open', color: 'gold' },
+    dismissed: { label: 'Dismissed', color: 'green' },
+    confirmed: { label: 'Confirmed', color: 'red' },
   },
   severity: {
     high: { label: 'High', color: 'red' },

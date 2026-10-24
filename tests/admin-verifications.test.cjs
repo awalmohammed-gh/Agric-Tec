@@ -116,9 +116,18 @@ test('the queue lists the oldest pending request first; overdue ones are flagged
   assert.equal(isOverdue({ ...request, status: 'approved' }, now), false);
 });
 
+/** The oldest pending Ghana Card that is not part of the planted duplicate (kept for its own test). */
+async function plainPendingCard() {
+  const [queue, all, farmers] = await Promise.all([
+    pendingQueue(),
+    verificationsService.list(),
+    farmersService.list(),
+  ]);
+  return queue.find((v) => v.kind === 'ghanaCard' && findDuplicates(v, all, farmers).length === 0);
+}
+
 test('approving a Ghana Card verifies the profile and raises the score (audited)', async () => {
-  const queue = await pendingQueue();
-  const card = queue.find((v) => v.kind === 'ghanaCard');
+  const card = await plainPendingCard();
   const before = await farmersService.get(card.userId);
   assert.equal(before.profile.verification.ghanaCard, false);
 
@@ -138,7 +147,7 @@ test('approving a Ghana Card verifies the profile and raises the score (audited)
 });
 
 test('rejecting needs a listed reason; the farmer sees it and can resubmit', async () => {
-  const card = (await pendingQueue()).find((v) => v.kind === 'ghanaCard');
+  const card = await plainPendingCard();
   await assert.rejects(() => verificationsService.reject(card.id, 'Because'), /Choose a reason/);
   await assert.rejects(() => verificationsService.reject(card.id, 'Other', ''), /Add a note/);
   assert.deepEqual(

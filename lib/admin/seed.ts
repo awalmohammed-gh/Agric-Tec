@@ -358,9 +358,15 @@ const roundTo = (value: number, step: number) => Math.round(value / step) * step
 export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
   const rand = createRandom(SEED);
   const today = startOfDay(now);
-  /** A timestamp `daysAgo` days before today at hh:mm local time. */
-  const at = (daysAgo: number, hour = 9, minute = 0) =>
-    addMinutes(subDays(today, daysAgo), hour * 60 + minute).toISOString();
+  /**
+   * A timestamp `daysAgo` days before today at hh:mm local time. A time later than `now` (e.g.
+   * "today at 7:00" when seeding at 3 a.m.) moves to the day before, so nothing is in the
+   * future and two seeds in the same hour stay identical.
+   */
+  const at = (daysAgo: number, hour = 9, minute = 0) => {
+    const time = addMinutes(subDays(today, daysAgo), hour * 60 + minute);
+    return (time > now ? subDays(time, 1) : time).toISOString();
+  };
   const day = (daysAgo: number) => format(subDays(today, daysAgo), 'yyyy-MM-dd');
 
   const [farmerHash, teamHash, superHash] = await Promise.all([
@@ -632,12 +638,15 @@ export async function buildSeedWorld(now = new Date()): Promise<SeedWorld> {
     if (index === PLANTED.spike) {
       for (let m = 2; m <= 7; m++)
         addRecord(m * 30 + 5, 'income', mainCrop, `${mainCrop} sales at ${market}`, 4200);
+      // Three bulk sales on one day, so they always fall in the same month.
       for (let i = 0; i < 3; i++)
-        addRecord(5 + i * 4, 'income', mainCrop, `Bulk ${mainCrop.toLowerCase()} sale`, 14000);
+        addRecord(5, 'income', mainCrop, `Bulk ${mainCrop.toLowerCase()} sale`, 14000);
     }
     if (index === PLANTED.backdated) {
-      for (let i = 0; i < 10; i++) {
-        addRecord(60 + i * 15, 'expense', mainCrop, 'Late entry: farm inputs', 600, at(3, 21, i));
+      // 18 records dated 100–270 days back, entered over two evenings (9 a day, so not a burst).
+      for (let i = 0; i < 18; i++) {
+        const entered = i < 9 ? at(3, 21, i) : at(4, 21, i);
+        addRecord(100 + i * 10, 'expense', mainCrop, 'Late entry: farm inputs', 600, entered);
       }
     }
     records.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));

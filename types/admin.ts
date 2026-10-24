@@ -69,6 +69,8 @@ export interface FarmerAccount {
     score: number;
     diagnoses: number;
   };
+  /** Confirmed risk flags (phase A13): the red "Risk" tag and "Account under review". */
+  riskConfirmed: number;
   /** e.g. 'cooperative-lead', 'pilot-2026' */
   tags: string[];
   adminNotes: { id: string; text: string; by: string; at: string }[];

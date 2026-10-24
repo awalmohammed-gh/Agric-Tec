@@ -42,6 +42,8 @@ export interface ReportSource {
   profile: Profile | null;
   stats: FarmStats;
   now?: Date;
+  /** An admin confirmed a risk flag: lender-facing reports say "Account under review". */
+  underReview?: boolean;
 }
 
 export const REPORT_TITLES: Record<ReportType, string> = {
@@ -164,6 +166,7 @@ function loanReadiness({
   momo,
   profile,
   stats,
+  underReview = false,
 }: ReportSource): Omit<ReportData, 'type' | 'title' | 'generatedAt' | 'farmer'> {
   const { credit, creditLabel } = stats;
   const weights = stats.creditConfig.weights;
@@ -180,31 +183,37 @@ function loanReadiness({
     rules: stats.loanRules,
     ghanaCard: profile?.ghanaCard.status ?? 'not_provided',
   });
-  const strong = stats.profit > 0 && eligibility.eligible;
+  const strong = stats.profit > 0 && eligibility.eligible && !underReview;
 
-  const assessment = strong
-    ? `${name} demonstrates strong financial management, with a net profit of ${formatGHS(stats.profit)} ` +
-      `(${stats.margin}% margin) across ${records.length} farm records and ${momo.length} mobile money transactions. ` +
-      `The credit score of ${credit.score} (${creditLabel}) reflects consistent record keeping. ` +
-      `Based on an annualized profit of ${formatGHS(stats.annualizedProfit)}, ${nameMid} is recommended for loans up to ${formatGHS(maxLoan)}.`
-    : `We recommend building more history before applying for a loan. ` +
-      [
-        stats.profit <= 0 ? 'The recorded figures do not yet show a profit.' : '',
-        ...eligibility.reasons,
-      ]
-        .filter(Boolean)
-        .join(' ') +
-      ' Keep recording every sale, expense and MoMo payment to strengthen this profile.';
+  const assessment = underReview
+    ? 'Account under review. AgriCtec is reviewing activity on this account, so no loan recommendation is given until the review is complete. The figures below are shown as recorded by the farmer.'
+    : strong
+      ? `${name} demonstrates strong financial management, with a net profit of ${formatGHS(stats.profit)} ` +
+        `(${stats.margin}% margin) across ${records.length} farm records and ${momo.length} mobile money transactions. ` +
+        `The credit score of ${credit.score} (${creditLabel}) reflects consistent record keeping. ` +
+        `Based on an annualized profit of ${formatGHS(stats.annualizedProfit)}, ${nameMid} is recommended for loans up to ${formatGHS(maxLoan)}.`
+      : `We recommend building more history before applying for a loan. ` +
+        [
+          stats.profit <= 0 ? 'The recorded figures do not yet show a profit.' : '',
+          ...eligibility.reasons,
+        ]
+          .filter(Boolean)
+          .join(' ') +
+        ' Keep recording every sale, expense and MoMo payment to strengthen this profile.';
 
   const status = (done: boolean) => (done ? 'Verified' : 'Pending');
   return {
     summary: [
+      ...(underReview ? [{ label: 'Account status', value: 'Account under review' }] : []),
       { label: 'Credit score', value: `${credit.score} (${creditLabel})` },
       { label: 'Net profit', value: formatGHS(stats.profit) },
       { label: 'Annualized profit', value: formatGHS(stats.annualizedProfit) },
       { label: 'Farm records', value: String(records.length) },
       { label: 'MoMo transactions', value: String(momo.length) },
-      { label: 'Maximum affordable loan', value: formatGHS(maxLoan) },
+      {
+        label: 'Maximum affordable loan',
+        value: underReview ? 'Withheld (account under review)' : formatGHS(maxLoan),
+      },
     ],
     table: {
       title: 'Credit score factors',

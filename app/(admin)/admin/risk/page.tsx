@@ -1,18 +1,19 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
+import { RiskMonitor } from '@/components/admin/risk/risk-monitor';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = { title: 'Risk & Fraud' };
 
-/** Guarded by risk.review. Built in phase A13. */
+/** Guarded by risk.review (every scan and decision checks it again in the service). */
 export default function RiskPage() {
   return (
-    <AdminPlaceholder
-      permission="risk.review"
-      phase="A13"
-      features={[
-        'The detection rules and their thresholds',
-        'Run a scan; review, dismiss or confirm flags with a note',
-      ]}
-    />
+    <RequirePermission permission="risk.review">
+      {/* The table keeps its filters in the URL (search params need a Suspense boundary). */}
+      <Suspense fallback={<Skeleton className="h-96 w-full rounded-2xl" />}>
+        <RiskMonitor />
+      </Suspense>
+    </RequirePermission>
   );
 }

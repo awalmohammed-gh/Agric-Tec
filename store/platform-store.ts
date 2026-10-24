@@ -24,6 +24,8 @@ interface PlatformState extends PlatformSnapshot {
   dismissed: string[];
   /** This farmer's verification requests, newest first. */
   verifications: VerificationRequest[];
+  /** An admin confirmed a risk flag on this account: lender reports say "Account under review". */
+  underReview: boolean;
   loadFlags: () => Promise<FeatureFlags>;
   load: (userId: string) => Promise<void>;
   /** Re-reads the admin's settings in place (no loading state), e.g. after an admin edit. */
@@ -57,6 +59,7 @@ export const initialPlatformState = (): Omit<
   announcements: [],
   dismissed: [],
   verifications: [],
+  underReview: false,
 });
 
 function currentUser(): string {
@@ -83,13 +86,21 @@ export const usePlatformStore = create<PlatformState>()((set, get) => ({
   load: async (userId) => {
     set({ userId, status: 'loading' });
     try {
-      const [snapshot, dismissed, verifications] = await Promise.all([
+      const [snapshot, dismissed, verifications, underReview] = await Promise.all([
         platformService.load(),
         platformService.getDismissed(userId),
         platformService.listVerifications(userId),
+        platformService.underReview(userId),
       ]);
       if (get().userId !== userId) return;
-      set({ ...snapshot, dismissed, verifications, status: 'ready', flagsStatus: 'ready' });
+      set({
+        ...snapshot,
+        dismissed,
+        verifications,
+        underReview,
+        status: 'ready',
+        flagsStatus: 'ready',
+      });
     } catch (error) {
       set({ status: 'error' });
       throw error;
@@ -99,11 +110,12 @@ export const usePlatformStore = create<PlatformState>()((set, get) => ({
   refresh: async () => {
     const userId = get().userId;
     if (!userId || get().status !== 'ready') return;
-    const [snapshot, verifications] = await Promise.all([
+    const [snapshot, verifications, underReview] = await Promise.all([
       platformService.load(),
       platformService.listVerifications(userId),
+      platformService.underReview(userId),
     ]);
-    if (get().userId === userId) set({ ...snapshot, verifications });
+    if (get().userId === userId) set({ ...snapshot, verifications, underReview });
   },
 
   dismissAnnouncement: async (id) => {

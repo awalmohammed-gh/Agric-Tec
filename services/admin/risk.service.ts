@@ -1,16 +1,41 @@
 import { getCurrentAdmin, requirePermission } from '@/lib/admin/admin-session';
+import { farmersService } from '@/services/admin/farmers.service';
 import { withAudit } from '@/lib/admin/audit';
-import { readProfile, readRiskSubjects } from '@/lib/admin/farmer-data';
+import {
+  buildFarmerAccount,
+  readFarmerData,
+  readProfile,
+  readRiskSubjects,
+  readUsers,
+} from '@/lib/admin/farmer-data';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
-import { detectRisks, RISK_RULE_LABELS, riskKey } from '@/lib/admin/risk-rules';
+import {
+  detectRisks,
+  RISK_RULE_LABELS,
+  riskKey,
+  ruleById,
+  SEVERITY_ORDER,
+  type RelatedKind,
+} from '@/lib/admin/risk-rules';
 import { generateId } from '@/lib/utils';
 import { delay, storage } from '@/services/storage';
-import type { RiskFlag, RiskFlagFilter } from '@/types/admin';
+import type { FarmRecord, MomoTransaction } from '@/types';
+import type { FarmerAccount, RiskFlag, RiskFlagFilter } from '@/types/admin';
+
+/** A flag's evidence for the review screen. `related` marks the items the flag is about. */
+export interface RiskRelated {
+  kind: RelatedKind;
+  farmer: FarmerAccount;
+  /** Shared phone or Ghana Card: the flagged farmer first, then the linked accounts. */
+  accounts: FarmerAccount[];
+  /** The farmer's transactions, plus the related ones on other accounts (with the owner). */
+  momo: (MomoTransaction & { ownerName: string; related: boolean })[];
+  /** The farmer's records. */
+  records: (FarmRecord & { related: boolean })[];
+}
 
 const read = () => storage.get<RiskFlag[]>(PLATFORM_KEYS.riskFlags, []);
 const write = (items: RiskFlag[]) => storage.set(PLATFORM_KEYS.riskFlags, items);
-
-const SEVERITY_ORDER: Record<RiskFlag['severity'], number> = { high: 0, medium: 1, low: 2 };
 
 function review(id: string, status: 'dismissed' | 'confirmed', note: string): Promise<RiskFlag> {
   const flag = read().find((f) => f.id === id);
@@ -98,8 +123,81 @@ export const riskService = {
     return review(id, 'dismissed', note);
   },
 
-  async confirm(id: string, note: string): Promise<RiskFlag> {
+  /**
+   * Confirms fraud. With `suspend`, the farmer is also suspended (its own audit entry); the
+   * suspend permission is checked first, so nothing changes if it is missing.
+   */
+  async confirm(
+    id: string,
+    note: string,
+    { suspend = false }: { suspend?: boolean } = {},
+  ): Promise<RiskFlag> {
     await delay();
-    return review(id, 'confirmed', note);
+    if (suspend) requirePermission('farmers.suspend');
+    const confirmed = await review(id, 'confirmed', note);
+    const alreadySuspended =
+      readUsers().find((u) => u.id === confirmed.userId)?.status === 'suspended';
+    if (suspend && !alreadySuspended) {
+      await farmersService.suspend(
+        confirmed.userId,
+        `Confirmed fraud (${RISK_RULE_LABELS[confirmed.rule]}): ${note.trim()}`,
+      );
+    }
+    return confirmed;
+  },
+
+  /**
+   * Everything a reviewer needs next to a flag: the flagged farmer, the related transactions or
+   * records (with the farmer's other entries for context), or the linked accounts side by side.
+   */
+  async getRelated(id: string): Promise<RiskRelated> {
+    await delay();
+    requirePermission('risk.review');
+    const flag = read().find((f) => f.id === id);
+    if (!flag) throw new Error('Risk flag not found.');
+    const related = new Set(flag.relatedIds);
+    const users = readUsers();
+    const accountOf = (userId: string) => {
+      const user = users.find((u) => u.id === userId);
+      return user ? buildFarmerAccount(user) : null;
+    };
+    const farmer = accountOf(flag.userId);
+    if (!farmer) throw new Error('This farmer no longer exists.');
+    const kind = ruleById(flag.rule).related;
+    if (kind === 'accounts') {
+      const others = flag.relatedIds
+        .map(accountOf)
+        .filter((a): a is NonNullable<typeof a> => a !== null);
+      return { kind, farmer, accounts: [farmer, ...others], momo: [], records: [] };
+    }
+    if (kind === 'momo') {
+      // A duplicate reference can sit on other accounts too: look through every farmer.
+      const momo = users.flatMap((u) => {
+        const data = readFarmerData(u.id);
+        const own = u.id === flag.userId;
+        return data.momo
+          .filter((t) => related.has(t.id) || own)
+          .map((t) => ({
+            ...t,
+            ownerName: data.profile.name || u.email,
+            related: related.has(t.id),
+          }));
+      });
+      return { kind, farmer, accounts: [], momo, records: [] };
+    }
+    const records = readFarmerData(flag.userId).records.map((r) => ({
+      ...r,
+      related: related.has(r.id),
+    }));
+    return { kind, farmer, accounts: [], momo: [], records };
+  },
+
+  /**
+   * For the farmer's own app (no admin check): whether the account has confirmed flags, so
+   * lender-facing reports say "Account under review". No flag details leave the console.
+   */
+  async underReview(userId: string): Promise<boolean> {
+    await delay(0);
+    return read().some((f) => f.userId === userId && f.status === 'confirmed');
   },
 };

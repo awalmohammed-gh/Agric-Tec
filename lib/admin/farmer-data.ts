@@ -10,7 +10,7 @@ import { normalizeProfile, safeProfile } from '@/lib/profile';
 import { USERS_KEY, type StoredUser } from '@/services/auth.service';
 import { storage, userKey } from '@/services/storage';
 import type { Diagnosis, FarmRecord, MomoTransaction, Profile } from '@/types';
-import type { CreditConfig, FarmerAccount } from '@/types/admin';
+import type { CreditConfig, FarmerAccount, RiskFlag } from '@/types/admin';
 
 export interface FarmerAdminMeta {
   tags: string[];
@@ -93,10 +93,17 @@ export function buildFarmerAccount(
       score: calculateCreditScore(data.records, data.momo, data.profile, readCreditConfig()).score,
       diagnoses: data.diagnoses.length,
     },
+    riskConfirmed: confirmedRiskCount(user.id),
     tags: data.meta.tags,
     adminNotes: data.meta.adminNotes,
   };
 }
+
+/** How many confirmed risk flags a farmer has (they mark the account "under review"). */
+export const confirmedRiskCount = (userId: string): number =>
+  storage
+    .get<RiskFlag[]>(PLATFORM_KEYS.riskFlags, [])
+    .filter((f) => f.userId === userId && f.status === 'confirmed').length;
 
 /** Every farmer as a risk-rule input. Guests are included: fraud can start there too. */
 export function readRiskSubjects(): RiskSubject[] {

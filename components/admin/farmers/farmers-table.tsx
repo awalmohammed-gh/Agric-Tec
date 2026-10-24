@@ -52,6 +52,7 @@ import { formatCompactGHS, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { farmersService } from '@/services/admin/farmers.service';
 import { riskService } from '@/services/admin/risk.service';
+import { RiskTag } from '@/components/admin/risk/risk-tag';
 import { useAdminDataStore } from '@/store/admin/admin-data-store';
 import type { FarmerAccount } from '@/types/admin';
 
@@ -67,7 +68,10 @@ function FarmerName({ farmer }: { farmer: FarmerAccount }) {
     <span className="flex min-w-0 items-center gap-3">
       <FarmerAvatar farmer={farmer} />
       <span className="min-w-0">
-        <span className="block max-w-48 truncate">{nameOf(farmer)}</span>
+        <span className="flex max-w-56 items-center gap-1.5">
+          <span className="truncate">{nameOf(farmer)}</span>
+          <RiskTag count={farmer.riskConfirmed} />
+        </span>
         <span className="text-text-mute block max-w-48 truncate text-xs font-normal">
           {farmer.email}
         </span>
@@ -368,8 +372,9 @@ export function FarmersTable() {
           <div className="min-w-0 flex-1">
             {opener(<span className="block truncate">{nameOf(f)}</span>)}
             <p className="text-text-mute truncate text-xs">{f.email}</p>
-            <div className="mt-1.5">
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <StatusBadge kind="account" status={f.status} />
+              <RiskTag count={f.riskConfirmed} />
             </div>
           </div>
           <RowMenu label={`Actions for ${nameOf(f)}`} items={menuItems(f)} />

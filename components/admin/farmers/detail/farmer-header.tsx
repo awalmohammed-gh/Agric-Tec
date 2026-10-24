@@ -17,6 +17,7 @@ import { StatusBadge } from '@/components/admin/shared/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { RiskTag } from '@/components/admin/risk/risk-tag';
 import { ScoreRing } from '@/components/ui/score-ring';
 import type { FarmerAbilities } from '@/lib/admin/farmer-list';
 import { formatDate } from '@/lib/format';
@@ -66,6 +67,7 @@ export function FarmerHeader({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-text text-2xl leading-tight font-bold">{name}</h1>
               <StatusBadge kind="account" status={farmer.status} />
+              <RiskTag count={farmer.riskConfirmed} className="py-1 text-[11px]" />
               {farmer.tags.map((tag) => (
                 <Badge key={tag} color="purple">
                   {tag}
