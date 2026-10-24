@@ -61,7 +61,7 @@ export function PlanManager() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="@container/plans max-w-full min-w-0 space-y-4 sm:space-y-5">
       <div className="border-gold/30 bg-gold/10 text-text-dim rounded-2xl border p-4 text-sm">
         <p className="text-text font-semibold">Demo payments · no money is charged</p>
         <p className="mt-1">
@@ -69,18 +69,22 @@ export function PlanManager() {
           collected. Plans and usage are saved on this device.
         </p>
       </div>
-      <Card className="rounded-3xl">
+      <Card className="min-w-0 rounded-3xl p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-text-mute text-xs">Your current plan</p>
-            <h3 className="text-ink-green font-display mt-1 text-2xl font-bold">{current.name}</h3>
+            <h3 className="text-ink-green font-display mt-1 text-2xl font-bold break-words">
+              {current.name}
+            </h3>
             {snapshot?.subscription.expiresAt && (
               <p className="text-text-dim mt-2 text-xs">
                 Active until {dateLabel(snapshot.subscription.expiresAt)}. No automatic renewal.
               </p>
             )}
           </div>
-          <Badge color="gold">Mock subscription</Badge>
+          <Badge color="gold" className="max-w-full whitespace-normal">
+            Mock subscription
+          </Badge>
         </div>
         <div className="border-border mt-4 border-t pt-4">
           <p className="text-text text-sm font-semibold">
@@ -111,7 +115,7 @@ export function PlanManager() {
           information.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-4 @2xl:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 items-stretch gap-4 @xl/plans:grid-cols-2 @6xl/plans:grid-cols-4">
         {plans
           .filter((p) => p.active || p.id === current.id)
           .map((plan) => {
@@ -121,21 +125,27 @@ export function PlanManager() {
               <article
                 key={plan.id}
                 className={cn(
-                  'flex flex-col rounded-3xl border p-5',
+                  'flex min-w-0 flex-col rounded-3xl border p-4 sm:p-5',
                   plan.id === 'premium' ? 'border-accent/50 bg-accent/5' : 'border-border bg-glass',
                 )}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h4 className="text-text font-display text-xl font-bold">{plan.name}</h4>
+                  <h4 className="text-text font-display min-w-0 text-xl font-bold break-words">
+                    {plan.name}
+                  </h4>
                   {isCurrent ? (
-                    <Badge color="green">Current plan</Badge>
+                    <Badge color="green" className="max-w-full whitespace-normal">
+                      Current plan
+                    </Badge>
                   ) : plan.id === 'premium' ? (
-                    <Badge color="purple">For growing farms</Badge>
+                    <Badge color="purple" className="max-w-full whitespace-normal">
+                      For growing farms
+                    </Badge>
                   ) : null}
                 </div>
-                <p className="text-text mt-3 text-3xl font-bold">
-                  {formatGHS(plan.priceGHS)}
-                  <span className="text-text-mute text-sm font-normal"> / month</span>
+                <p className="text-text mt-3 flex flex-wrap items-baseline gap-x-1 gap-y-1 font-bold">
+                  <span className="min-w-0 text-3xl break-words">{formatGHS(plan.priceGHS)}</span>
+                  <span className="text-text-mute text-sm font-normal">/ month</span>
                 </p>
                 <p className="text-text-dim mt-3 text-sm">
                   {plan.id === 'advanced'
@@ -144,20 +154,32 @@ export function PlanManager() {
                       ? `${plan.aiCredits ?? 100} AI credits / month`
                       : 'AI tools not included'}
                 </p>
-                <p className="text-text-mute mt-2 text-xs leading-relaxed">
+                <p className="text-text-mute mt-2 text-xs leading-relaxed break-words">
                   {plan.features.join(' · ')}
                 </p>
                 <ul className="mt-4 flex-1 space-y-2.5">
                   {(Object.keys(FEATURE_NAMES) as PlanFeature[]).map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm">
+                    <li key={feature} className="flex min-w-0 items-start gap-2 text-sm">
                       {access[feature] ? (
-                        <Check size={16} className="text-ink-green shrink-0" aria-hidden="true" />
+                        <Check
+                          size={16}
+                          className="text-ink-green mt-0.5 shrink-0"
+                          aria-hidden="true"
+                        />
                       ) : (
-                        <span className="text-text-mute w-4 text-center" aria-hidden="true">
+                        <span
+                          className="text-text-mute w-4 shrink-0 text-center"
+                          aria-hidden="true"
+                        >
                           −
                         </span>
                       )}
-                      <span className={access[feature] ? 'text-text' : 'text-text-mute'}>
+                      <span
+                        className={cn(
+                          'min-w-0 break-words',
+                          access[feature] ? 'text-text' : 'text-text-mute',
+                        )}
+                      >
                         {FEATURE_NAMES[feature]}
                         {!access[feature] && ' not included'}
                       </span>
@@ -167,25 +189,27 @@ export function PlanManager() {
                 <Button
                   icon={Sparkles}
                   variant={plan.id === 'premium' ? 'primary' : 'ghost'}
-                  className="mt-5 w-full"
+                  className="mt-5 w-full min-w-0 px-3 leading-snug whitespace-normal sm:px-4"
                   mutates
                   disabled={!ready || readOnly || isCurrent || !plan.active}
                   onClick={() => choose(plan)}
                 >
-                  {isCurrent
-                    ? 'Your current plan'
-                    : plan.id === 'free'
-                      ? 'Switch to Free'
-                      : `Choose ${plan.name}`}
+                  <span className="min-w-0 break-words">
+                    {isCurrent
+                      ? 'Your current plan'
+                      : plan.id === 'free'
+                        ? 'Switch to Free'
+                        : `Choose ${plan.name}`}
+                  </span>
                 </Button>
               </article>
             );
           })}
       </div>
       {payment && (
-        <Card className="rounded-2xl">
+        <Card className="min-w-0 rounded-2xl p-4 sm:p-6">
           <h3 className="text-text font-semibold">Latest demo receipt</h3>
-          <dl className="text-text-dim mt-3 grid gap-2 text-sm">
+          <dl className="text-text-dim mt-3 grid min-w-0 grid-cols-1 gap-4 text-sm @lg/plans:grid-cols-2 [&_dd]:break-words [&>div]:min-w-0">
             <div>
               <dt className="text-text-mute">Status</dt>
               <dd>Simulated — no money charged</dd>
@@ -214,10 +238,34 @@ export function PlanManager() {
         }}
         title={selected?.id === 'free' ? 'Switch to Free' : 'Mock checkout'}
         size="md"
+        className="@container/checkout min-w-0"
+        closeOnBackdrop={!busy}
+        footer={
+          selected && (
+            <>
+              <Button variant="ghost" disabled={busy} onClick={() => setSelectedId(null)}>
+                Cancel
+              </Button>
+              <Button
+                mutates
+                disabled={!consent || readOnly}
+                loading={busy}
+                onClick={() => void confirm()}
+                className="min-w-0 whitespace-normal"
+              >
+                <span className="min-w-0 break-words">
+                  {selected.id === 'free'
+                    ? 'Confirm switch to Free'
+                    : `Simulate ${formatGHS(selected.priceGHS)} payment`}
+                </span>
+              </Button>
+            </>
+          )
+        }
       >
         {selected && (
-          <div className="space-y-5">
-            <p className="text-text font-semibold">
+          <div className="min-w-0 space-y-4 sm:space-y-5">
+            <p className="text-text font-semibold break-words">
               {selected.name} · {formatGHS(selected.priceGHS)} per month
             </p>
             <p className="text-text-dim text-sm">
@@ -230,12 +278,12 @@ export function PlanManager() {
                 <legend className="text-text mb-2 text-sm font-semibold">
                   Demo payment method
                 </legend>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid min-w-0 grid-cols-1 gap-3 @sm/checkout:grid-cols-2">
                   {(['mobile-money', 'card'] as const).map((option) => (
                     <label
                       key={option}
                       className={cn(
-                        'flex min-h-14 cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm',
+                        'flex min-h-14 min-w-0 cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm',
                         method === option ? 'border-accent bg-accent/10' : 'border-border',
                       )}
                     >
@@ -246,41 +294,35 @@ export function PlanManager() {
                         checked={method === option}
                         disabled={busy}
                         onChange={() => setMethod(option)}
+                        className="size-4 shrink-0"
                       />
                       {option === 'card' ? (
-                        <CreditCard size={16} aria-hidden="true" />
+                        <CreditCard size={16} aria-hidden="true" className="shrink-0" />
                       ) : (
-                        <Smartphone size={16} aria-hidden="true" />
+                        <Smartphone size={16} aria-hidden="true" className="shrink-0" />
                       )}
-                      {option === 'card' ? 'Card' : 'Mobile money'}
+                      <span className="min-w-0 break-words">
+                        {option === 'card' ? 'Card' : 'Mobile money'}
+                      </span>
                     </label>
                   ))}
                 </div>
               </fieldset>
             )}
-            <label className="text-text-dim flex cursor-pointer items-start gap-3 text-sm">
+            <label className="text-text-dim flex min-w-0 cursor-pointer items-start gap-3 text-sm">
               <input
                 type="checkbox"
                 checked={consent}
                 disabled={busy}
                 onChange={(event) => setConsent(event.target.checked)}
-                className="mt-1"
+                className="mt-1 size-4 shrink-0"
               />
-              {selected.id === 'free'
-                ? 'I understand paid features will become unavailable.'
-                : 'I understand this simulates a payment and no money will be taken.'}
+              <span className="min-w-0 break-words">
+                {selected.id === 'free'
+                  ? 'I understand paid features will become unavailable.'
+                  : 'I understand this simulates a payment and no money will be taken.'}
+              </span>
             </label>
-            <Button
-              mutates
-              disabled={!consent || readOnly}
-              loading={busy}
-              onClick={() => void confirm()}
-              className="w-full whitespace-normal"
-            >
-              {selected.id === 'free'
-                ? 'Confirm switch to Free'
-                : `Simulate ${formatGHS(selected.priceGHS)} payment`}
-            </Button>
           </div>
         )}
       </Modal>

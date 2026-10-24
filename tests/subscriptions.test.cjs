@@ -239,3 +239,20 @@ test('failed storage does not activate a subscription or consume credits', () =>
   }
   assert.equal(subscriptionService.get('storage-full', now).subscription.planId, 'free');
 });
+
+test('successful mock checkout updates the live plan, persists on reload and updates visible credit balances', async () => {
+  await useSubscriptionStore.getState().load('live-checkout');
+  await useSubscriptionStore.getState().checkoutMock('basic', 'mobile-money');
+  assert.equal(useSubscriptionStore.getState().snapshot.subscription.planId, 'basic');
+  assert.doesNotThrow(() => useSubscriptionStore.getState().assertFeature('pdfReports'));
+  assert.throws(() => useSubscriptionStore.getState().reserveAi('aiAssistant'), /not included/);
+  await useSubscriptionStore.getState().checkoutMock('premium', 'card');
+  assert.equal(useSubscriptionStore.getState().snapshot.subscription.payment.amountGHS, 50);
+  const hold = useSubscriptionStore.getState().reserveAi('cropDoctor');
+  assert.equal(useSubscriptionStore.getState().snapshot.creditsRemaining, 95);
+  useSubscriptionStore.getState().settleAi(hold, false);
+  assert.equal(useSubscriptionStore.getState().snapshot.creditsRemaining, 100);
+  await useSubscriptionStore.getState().load('live-checkout');
+  assert.equal(useSubscriptionStore.getState().snapshot.subscription.planId, 'premium');
+  assert.equal(useSubscriptionStore.getState().snapshot.subscription.payment.status, 'simulated');
+});

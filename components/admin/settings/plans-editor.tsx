@@ -71,98 +71,109 @@ export function PlansEditor({
         Free keeps the essentials. Basic adds PDFs. Premium adds limited AI tools. Advanced includes
         all available tools and unlimited AI credits. Global feature switches still apply.
       </p>
-      <div className="grid gap-4 xl:grid-cols-2">
-        {draft.map((plan) => {
-          const isFree = plan.id === 'free';
-          const access = planAccess(plan);
-          return (
-            <article key={plan.id} className="border-border bg-bg-2/30 rounded-2xl border p-4">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-text font-display text-xl font-bold">{plan.name}</h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-text-mute text-xs">
-                    {plan.active ? 'Offered' : 'Hidden'}
-                  </span>
-                  <Switch
-                    checked={plan.active}
-                    disabled={isFree || saving}
-                    onChange={(active) => update(plan.id, { active })}
-                    label={`${plan.name} offered`}
-                  />
-                </div>
-              </div>
-              <label className="mt-4 block">
-                <span className="text-text-dim mb-1.5 block text-sm">Monthly price (GHS)</span>
-                <input
-                  type="number"
-                  min={isFree ? 0 : 1}
-                  max={10000}
-                  step="1"
-                  disabled={isFree || saving}
-                  value={Number.isFinite(plan.priceGHS) ? plan.priceGHS : ''}
-                  onChange={(e) =>
-                    update(plan.id, {
-                      priceGHS: e.target.value === '' ? NaN : Number(e.target.value),
-                    })
-                  }
-                  className="border-border bg-bg-2 text-text min-h-11 w-full rounded-xl border px-3 disabled:opacity-60"
-                />
-              </label>
-              {plan.id === 'premium' && (
-                <label className="mt-4 block">
-                  <span className="text-text-dim mb-1.5 block text-sm">AI credits per month</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={1000000}
-                    step={1}
-                    disabled={saving}
-                    value={Number.isFinite(plan.aiCredits) ? plan.aiCredits! : ''}
-                    onChange={(e) =>
-                      update(plan.id, {
-                        aiCredits: e.target.value === '' ? NaN : Number(e.target.value),
-                      })
-                    }
-                    className="border-border bg-bg-2 text-text min-h-11 w-full rounded-xl border px-3"
-                  />
-                  <span className="text-text-mute mt-1 block text-xs">
-                    1 per assistant question; 5 per crop scan. Monthly usage survives plan changes.
-                  </span>
-                </label>
-              )}
-              {plan.id === 'advanced' && (
-                <p className="text-ink-green mt-4 text-sm font-semibold">Unlimited AI credits</p>
-              )}
-              <div className="mt-4 space-y-3">
-                {(Object.keys(FEATURE_NAMES) as PlanFeature[]).map((feature) => (
-                  <div key={feature} className="flex items-center justify-between gap-3">
-                    <span className="text-text-dim text-sm">{FEATURE_NAMES[feature]}</span>
+      <div className="@container/plan-editor min-w-0">
+        <div className="grid min-w-0 grid-cols-1 gap-4 @3xl/plan-editor:grid-cols-2">
+          {draft.map((plan) => {
+            const isFree = plan.id === 'free';
+            const access = planAccess(plan);
+            return (
+              <article
+                key={plan.id}
+                className="border-border bg-bg-2/30 min-w-0 rounded-2xl border p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-text font-display min-w-0 text-xl font-bold break-words">
+                    {plan.name}
+                  </h3>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-text-mute text-xs">
+                      {plan.active ? 'Offered' : 'Hidden'}
+                    </span>
                     <Switch
-                      checked={access[feature]}
-                      disabled={
-                        saving ||
-                        isFree ||
-                        plan.id === 'advanced' ||
-                        (plan.id === 'basic' && feature !== 'pdfReports')
-                      }
-                      label={`${plan.name}: ${FEATURE_NAMES[feature]}`}
-                      onChange={(value) =>
-                        update(plan.id, { access: { ...access, [feature]: value } })
-                      }
+                      checked={plan.active}
+                      disabled={isFree || saving}
+                      onChange={(active) => update(plan.id, { active })}
+                      label={`${plan.name} offered`}
                     />
                   </div>
-                ))}
-              </div>
-              <div className="mt-5">
-                <ListEditor
-                  label="Plan description"
-                  items={plan.features}
-                  onChange={(features) => update(plan.id, { features })}
-                />
-              </div>
-            </article>
-          );
-        })}
+                </div>
+                <label className="mt-4 block">
+                  <span className="text-text-dim mb-1.5 block text-sm">Monthly price (GHS)</span>
+                  <input
+                    type="number"
+                    min={isFree ? 0 : 1}
+                    max={10000}
+                    step="1"
+                    disabled={isFree || saving}
+                    value={Number.isFinite(plan.priceGHS) ? plan.priceGHS : ''}
+                    onChange={(e) =>
+                      update(plan.id, {
+                        priceGHS: e.target.value === '' ? NaN : Number(e.target.value),
+                      })
+                    }
+                    className="border-border bg-bg-2 text-text min-h-11 w-full min-w-0 rounded-xl border px-3 disabled:opacity-60"
+                  />
+                </label>
+                {plan.id === 'premium' && (
+                  <label className="mt-4 block">
+                    <span className="text-text-dim mb-1.5 block text-sm">AI credits per month</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={1000000}
+                      step={1}
+                      disabled={saving}
+                      value={Number.isFinite(plan.aiCredits) ? plan.aiCredits! : ''}
+                      onChange={(e) =>
+                        update(plan.id, {
+                          aiCredits: e.target.value === '' ? NaN : Number(e.target.value),
+                        })
+                      }
+                      className="border-border bg-bg-2 text-text min-h-11 w-full min-w-0 rounded-xl border px-3"
+                    />
+                    <span className="text-text-mute mt-1 block text-xs">
+                      1 per assistant question; 5 per crop scan. Monthly usage survives plan
+                      changes.
+                    </span>
+                  </label>
+                )}
+                {plan.id === 'advanced' && (
+                  <p className="text-ink-green mt-4 text-sm font-semibold">Unlimited AI credits</p>
+                )}
+                <div className="mt-4 space-y-3">
+                  {(Object.keys(FEATURE_NAMES) as PlanFeature[]).map((feature) => (
+                    <div key={feature} className="flex min-w-0 items-center justify-between gap-3">
+                      <span className="text-text-dim min-w-0 text-sm break-words">
+                        {FEATURE_NAMES[feature]}
+                      </span>
+                      <Switch
+                        checked={access[feature]}
+                        disabled={
+                          saving ||
+                          isFree ||
+                          plan.id === 'advanced' ||
+                          (plan.id === 'basic' && feature !== 'pdfReports')
+                        }
+                        label={`${plan.name}: ${FEATURE_NAMES[feature]}`}
+                        className="shrink-0"
+                        onChange={(value) =>
+                          update(plan.id, { access: { ...access, [feature]: value } })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-5">
+                  <ListEditor
+                    label="Plan description"
+                    items={plan.features}
+                    onChange={(features) => update(plan.id, { features })}
+                  />
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </div>
       {invalid && (
         <p role="alert" className="text-ink-red mt-4 text-sm">
@@ -174,7 +185,7 @@ export function PlansEditor({
         Hiding a plan stops new activations. Existing subscriptions keep access until expiry. Free
         always remains available.
       </p>
-      <div className="mt-4 flex justify-end gap-2">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
         <Button
           variant="ghost"
           icon={RotateCcw}
