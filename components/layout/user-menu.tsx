@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { ChevronsUpDown, LogOut, Settings, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { ProfileAvatar } from '@/components/profile/profile-avatar';
 import { cn } from '@/lib/utils';
 import { useSignOut } from '@/components/layout/use-sign-out';
 import { useAuthStore, useProfileStore } from '@/store';
@@ -25,7 +26,6 @@ export function UserMenu() {
   const closeMobileNav = useUiStore((s) => s.closeMobileNav);
 
   const name = profile?.name.trim() || 'New Farmer';
-  const initial = (profile?.name.trim()[0] ?? 'N').toUpperCase();
   // The farm's name first, then "<Farm type> • <Constituency>".
   const title = profile?.farmName.trim() || name;
   const subtitle = [profile?.farmType ?? 'Smallholder', profile?.constituency]
@@ -164,12 +164,7 @@ export function UserMenu() {
         }}
         className="glass hover:bg-glass-strong flex min-h-11 w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors"
       >
-        <span
-          aria-hidden="true"
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#f5c451] to-[#10b981] text-sm font-bold text-[#022c22]"
-        >
-          {initial}
-        </span>
+        <ProfileAvatar name={name} photoDataUrl={profile?.photoDataUrl} />
         <span className="min-w-0 flex-1">
           <span className="text-text block truncate text-sm font-semibold">{title}</span>
           <span className="text-text-mute block truncate text-xs">{subtitle}</span>

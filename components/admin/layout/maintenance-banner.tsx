@@ -29,7 +29,7 @@ export function MaintenanceBanner() {
       </p>
       {canManage && (
         <Link
-          href="/admin/settings#maintenance"
+          href="/admin/settings/maintenance"
           className="inline-flex min-h-9 items-center rounded-lg bg-white/15 px-3 text-xs font-bold hover:bg-white/25"
         >
           Manage

@@ -6,6 +6,8 @@ import { ArrowLeft, Construction } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { usePlatformStore } from '@/store/platform-store';
 import type { FeatureKey } from '@/types/admin';
+import { PlanGate } from '@/components/subscription/plan-gate';
+import type { PlanFeature } from '@/types/subscription';
 
 /**
  * Renders the page only while the admin has its feature switched on. Otherwise the farmer sees
@@ -13,7 +15,10 @@ import type { FeatureKey } from '@/types/admin';
  */
 export function FeatureGate({ flag, children }: { flag: FeatureKey; children: ReactNode }) {
   const enabled = usePlatformStore((s) => s.flags[flag]);
-  return enabled ? <>{children}</> : <FeatureUnavailable />;
+  if (!enabled) return <FeatureUnavailable />;
+  if (['aiAssistant', 'cropDoctor', 'yieldPredictor'].includes(flag))
+    return <PlanGate feature={flag as PlanFeature}>{children}</PlanGate>;
+  return <>{children}</>;
 }
 
 /** The card shown in place of a switched-off feature. */

@@ -1,5 +1,6 @@
 import {
   BadgeCheck,
+  CreditCard,
   Info,
   ShieldCheck,
   SlidersHorizontal,
@@ -16,6 +17,12 @@ export interface SettingsPageMeta {
 
 /** The pages inside Profile & Settings, in menu order. Each is its own route. */
 export const SETTINGS_PAGES: SettingsPageMeta[] = [
+  {
+    href: '/settings/plans',
+    label: 'Plans & billing',
+    description: 'Compare plans and view your AI usage',
+    icon: CreditCard,
+  },
   {
     href: '/settings/profile',
     label: 'Profile',

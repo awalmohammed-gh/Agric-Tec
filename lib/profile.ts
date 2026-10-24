@@ -1,4 +1,5 @@
 import type { FarmType, GhanaCardInfo, GhanaCardStatus, Profile, SizeUnit } from '@/types';
+import { safeProfilePhoto } from '@/lib/profile-photo';
 
 export const ghanaPhone = /^(\+233|0)[235]\d{8}$/;
 export const ghanaCard = /^GHA-\d{9}-\d$/;
@@ -151,9 +152,11 @@ export function safeProfile(profile: Profile): Profile {
   const otherCrops = text(profile.otherCrops);
   const cooperativeName = text(profile.cooperativeName);
   const outgrowerCompany = text(profile.outgrowerCompany);
+  const photoDataUrl = safeProfilePhoto(profile.photoDataUrl);
   return {
     userId: profile.userId,
     name: profile.name ?? '',
+    ...(photoDataUrl && { photoDataUrl }),
     email: profile.email ?? '',
     phone: profile.phone ?? '',
     farmName: profile.farmName ?? '',

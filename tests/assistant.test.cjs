@@ -38,6 +38,8 @@ const { defaultProfile } = require('../services/profile.service.ts');
 const { chatService } = require('../services/chat.service.ts');
 const { marketService } = require('../services/market.service.ts');
 const { useChatStore } = require('../store/chat-store.ts');
+const { useSubscriptionStore } = require('../store/subscription-store.ts');
+const { subscriptionService } = require('../services/subscription.service.ts');
 const { useFarmStore } = require('../store/farm-store.ts');
 const { useProfileStore } = require('../store/profile-store.ts');
 const { createElement } = require('react');
@@ -211,6 +213,8 @@ test('chat uses current farm data, blocks overlapping sends, persists, reloads a
   useFarmStore.setState({ userId, records, momo: [], status: 'ready' });
   useProfileStore.setState({ userId, profile, status: 'ready' });
   await useChatStore.getState().load(userId);
+  subscriptionService.activateMock(userId, 'premium', 'mobile-money');
+  await useSubscriptionStore.getState().load(userId);
   assert.equal(useChatStore.getState().messages.length, 1);
   assert.match(useChatStore.getState().messages[0].content, /Akwaaba!/);
 
@@ -288,6 +292,8 @@ test('reply or save failure leaves a friendly message, resets typing and allows 
 test('an old reply cannot leak into another user or reset their typing state', async () => {
   const pending = useChatStore.getState().sendMessage('weather');
   await useChatStore.getState().load('another-assistant-test');
+  subscriptionService.activateMock('another-assistant-test', 'premium', 'mobile-money');
+  await useSubscriptionStore.getState().load('another-assistant-test');
   const nextPending = useChatStore.getState().sendMessage('hello');
   await pending;
   assert.equal(useChatStore.getState().isTyping, true);

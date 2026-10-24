@@ -13,6 +13,8 @@ import { usePlatformStore } from '@/store/platform-store';
 import { formatGeneratedAt, type ReportData } from '@/lib/reports/build-report-data';
 import { cn } from '@/lib/utils';
 import { useReportStore } from '@/store/report-store';
+import { useSubscription } from '@/hooks/use-subscription';
+import { useSubscriptionStore } from '@/store/subscription-store';
 
 /** HTML rendering of ReportData: the same data (and layout order) as the PDF. */
 function ReportDocument({ data }: { data: ReportData }) {
@@ -183,7 +185,8 @@ export function ReportPreviewModal() {
   const closePreview = useReportStore((s) => s.closePreview);
   const buildReport = useReportBuilder();
   const [downloading, setDownloading] = useState(false);
-  const pdfEnabled = usePlatformStore((s) => s.flags.pdfReports);
+  const { allows } = useSubscription();
+  const pdfEnabled = allows('pdfReports');
 
   // Built from the same function as the PDF, at the moment the preview opened.
   const data = type ? buildReport(type, openedAt ? new Date(openedAt) : undefined) : null;
@@ -196,6 +199,7 @@ export function ReportPreviewModal() {
     }
     setDownloading(true);
     try {
+      useSubscriptionStore.getState().assertFeature('pdfReports');
       await generateReportPDF(data);
       toast.success('Report downloaded');
     } catch (error) {

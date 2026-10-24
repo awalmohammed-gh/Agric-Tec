@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/** One settings section: an anchored card with an icon, a title and a short explanation. */
+/** One settings page's content card, with its title and a short explanation. */
 export function SettingsCard({
   id,
   icon: Icon,

@@ -90,16 +90,43 @@ export const featureFlagsSchema = z.object({
 export const plansSchema = z
   .array(
     z.object({
-      id: z.enum(['free', 'premium']),
+      id: z.enum(['free', 'basic', 'premium', 'advanced']),
       name: text(40),
       priceGHS: z.number().min(0).max(10000),
       features: z.array(text(80)).max(12),
       active: z.boolean(),
+      access: z
+        .object({
+          pdfReports: z.boolean(),
+          aiAssistant: z.boolean(),
+          cropDoctor: z.boolean(),
+          yieldPredictor: z.boolean(),
+        })
+        .optional(),
+      aiCredits: z.number().int().min(0).max(1000000).nullable().optional(),
     }),
   )
   .refine(
     (plans) => new Set(plans.map((p) => p.id)).size === plans.length,
     'Each plan appears once.',
+  )
+  .refine(
+    (plans) => plans.some((p) => p.id === 'free' && p.active && p.priceGHS === 0),
+    'Free must remain available at GHS 0.',
+  )
+  .refine(
+    (plans) =>
+      plans.every(
+        (p) =>
+          p.id !== 'premium' ||
+          p.aiCredits === undefined ||
+          (p.aiCredits !== null && p.aiCredits >= 1),
+      ),
+    'Premium needs a limited allowance of at least 1 AI credit.',
+  )
+  .refine(
+    (plans) => plans.every((p) => p.id === 'free' || p.priceGHS >= 1),
+    'Paid plans need a price of at least GHS 1.',
   );
 
 export const lenderInputSchema = z

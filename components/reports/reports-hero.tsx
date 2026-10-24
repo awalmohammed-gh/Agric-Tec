@@ -17,6 +17,7 @@ import { useFarmStore } from '@/store/farm-store';
 import { usePlatformStore } from '@/store/platform-store';
 import { useProfileStore } from '@/store/profile-store';
 import { useReportStore } from '@/store/report-store';
+import Link from 'next/link';
 
 /**
  * A stack of two "paper" pages showing the real headline numbers. It is decorative
@@ -161,6 +162,14 @@ export function ReportsHero() {
             <Lock size={12} aria-hidden="true" /> Reports are created on your device. Nothing is
             uploaded.
           </p>
+          {!pdfEnabled && (
+            <p className="text-text-dim mt-3 text-sm">
+              PDF downloads are included in Basic, Premium and Advanced.{' '}
+              <Link href="/settings/plans" className="text-ink-green font-semibold underline">
+                View plans
+              </Link>
+            </p>
+          )}
         </div>
 
         <div className="hidden py-4 @3xl:block">

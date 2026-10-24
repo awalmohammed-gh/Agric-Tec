@@ -9,6 +9,7 @@ import { useUiStore } from '@/store/ui-store';
 import { useModalStore } from '@/store/modal-store';
 import { initialPlatformState, usePlatformStore } from '@/store/platform-store';
 import { useReportStore } from '@/store/report-store';
+import { useSubscriptionStore } from '@/store/subscription-store';
 
 export {
   useAuthStore,
@@ -28,6 +29,7 @@ export async function loadAllStores(userId: string): Promise<void> {
     useSettingsStore.getState().load(userId),
     useLoanStore.getState().load(userId),
     usePlatformStore.getState().load(userId),
+    useSubscriptionStore.getState().load(userId),
   ]);
 }
 
@@ -43,6 +45,7 @@ export async function refreshUserStores(userId: string): Promise<void> {
     useChatStore.getState().load(userId, silent),
     useSettingsStore.getState().load(userId, silent),
     useLoanStore.getState().load(userId, silent),
+    useSubscriptionStore.getState().load(userId, silent),
   ]);
 }
 
@@ -52,6 +55,7 @@ export function resetAllStores(): void {
   useReportStore.getState().closePreview();
   useFarmStore.setState({ userId: null, records: [], momo: [], diagnoses: [], status: 'idle' });
   useProfileStore.setState({ userId: null, profile: null, status: 'idle' });
+  useSubscriptionStore.setState({ userId: null, snapshot: null, status: 'idle' });
   useChatStore.setState({ userId: null, messages: [], isTyping: false, status: 'idle' });
   useSettingsStore.setState({
     userId: null,

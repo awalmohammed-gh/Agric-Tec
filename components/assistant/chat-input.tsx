@@ -6,16 +6,23 @@ import { ArrowUp, CornerDownLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useChatStore } from '@/store/chat-store';
+import { useSubscription } from '@/hooks/use-subscription';
+import { toast } from 'sonner';
 
 export function ChatInput() {
   const [text, setText] = useState('');
   const isTyping = useChatStore((state) => state.isTyping);
   const status = useChatStore((state) => state.status);
+  const { snapshot, allows } = useSubscription();
   const sendMessage = useChatStore((state) => state.sendMessage);
   const readOnly = useReadOnly();
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreFocus = useRef(false);
-  const disabled = isTyping || status !== 'ready';
+  const disabled =
+    isTyping ||
+    status !== 'ready' ||
+    !allows('aiAssistant') ||
+    (snapshot?.creditsRemaining !== null && (snapshot?.creditsRemaining ?? 0) < 1);
 
   useEffect(() => {
     if (!disabled && restoreFocus.current) {
@@ -28,7 +35,9 @@ export function ChatInput() {
     event.preventDefault();
     if (disabled || !text.trim()) return;
     restoreFocus.current = true;
-    void sendMessage(text);
+    void sendMessage(text).catch((error: unknown) =>
+      toast.error(error instanceof Error ? error.message : 'Could not send your message.'),
+    );
     setText('');
   }
 

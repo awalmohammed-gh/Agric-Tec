@@ -1,8 +1,8 @@
-// Default platform settings and content. They equal the farmer app's current hard-coded values,
-// so seeding (or a service with nothing stored yet) changes nothing a farmer sees.
+// Default platform settings, subscription tiers and content used for a new installation.
 
 import { BASE_YIELD_PER_ACRE, CROP_TIPS, PRICE_PER_TONNE } from '@/constants/crops';
 import { LOAN_PARTNERS } from '@/constants/loan-partners';
+import { PLAN_CATALOG } from '@/lib/subscriptions/plans';
 import { MOCK_DIAGNOSES } from '@/data/mock/diagnoses';
 import { MARKET_PRICES } from '@/data/mock/market-prices';
 import type { MarketPrice } from '@/types';
@@ -51,23 +51,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
     'AgriCtec is down for scheduled maintenance. Your records are safe. Please check back soon.',
 };
 
-/** Matches components/settings/upgrade-modal.tsx. */
-export const DEFAULT_PLANS: Plan[] = [
-  {
-    id: 'free',
-    name: 'Free Plan',
-    priceGHS: 0,
-    features: ['Farm records', 'MoMo tracking', 'Credit score', 'AI assistant'],
-    active: true,
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    priceGHS: 25,
-    features: ['Unlimited reports', 'Lender sharing', 'Advanced analytics', 'Priority support'],
-    active: true,
-  },
-];
+export const DEFAULT_PLANS: Plan[] = PLAN_CATALOG;
 
 export const DEFAULT_LENDERS: Lender[] = LOAN_PARTNERS.map((partner) => ({
   ...partner,

@@ -8,12 +8,14 @@ import { Topbar } from '@/components/layout/topbar';
 import { MomoFormModal } from '@/components/momo/momo-form-modal';
 import { RecordFormModal } from '@/components/records/record-form-modal';
 import { DataLoader } from '@/components/providers/data-loader';
+import { SubscriptionSync } from '@/components/providers/subscription-sync';
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   return (
     <>
       {/* The page background comes from the root layout (PageBackground). */}
       <DataLoader>
+        <SubscriptionSync />
         <ImpersonationBar />
         <div className="flex min-h-screen">
           <Sidebar />

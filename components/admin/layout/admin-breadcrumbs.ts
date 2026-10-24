@@ -26,11 +26,13 @@ export function adminBreadcrumbs(
 
   const id = decodeURIComponent(pathname.slice(item.href.length + 1).split('/')[0]);
   const detail =
-    item.href === '/admin/farmers'
-      ? data.farmers.find((f) => f.userId === id)?.profile.name
-      : item.href === '/admin/loans'
-        ? data.applications.find((a) => a.id === id)?.reference
-        : undefined;
+    item.href === '/admin/settings'
+      ? getAdminPageMeta(pathname).title
+      : item.href === '/admin/farmers'
+        ? data.farmers.find((f) => f.userId === id)?.profile.name
+        : item.href === '/admin/loans'
+          ? data.applications.find((a) => a.id === id)?.reference
+          : undefined;
   return [
     ...crumbs,
     { label: item.label, href: item.href },

@@ -196,11 +196,10 @@ test('aiAssistant off: the nav item disappears and /assistant shows the unavaila
   assert.ok(!mobile.primary.some((i) => i.href === '/crop-doctor'));
   assert.ok(!mobile.menu.some((i) => i.href === '/crop-doctor'));
 
-  // Server rendering reads a zustand store's initial state (all features on), so the gate
-  // renders the page; the unavailable card it swaps in is rendered on its own.
-  assert.equal(
+  // Initial server rendering waits for this farmer's subscription before revealing the tool.
+  assert.match(
     renderToStaticMarkup(createElement(FeatureGate, { flag: 'aiAssistant' }, 'CHAT')),
-    'CHAT',
+    /Loading your plan/,
   );
   assert.match(
     renderToStaticMarkup(createElement(FeatureUnavailable)),

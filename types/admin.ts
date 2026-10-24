@@ -174,11 +174,15 @@ export interface FeatureFlags {
 }
 
 export interface Plan {
-  id: 'free' | 'premium';
+  id: import('./subscription').PlanId;
   name: string;
   priceGHS: number;
   features: string[];
   active: boolean;
+  /** Missing on older saved plans; normalized against the tier's defaults. */
+  access?: import('./subscription').PlanAccess;
+  /** Monthly AI credits. null means unlimited. */
+  aiCredits?: number | null;
 }
 
 export interface Announcement {

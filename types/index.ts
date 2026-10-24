@@ -77,6 +77,8 @@ export interface GhanaCardInfo {
 export interface Profile {
   userId: string;
   name: string;
+  /** Compressed JPEG data URL; optional for existing profiles. */
+  photoDataUrl?: string;
   email: string;
   phone: string;
   farmName: string;

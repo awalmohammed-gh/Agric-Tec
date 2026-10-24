@@ -1,3 +1,4 @@
+import { SYSTEM_SETTINGS_SECTIONS } from '@/constants/admin-settings';
 import {
   LayoutDashboard,
   Users,
@@ -223,6 +224,12 @@ export const ADMIN_PAGE_META: Record<string, { title: string; subtitle: string }
     title: 'System Settings',
     subtitle: 'Feature flags, maintenance mode, plans and backups.',
   },
+  ...Object.fromEntries(
+    SYSTEM_SETTINGS_SECTIONS.map((section) => [
+      section.href,
+      { title: section.label, subtitle: section.description },
+    ]),
+  ),
 };
 
 /** True when `pathname` is the item's page or, unless `exact`, one of its nested routes. */

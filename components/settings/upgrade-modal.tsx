@@ -1,74 +1,39 @@
 'use client';
 
-import { Check, Minus, Sparkles } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { Modal } from '@/components/ui/modal';
 import { formatGHS } from '@/lib/format';
 import { usePlatformStore } from '@/store/platform-store';
+import { useSubscription } from '@/hooks/use-subscription';
 
-/** The Premium preview. Its price and features come from the admin's plans. */
 export function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const plans = usePlatformStore((s) => s.plans);
-  const free = plans.find((plan) => plan.id === 'free');
-  const premium = plans.find((plan) => plan.id === 'premium');
-  if (!premium) return null;
-
+  const { plan } = useSubscription();
   return (
-    <Modal open={open} title="More possibilities for your farm" onClose={onClose} size="lg">
-      <div className="text-center">
-        <Badge color="purple">
-          <Sparkles size={12} aria-hidden="true" />
-          {premium.name} preview
-        </Badge>
-        <p className="font-display text-text mt-4 text-3xl font-bold">
-          {formatGHS(premium.priceGHS)}
-          <span className="text-text-mute text-base font-normal"> / month</span>
-        </p>
-        <p className="text-text-mute mt-2 text-sm">A planned upgrade. No payment is collected.</p>
-      </div>
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full min-w-80 text-left text-sm">
-          <caption className="sr-only">
-            {free?.name ?? 'Free Plan'} and {premium.name} feature comparison
-          </caption>
-          <thead>
-            <tr className="border-border border-b">
-              <th scope="col" className="py-3 pr-3">
-                Feature
-              </th>
-              <th scope="col" className="px-3 py-3">
-                {free?.name ?? 'Free Plan'}
-              </th>
-              <th scope="col" className="text-ink-green px-3 py-3">
-                {premium.name}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {premium.features.map((feature) => (
-              <tr key={feature} className="border-border border-b">
-                <th scope="row" className="text-text-dim py-3 pr-3 font-normal">
-                  {feature}
-                </th>
-                <td className="text-text-mute px-3">
-                  {free?.features.includes(feature) ? (
-                    <Check size={17} aria-label="Included" className="text-ink-green" />
-                  ) : (
-                    <Minus size={16} aria-label="Not included" />
-                  )}
-                </td>
-                <td className="text-ink-green px-3">
-                  <Check size={17} aria-label="Included" />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <Button disabled icon={Sparkles} className="mt-6 w-full">
-        Coming soon
-      </Button>
+    <Modal open={open} title="Choose a plan for your farm" onClose={onClose} size="md">
+      <p className="text-text-dim text-sm">
+        Your current plan is {plan.name}. Compare monthly plans and see your remaining AI credits.
+      </p>
+      <ul className="divide-border mt-4 divide-y">
+        {plans
+          .filter((p) => p.active)
+          .map((p) => (
+            <li key={p.id} className="text-text flex justify-between gap-3 py-3 text-sm">
+              <span>{p.name}</span>
+              <span>{formatGHS(p.priceGHS)} / month</span>
+            </li>
+          ))}
+      </ul>
+      <p className="text-text-mute mt-3 text-xs">
+        Payments are simulated for this demo. No money is charged.
+      </p>
+      <Link
+        href="/settings/plans"
+        onClick={onClose}
+        className="bg-accent text-bg-1 mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold"
+      >
+        Open plans &amp; billing
+      </Link>
     </Modal>
   );
 }

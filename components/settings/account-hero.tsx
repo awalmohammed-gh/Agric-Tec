@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { ProfileAvatar } from '@/components/profile/profile-avatar';
 import { CropIcon, cropFromName } from '@/components/ui/crop-icon';
 import { ScoreRing } from '@/components/ui/score-ring';
 import { profileCompleteness } from '@/lib/profile';
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
 import { useProfileStore } from '@/store/profile-store';
 import type { Profile } from '@/types';
+import { useSubscription } from '@/hooks/use-subscription';
 
 /** The single most useful thing to do next, with the section it lives in. */
 function nextStep(profile: Profile | null): { text: string; href: string } | null {
@@ -38,13 +40,13 @@ function nextStep(profile: Profile | null): { text: string; href: string } | nul
 }
 
 export function AccountHero() {
+  const { plan } = useSubscription();
   const profile = useProfileStore((s) => s.profile);
   const session = useAuthStore((s) => s.session);
   const complete = profileCompleteness(profile);
   const step = nextStep(profile);
 
   const name = profile?.name.trim() || 'New Farmer';
-  const initial = name[0]?.toUpperCase() ?? 'N';
   const place = [profile?.farmName.trim(), profile?.region].filter(Boolean).join(' · ');
   const checks: { label: string; icon: LucideIcon; done: boolean }[] = [
     { label: 'Phone', icon: Smartphone, done: Boolean(profile?.verification.phone) },
@@ -64,11 +66,12 @@ export function AccountHero() {
       />
       <div className="relative grid gap-6 @3xl:grid-cols-[minmax(0,1fr)_auto] @3xl:items-center">
         <div className="flex min-w-0 flex-col gap-4 @md:flex-row @md:items-center">
-          <span
-            aria-hidden="true"
-            className="relative inline-flex size-20 shrink-0 items-center justify-center rounded-3xl bg-linear-to-br from-[#f5c451] to-[#10b981] text-3xl font-bold text-[#022c22] shadow-[0_12px_30px_-10px_var(--accent-glow)]"
-          >
-            {initial}
+          <span aria-hidden="true" className="relative inline-flex shrink-0">
+            <ProfileAvatar
+              name={name}
+              photoDataUrl={profile?.photoDataUrl}
+              className="size-20 rounded-3xl text-3xl"
+            />
             {fullyVerified && (
               <span className="ring-bg-2 absolute -right-1.5 -bottom-1.5 inline-flex size-7 items-center justify-center rounded-full bg-[#10b981] text-white ring-4">
                 <Check size={15} strokeWidth={3} />
@@ -97,7 +100,7 @@ export function AccountHero() {
               {session?.isGuest ? (
                 <Badge color="gold">Guest · Demo</Badge>
               ) : (
-                <Badge>Free Plan</Badge>
+                <Badge>{plan.name}</Badge>
               )}
               {profile?.primaryCrops.slice(0, 3).map((crop) => (
                 <span

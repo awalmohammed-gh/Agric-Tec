@@ -20,6 +20,12 @@ export const profileService = {
     await delay();
     const toSave = safeProfile({ ...profile, userId });
     storage.set(key(userId), toSave);
+    if (
+      typeof window !== 'undefined' &&
+      JSON.stringify(storage.get<Profile | null>(key(userId), null)) !== JSON.stringify(toSave)
+    ) {
+      throw new Error('Could not save your profile. Check your device storage and try again.');
+    }
     return toSave;
   },
 };

@@ -52,7 +52,13 @@ class MemoryStorage {
   }
 }
 globalThis.window = { localStorage: new MemoryStorage(), sessionStorage: new MemoryStorage() };
-globalThis.document = { cookie: '' };
+globalThis.document = {
+  cookie: '',
+  head: { appendChild() {} },
+  createElement: () => ({ appendChild() {} }),
+  createTextNode: (text) => ({ textContent: text }),
+  documentElement: { dataset: {}, removeAttribute() {} },
+};
 
 const { createElement } = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
@@ -114,7 +120,7 @@ test('navigation is correct for all 4 roles', () => {
   assert.deepEqual(labelsFor('farmer'), []);
 });
 
-test('every admin route is protected at page level with its own permission', () => {
+test('every admin route is protected by its page or an ancestor layout with its own permission', () => {
   const pagesDir = path.join(root, 'app', '(admin)', 'admin');
   const pages = [];
   (function walk(dir) {
@@ -138,14 +144,24 @@ test('every admin route is protected at page level with its own permission', () 
   }
   for (const { file, route } of routes) {
     const source = fs.readFileSync(file, 'utf8');
+    let guardedSource = source;
+    for (let dir = path.dirname(file); dir.startsWith(pagesDir); dir = path.dirname(dir)) {
+      const layout = path.join(dir, 'layout.tsx');
+      if (fs.existsSync(layout)) guardedSource += '\n' + fs.readFileSync(layout, 'utf8');
+      if (dir === pagesDir) break;
+    }
     const item = findAdminNavItem(route);
     assert.ok(item, `${route} belongs to a nav item`);
     assert.match(
-      source,
+      guardedSource,
       new RegExp(`permission="${item.permission.replace('.', '\\.')}"`),
       `${route} checks ${item.permission}`,
     );
-    assert.match(source, /AdminPlaceholder|RequirePermission/, `${route} renders through a guard`);
+    assert.match(
+      guardedSource,
+      /AdminPlaceholder|RequirePermission/,
+      `${route} renders through a guard`,
+    );
     if (route.includes('some-id')) assert.match(source, /await params/, `${route} awaits params`);
   }
 });
@@ -280,4 +296,52 @@ test('shared components: one status map, JSON diff and pagination window', () =>
   assert.deepEqual(pageWindow(1, 1), [1]);
   assert.deepEqual(pageWindow(5, 10), [1, 'gap', 4, 5, 6, 'gap', 10]);
   assert.deepEqual(pageWindow(2, 3), [1, 2, 3]);
+});
+
+test('system settings navigation opens distinct pages and identifies the current page', () => {
+  const { PathnameContext } = require('next/dist/shared/lib/hooks-client-context.shared-runtime');
+  const { SYSTEM_SETTINGS_SECTIONS } = require('../constants/admin-settings.ts');
+  const { SystemSettingsNav } = require('../components/admin/settings/settings-nav.tsx');
+  const html = renderToStaticMarkup(
+    createElement(
+      PathnameContext.Provider,
+      {
+        value: '/admin/settings/maintenance',
+      },
+      createElement(SystemSettingsNav),
+    ),
+  );
+  assert.equal(SYSTEM_SETTINGS_SECTIONS.length, 6);
+  const links = html.match(/<a\b[^>]*>/g) ?? [];
+  assert.equal(links.length, 6);
+  assert.equal(links.filter((link) => /aria-current="page"/.test(link)).length, 1);
+  assert.ok(
+    links.some(
+      (link) =>
+        /href="\/admin\/settings\/maintenance"/.test(link) && /aria-current="page"/.test(link),
+    ),
+  );
+  for (const section of SYSTEM_SETTINGS_SECTIONS) {
+    assert.ok(links.some((link) => link.includes(`href="${section.href}"`)));
+    assert.ok(!section.href.includes('#'));
+    const page = require(path.join(root, 'app', '(admin)', section.href.slice(1), 'page.tsx'));
+    assert.equal(page.default().props.section, section.id);
+    assert.equal(findAdminNavItem(section.href).permission, 'settings.manage');
+    assert.equal(
+      adminBreadcrumbs(section.href, { farmers: [], applications: [] }).at(-1).label,
+      section.label,
+    );
+  }
+});
+
+test('the shared settings layout denies access before any settings page is rendered', () => {
+  const { PathnameContext } = require('next/dist/shared/lib/hooks-client-context.shared-runtime');
+  const { default: SettingsLayout } = require('../app/(admin)/admin/settings/layout.tsx');
+  const guarded = SettingsLayout({ children: createElement('p', null, 'private-settings-editor') });
+  assert.equal(guarded.props.permission, 'settings.manage');
+  const html = renderToStaticMarkup(
+    createElement(PathnameContext.Provider, { value: '/admin/settings/danger' }, guarded),
+  );
+  assert.match(html, /access to this page/);
+  assert.doesNotMatch(html, /private-settings-editor/);
 });

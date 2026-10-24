@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/store/chat-store';
+import { useSubscription } from '@/hooks/use-subscription';
+import { toast } from 'sonner';
 
 const prompts = [
   {
@@ -57,6 +59,10 @@ export function QuickPrompts({ variant = 'compact' }: { variant?: 'compact' | 's
   const status = useChatStore((state) => state.status);
   const sendMessage = useChatStore((state) => state.sendMessage);
   const readOnly = useReadOnly();
+  const { snapshot, allows } = useSubscription();
+  const unavailable =
+    !allows('aiAssistant') ||
+    (snapshot?.creditsRemaining !== null && (snapshot?.creditsRemaining ?? 0) < 1);
   const starter = variant === 'starter';
 
   return (
@@ -71,9 +77,18 @@ export function QuickPrompts({ variant = 'compact' }: { variant?: 'compact' | 's
         <button
           key={label}
           type="button"
-          disabled={isTyping || status !== 'ready'}
+          disabled={isTyping || status !== 'ready' || unavailable}
           {...readOnlyProps(readOnly)}
-          onClick={readOnly ? undefined : () => void sendMessage(label)}
+          onClick={
+            readOnly
+              ? undefined
+              : () =>
+                  void sendMessage(label).catch((error: unknown) =>
+                    toast.error(
+                      error instanceof Error ? error.message : 'Could not send your question.',
+                    ),
+                  )
+          }
           className={cn(
             readOnly && READ_ONLY_CLASS,
             'group border-border bg-glass hover:border-accent/40 hover:bg-glass-strong text-left transition-all duration-200 disabled:pointer-events-none disabled:opacity-50',

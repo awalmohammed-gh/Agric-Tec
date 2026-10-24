@@ -36,6 +36,10 @@ import { useChatStore } from '@/store/chat-store';
 import { useFarmStore } from '@/store/farm-store';
 import { useModalStore } from '@/store/modal-store';
 import type { Crop, DiagnosisResult } from '@/types';
+import type { CreditReservation } from '@/types/subscription';
+import { useSubscriptionStore } from '@/store/subscription-store';
+import { useSubscription } from '@/hooks/use-subscription';
+import { AiUsageBanner } from '@/components/subscription/ai-usage-banner';
 
 const PHOTO_TIPS: { icon: LucideIcon; text: string }[] = [
   { icon: Sun, text: 'Natural daylight, no flash' },
@@ -52,6 +56,8 @@ const CHECKS: { icon: LucideIcon; title: string; text: string }[] = [
 ];
 
 export function CropDoctorView() {
+  const { snapshot } = useSubscription();
+  const noCredits = snapshot?.creditsRemaining !== null && (snapshot?.creditsRemaining ?? 0) < 5;
   const router = useRouter();
   const openRecordWithDefaults = useModalStore((s) => s.openRecordWithDefaults);
   const [crop, setCrop] = useState<Crop | ''>('');
@@ -80,18 +86,24 @@ export function CropDoctorView() {
   }
 
   async function analyze(image: File, selectedCrop: Crop | '') {
+    let reservation: CreditReservation | undefined;
+    let succeeded = false;
     const version = ++request.current;
     setFile(image);
     setResult(null);
     setSaved(false);
     setAnalyzing(true);
     try {
+      reservation = useSubscriptionStore.getState().reserveAi('cropDoctor');
       const diagnosis = await diagnoseCrop(
         image,
         selectedCrop || undefined,
         usePlatformStore.getState().diagnoses,
       );
-      if (request.current === version) setResult(diagnosis);
+      if (request.current === version) {
+        setResult(diagnosis);
+        succeeded = true;
+      }
     } catch (error) {
       if (request.current === version)
         toast.error(
@@ -100,6 +112,13 @@ export function CropDoctorView() {
             : 'Could not analyze this image. Please try again.',
         );
     } finally {
+      if (reservation) {
+        try {
+          useSubscriptionStore.getState().settleAi(reservation, succeeded);
+        } catch {
+          /* Reservations expire if storage is unavailable. */
+        }
+      }
       if (request.current === version) setAnalyzing(false);
     }
   }
@@ -148,13 +167,19 @@ export function CropDoctorView() {
   function askAssistant(diagnosis: DiagnosisResult) {
     const question = `How do I treat ${diagnosis.disease}${diagnosis.crop ? ` on my ${diagnosis.crop}` : ''}?`;
     router.push('/assistant');
-    void useChatStore.getState().sendMessage(question);
+    void useChatStore
+      .getState()
+      .sendMessage(question)
+      .catch((error: unknown) =>
+        toast.error(error instanceof Error ? error.message : 'Could not send your question.'),
+      );
   }
 
   const busy = analyzing || saving;
 
   return (
     <>
+      <AiUsageBanner feature="cropDoctor" />
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-2">
         {/* Scanner */}
         <Card className="rounded-3xl">
@@ -217,7 +242,10 @@ export function CropDoctorView() {
               }}
             />
           ) : (
-            <UploadZone onFile={(image) => void analyze(image, crop)} disabled={saving} />
+            <UploadZone
+              onFile={(image) => void analyze(image, crop)}
+              disabled={saving || noCredits}
+            />
           )}
 
           <div className="text-text-mute mt-4 space-y-1 text-[11px]">

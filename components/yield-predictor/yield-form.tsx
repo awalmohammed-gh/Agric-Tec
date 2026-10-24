@@ -42,6 +42,7 @@ import { usePlatformStore } from '@/store/platform-store';
 import { cn } from '@/lib/utils';
 import { useProfileStore } from '@/store/profile-store';
 import type { YieldResult as Prediction } from '@/types';
+import { useSubscriptionStore } from '@/store/subscription-store';
 
 interface Estimate {
   input: YieldFormValues;
@@ -195,6 +196,7 @@ export function YieldForm() {
             noValidate
             onSubmit={handleSubmit(async (input) => {
               try {
+                useSubscriptionStore.getState().assertFeature('yieldPredictor');
                 // Await also supports a future API-backed implementation of predictYield.
                 const result = await predictYield(input, crops);
                 setEstimate({ input, result });
@@ -229,7 +231,9 @@ export function YieldForm() {
                           className={active ? undefined : CROP_TONES[option].split(' ')[1]}
                         />
                         {option}
-                        {active && <Check size={14} aria-hidden="true" className="ml-auto shrink-0" />}
+                        {active && (
+                          <Check size={14} aria-hidden="true" className="ml-auto shrink-0" />
+                        )}
                       </span>
                     </label>
                   );
@@ -260,7 +264,10 @@ export function YieldForm() {
                   step="any"
                   placeholder="e.g. 2"
                   error={Boolean(errors.acres)}
-                  aria-describedby={cn('yield-acres-hint', errors.acres && fieldErrorId('yield-acres'))}
+                  aria-describedby={cn(
+                    'yield-acres-hint',
+                    errors.acres && fieldErrorId('yield-acres'),
+                  )}
                   className="text-center text-base font-bold tabular-nums"
                   {...register('acres')}
                 />
@@ -428,9 +435,7 @@ export function YieldForm() {
                 <span className="bg-accent/15 text-ink-green inline-flex size-16 items-center justify-center rounded-2xl">
                   <ChartNoAxesCombined size={30} strokeWidth={1.75} aria-hidden="true" />
                 </span>
-                <h3 className="text-text mt-5 text-lg font-bold">
-                  Ready when you are
-                </h3>
+                <h3 className="text-text mt-5 text-lg font-bold">Ready when you are</h3>
                 <p className="text-text-dim mt-1.5 max-w-sm text-sm">
                   Answer the five questions and select “Estimate my harvest” to see your results
                   here.

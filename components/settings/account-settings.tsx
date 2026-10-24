@@ -10,15 +10,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/store/auth-store';
 import { usePlatformStore } from '@/store/platform-store';
+import { useSubscription } from '@/hooks/use-subscription';
 
 export function AccountSettings() {
   const session = useAuthStore((state) => state.session);
   const { signOut, signingOut } = useSignOut();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const plans = usePlatformStore((state) => state.plans);
-  const freeName = plans.find((plan) => plan.id === 'free')?.name ?? 'Free Plan';
+  const { plan: currentPlan } = useSubscription();
+  const freeName = currentPlan.name;
   // The upgrade offer only shows while the admin has the Premium plan switched on.
-  const premiumOffered = plans.some((plan) => plan.id === 'premium' && plan.active);
+  const premiumOffered = plans.some((plan) => plan.id !== 'free' && plan.active);
   return (
     <Card className="flex h-full flex-col rounded-3xl">
       <CardHeader>
@@ -37,7 +39,7 @@ export function AccountSettings() {
         </div>
         {premiumOffered && (
           <Button size="sm" variant="ghost" icon={Sparkles} onClick={() => setUpgradeOpen(true)}>
-            Upgrade
+            View plans
           </Button>
         )}
       </div>

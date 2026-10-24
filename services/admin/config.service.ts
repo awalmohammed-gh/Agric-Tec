@@ -4,6 +4,7 @@ import type { ScoringInput } from '@/lib/admin/credit-rules';
 import { DEFAULT_CREDIT_CONFIG, DEFAULT_FLAGS, DEFAULT_PLANS } from '@/lib/admin/defaults';
 import { readFarmerData, readUsers } from '@/lib/admin/farmer-data';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
+import { normalizePlans } from '@/lib/subscriptions/plans';
 import {
   creditConfigInputSchema,
   featureFlagsSchema,
@@ -16,6 +17,9 @@ import type { CreditConfig, CreditConfigInput, FeatureFlags, Plan } from '@/type
 const readCredit = () =>
   storage.get<CreditConfig>(PLATFORM_KEYS.creditConfig, DEFAULT_CREDIT_CONFIG);
 const readHistory = () => storage.get<CreditConfig[]>(PLATFORM_KEYS.creditHistory, []);
+
+export const readPlans = (): Plan[] =>
+  normalizePlans(storage.get<Plan[]>(PLATFORM_KEYS.plans, DEFAULT_PLANS));
 
 /**
  * The feature flags right now, without latency (auth.service checks them inside its own calls).
@@ -228,7 +232,7 @@ export const configService = {
 
   async getPlans(): Promise<Plan[]> {
     await delay();
-    return storage.get<Plan[]>(PLATFORM_KEYS.plans, DEFAULT_PLANS);
+    return readPlans();
   },
 
   async savePlans(plans: Plan[]): Promise<Plan[]> {
@@ -245,8 +249,9 @@ export const configService = {
       },
       async () => {
         const valid = parseOrThrow(plansSchema, plans);
-        storage.set(PLATFORM_KEYS.plans, valid);
-        return valid;
+        const normalized = normalizePlans(valid);
+        storage.set(PLATFORM_KEYS.plans, normalized);
+        return normalized;
       },
     );
   },

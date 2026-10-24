@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useChatStore } from '@/store/chat-store';
+import { AiUsageBanner } from '@/components/subscription/ai-usage-banner';
 
 export function AssistantChat() {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -61,6 +62,7 @@ export function AssistantChat() {
           Clear chat
         </Button>
       </div>
+      <AiUsageBanner feature="aiAssistant" />
       <ChatWindow />
       <div className="border-border bg-glass shrink-0 border-t px-4 pt-4 pb-3 sm:px-6">
         {hasConversation && <QuickPrompts />}

@@ -10,6 +10,7 @@ import { useFarmStore } from '@/store/farm-store';
 import { cropNames } from '@/lib/profile';
 import { useProfileStore } from '@/store/profile-store';
 import type { ChatMessage, LoadOptions, StoreStatus } from '@/types';
+import { useSubscriptionStore } from '@/store/subscription-store';
 
 let loadVersion = 0;
 
@@ -63,6 +64,10 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     if (!trimmed) return;
     if (!userId) throw new Error('You need to sign in first');
     if (isTyping || status !== 'ready') return;
+    if (useSubscriptionStore.getState().userId !== userId)
+      throw new Error('Your plan is still loading. Please try again.');
+    const reservation = useSubscriptionStore.getState().reserveAi('aiAssistant');
+    let succeeded = false;
 
     const userMessage: ChatMessage = {
       id: generateId(),
@@ -119,6 +124,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       };
       set((state) => ({ messages: [...state.messages, aiMessage] }));
       await chatService.save(userId, get().messages);
+      succeeded = true;
     } catch {
       if (!isCurrent()) return;
       appendError();
@@ -128,6 +134,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
         // Keep the error visible even if persistence is unavailable.
       }
     } finally {
+      try {
+        useSubscriptionStore.getState().settleAi(reservation, succeeded);
+      } catch {
+        /* A failed storage write leaves the reservation to expire. */
+      }
       if (isCurrent()) set({ isTyping: false });
     }
   },
