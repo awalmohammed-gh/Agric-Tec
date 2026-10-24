@@ -18,6 +18,8 @@ export interface StoredUser {
   status?: AccountStatus;
   suspendedReason?: string;
   lastActiveAt?: string;
+  /** An admin reset the password: the farmer must choose a new one at their next sign-in. */
+  mustChangePassword?: boolean;
 }
 
 export const USERS_KEY = 'users';
@@ -27,6 +29,19 @@ const GUEST_EMAIL = 'guest@agrictec.demo';
 const SESSION_COOKIE = 'agrictec_session';
 
 export const SUSPENDED_MESSAGE = 'Your account is suspended. Contact support.';
+
+/**
+ * Thrown by signIn after a correct temporary password (an admin reset it): the farmer chooses a
+ * new password before any session starts (authService.replaceTemporaryPassword).
+ */
+export class PasswordChangeRequiredError extends Error {
+  constructor() {
+    super('Choose a new password to finish signing in.');
+    this.name = 'PasswordChangeRequiredError';
+  }
+}
+
+export const FARMER_PASSWORD_MIN_LENGTH = 8;
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -102,7 +117,40 @@ export const authService = {
     if (!user || user.passwordHash !== (await hashPassword(password))) {
       throw new Error('Incorrect email or password');
     }
+    if (user.status !== 'suspended' && user.mustChangePassword) {
+      throw new PasswordChangeRequiredError();
+    }
     return startSession(user);
+  },
+
+  /**
+   * After an admin reset: checks the temporary password again, saves the farmer's own new
+   * password (the admin never learns it) and signs them in.
+   */
+  async replaceTemporaryPassword(
+    email: string,
+    temporary: string,
+    nextPassword: string,
+  ): Promise<Session> {
+    await delay();
+    const normalized = normalizeEmail(email);
+    const user = readUsers().find((u) => !u.isGuest && u.email === normalized);
+    if (!user || user.passwordHash !== (await hashPassword(temporary))) {
+      throw new Error('Incorrect email or password');
+    }
+    if (nextPassword.length < FARMER_PASSWORD_MIN_LENGTH) {
+      throw new Error(`Password must be at least ${FARMER_PASSWORD_MIN_LENGTH} characters`);
+    }
+    if (nextPassword === temporary) {
+      throw new Error('Choose a password different from the temporary one.');
+    }
+    const updated: StoredUser = {
+      ...user,
+      passwordHash: await hashPassword(nextPassword),
+      mustChangePassword: false,
+    };
+    writeUsers(readUsers().map((u) => (u.id === user.id ? updated : u)));
+    return startSession(updated);
   },
 
   /** There is only ever one guest: its ID is created once and reused, so demo data never vanishes. */

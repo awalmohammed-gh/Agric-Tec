@@ -10,14 +10,16 @@ import { toast } from 'sonner';
 import { loginSchema, type LoginValues } from '@/components/auth/auth-schemas';
 import { AuthDivider, FormAlert } from '@/components/auth/form-alert';
 import { GuestButton } from '@/components/auth/guest-button';
+import { NewPasswordForm } from '@/components/auth/new-password-form';
 import { PasswordInput } from '@/components/auth/password-input';
 import { Button } from '@/components/ui/button';
 import { FormField, fieldErrorId } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-import { SUSPENDED_MESSAGE } from '@/services/auth.service';
+import { PasswordChangeRequiredError, SUSPENDED_MESSAGE } from '@/services/auth.service';
 import { onboardingService } from '@/services/onboarding.service';
 import { useAuthStore } from '@/store/auth-store';
 import { usePlatformStore } from '@/store/platform-store';
+import type { Session } from '@/types';
 
 /** Why the app sent the farmer back here (set by DataLoader). */
 export type LoginReason = 'suspended' | 'deleted';
@@ -33,6 +35,8 @@ export function LoginForm({ next, reason }: { next: string; reason?: LoginReason
   const [formError, setFormError] = useState<string | null>(
     reason ? REASON_MESSAGES[reason] : null,
   );
+  // Signed in with a temporary password from support: choose a new one first.
+  const [temporary, setTemporary] = useState<{ email: string; password: string } | null>(null);
   // The admin can close sign-ups and guest mode.
   const { signupOpen, guestMode } = usePlatformStore((s) => s.flags);
 
@@ -48,14 +52,32 @@ export function LoginForm({ next, reason }: { next: string; reason?: LoginReason
   async function onSubmit(values: LoginValues) {
     setFormError(null);
     try {
-      const session = await signIn(values.email, values.password);
-      toast.success('Welcome back!');
-      // Farm setup unfinished → onboarding (it resumes on the step where they stopped).
-      router.replace(await onboardingService.destinationAfterSignIn(session.userId, next));
-      router.refresh();
+      await enter(await signIn(values.email, values.password));
     } catch (error) {
+      if (error instanceof PasswordChangeRequiredError) {
+        setTemporary({ email: values.email, password: values.password });
+        return;
+      }
       setFormError(error instanceof Error ? error.message : 'Could not sign in');
     }
+  }
+
+  async function enter(session: Session, message = 'Welcome back!') {
+    toast.success(message);
+    // Farm setup unfinished → onboarding (it resumes on the step where they stopped).
+    router.replace(await onboardingService.destinationAfterSignIn(session.userId, next));
+    router.refresh();
+  }
+
+  if (temporary) {
+    return (
+      <NewPasswordForm
+        email={temporary.email}
+        temporary={temporary.password}
+        onSignedIn={(session) => void enter(session, 'Password saved. Welcome back!')}
+        onBack={() => setTemporary(null)}
+      />
+    );
   }
 
   return (

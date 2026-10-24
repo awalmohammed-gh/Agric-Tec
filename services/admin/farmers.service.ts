@@ -244,7 +244,12 @@ export const farmersService = {
       async () => {
         if (user.isGuest) throw new Error('The guest account has no password.');
         const temporary = makeTempPassword();
-        saveUser({ ...user, passwordHash: await hashPassword(temporary) });
+        // One use only: the farmer must choose their own password when they sign in with it.
+        saveUser({
+          ...user,
+          passwordHash: await hashPassword(temporary),
+          mustChangePassword: true,
+        });
         return temporary;
       },
     );

@@ -11,7 +11,10 @@ import type { FarmerAccount } from '@/types/admin';
 
 const nameOf = (f: FarmerAccount) => f.profile.name || f.email;
 
-/** Sets a one-time password and shows it once, with a copy button. It is never logged. */
+/**
+ * Sets a one-time password and shows it once, with a copy button. It is never logged. The farmer
+ * signs in with it once and must then choose their own password.
+ */
 export function ResetPasswordDialog({
   farmer,
   onClose,
@@ -51,6 +54,10 @@ export function ResetPasswordDialog({
         >
           Share this securely. It will not be shown again.
         </p>
+        <p className="text-text-mute mt-3 text-xs">
+          When {nameOf(farmer)} signs in with it, they will be asked to choose their own password,
+          so this one only works once.
+        </p>
         <Button className="mt-5 w-full" onClick={close}>
           Done
         </Button>
@@ -64,7 +71,7 @@ export function ResetPasswordDialog({
       title="Reset password"
       message={
         farmer
-          ? `${nameOf(farmer)}'s current password will stop working. You will see a temporary password once.`
+          ? `${nameOf(farmer)}'s current password will stop working. You will see a temporary password once; they sign in with it and then choose a new password of their own.`
           : ''
       }
       confirmLabel="Reset password"

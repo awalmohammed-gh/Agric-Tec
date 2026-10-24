@@ -84,7 +84,7 @@ const { configService } = require('../services/admin/config.service.ts');
 const { farmersService } = require('../services/admin/farmers.service.ts');
 const { loanApplicationsService } = require('../services/admin/loan-applications.service.ts');
 const { teamService } = require('../services/admin/team.service.ts');
-const { authService } = require('../services/auth.service.ts');
+const { authService, PasswordChangeRequiredError } = require('../services/auth.service.ts');
 const { READ_ONLY_MESSAGE, storage } = require('../services/storage.ts');
 const { loadAllStores, resetAllStores } = require('../store/index.ts');
 const { useAuthStore } = require('../store/auth-store.ts');
@@ -228,12 +228,36 @@ test('view as farmer: audited, single-use, and strictly read-only', async () => 
   await adminAuthService.signIn(SUPER_ADMIN_EMAIL, STRONG);
 });
 
-test('a reset password works for the farmer’s next login', async () => {
+test('a reset password works once: the farmer then chooses their own', async () => {
   const farmer = farmers.find((f) => f.status === 'active' && f.userId !== farmers[0].userId);
   const temporary = await farmersService.resetPassword(farmer.userId);
   await assert.rejects(() => authService.signIn(farmer.email, DEMO_PASSWORDS.farmer), /Incorrect/);
-  const session = await authService.signIn(farmer.email, temporary);
+
+  // The temporary password is accepted, but no session starts until a new one is chosen.
+  await assert.rejects(
+    () => authService.signIn(farmer.email, temporary),
+    PasswordChangeRequiredError,
+  );
+  assert.equal(await authService.getSession(), null);
+  await assert.rejects(
+    () => authService.replaceTemporaryPassword(farmer.email, 'Temp-00000', 'Harvest-2026'),
+    /Incorrect/,
+  );
+  await assert.rejects(
+    () => authService.replaceTemporaryPassword(farmer.email, temporary, temporary),
+    /different/,
+  );
+  const session = await authService.replaceTemporaryPassword(
+    farmer.email,
+    temporary,
+    'Harvest-2026',
+  );
   assert.equal(session.userId, farmer.userId);
+  await authService.signOut();
+
+  // From now on only the farmer's own password works.
+  await assert.rejects(() => authService.signIn(farmer.email, temporary), /Incorrect/);
+  assert.equal((await authService.signIn(farmer.email, 'Harvest-2026')).userId, farmer.userId);
   await authService.signOut();
 });
 

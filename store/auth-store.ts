@@ -18,6 +18,8 @@ interface AuthState {
   impersonation: ImpersonationView | null;
   init: () => Promise<Session | null>;
   signIn: (email: string, password: string) => Promise<Session>;
+  /** After an admin reset: the temporary password, then the farmer's own new one. */
+  replaceTemporaryPassword: (email: string, temporary: string, next: string) => Promise<Session>;
   signUp: (email: string, password: string) => Promise<Session>;
   continueAsGuest: () => Promise<Session>;
   signOut: () => Promise<void>;
@@ -42,6 +44,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   signIn: async (email, password) => {
     const session = await authService.signIn(email, password);
+    set({ session, status: 'ready' });
+    return session;
+  },
+
+  replaceTemporaryPassword: async (email, temporary, next) => {
+    const session = await authService.replaceTemporaryPassword(email, temporary, next);
     set({ session, status: 'ready' });
     return session;
   },

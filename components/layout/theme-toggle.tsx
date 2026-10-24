@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useMounted } from '@/hooks/use-mounted';
 
 const buttonClass =
-  'glass inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-sm font-medium text-text transition-colors hover:bg-glass-strong';
+  'glass inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-text transition-colors hover:bg-glass-strong';
 
 export function ThemeToggle() {
   const mounted = useMounted();
@@ -16,8 +16,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <span aria-hidden="true" className={buttonClass}>
-        <span className="size-4" />
-        <span className="w-9" />
+        <span className="size-[18px]" />
       </span>
     );
   }
@@ -34,10 +33,10 @@ export function ThemeToggle() {
         toast.success(`Switched to ${next} mode`);
       }}
       aria-label={`Switch to ${next} mode`}
+      title={`Switch to ${next} mode`}
       className={buttonClass}
     >
-      <Icon size={16} aria-hidden="true" />
-      <span className="hidden sm:inline">{isDark ? 'Dark' : 'Light'}</span>
+      <Icon size={18} aria-hidden="true" />
     </button>
   );
 }
