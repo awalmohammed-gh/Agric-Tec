@@ -28,15 +28,15 @@ export const SEASON_OPTIONS: YieldOption<YieldInput['season']>[] = [
 ];
 
 export const FERTILIZER_OPTIONS: YieldOption<YieldInput['fertilizer']>[] = [
-  { value: 'both', label: 'Both', hint: 'Organic + inorganic', icon: Layers },
-  { value: 'inorganic', label: 'Inorganic', hint: 'NPK, urea', icon: FlaskConical },
-  { value: 'organic', label: 'Organic', hint: 'Manure, compost', icon: Leaf },
-  { value: 'none', label: 'None', hint: 'No fertilizer', icon: Sprout },
+  { value: 'both', label: 'Both types', hint: 'Compost or manure plus NPK or urea', icon: Layers },
+  { value: 'inorganic', label: 'NPK or urea', hint: 'Inorganic fertilizer', icon: FlaskConical },
+  { value: 'organic', label: 'Manure or compost', hint: 'Organic fertilizer', icon: Leaf },
+  { value: 'none', label: 'No fertilizer', hint: 'No added fertilizer', icon: Sprout },
 ];
 
 export const IRRIGATION_OPTIONS: YieldOption<YieldInput['irrigation']>[] = [
-  { value: 'rainfed', label: 'Rainfed', hint: 'Natural rainfall', icon: CloudRain },
-  { value: 'drip', label: 'Drip', hint: 'Water at the roots', icon: Droplet },
+  { value: 'rainfed', label: 'Rain only', hint: 'Natural rainfall', icon: CloudRain },
+  { value: 'drip', label: 'Drip irrigation', hint: 'Water at the roots', icon: Droplet },
   { value: 'sprinkler', label: 'Sprinkler', hint: 'Overhead spray', icon: Waves },
 ];
 

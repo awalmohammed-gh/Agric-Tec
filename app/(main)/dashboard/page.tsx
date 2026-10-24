@@ -4,7 +4,6 @@ import { AnnouncementBanner } from '@/components/dashboard/announcement-banner';
 import { DashboardHero } from '@/components/dashboard/dashboard-hero';
 import { GhanaCardPrompt } from '@/components/dashboard/ghana-card-prompt';
 import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
-import { InsightBanner } from '@/components/dashboard/insight-banner';
 import { LoanReadinessCard } from '@/components/dashboard/loan-readiness-card';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { StatsRow } from '@/components/dashboard/stats-row';
@@ -21,7 +20,6 @@ export default function DashboardPage() {
     <div className="@container space-y-5 sm:space-y-6">
       <AnnouncementBanner />
       <GhanaCardPrompt />
-      <InsightBanner />
 
       <div className="grid grid-cols-1 gap-5 sm:gap-6 @4xl:grid-cols-3">
         <DashboardHero className="@4xl:col-span-2" />

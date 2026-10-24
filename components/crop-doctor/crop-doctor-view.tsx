@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnalyzingState } from '@/components/crop-doctor/analyzing-state';
+import { CropScanStats } from '@/components/crop-doctor/crop-doctor-hero';
 import { DiagnosisCard } from '@/components/crop-doctor/diagnosis-card';
 import { DiagnosisHistory } from '@/components/crop-doctor/diagnosis-history';
 import { ImagePreview } from '@/components/crop-doctor/image-preview';
@@ -219,23 +220,13 @@ export function CropDoctorView() {
             <UploadZone onFile={(image) => void analyze(image, crop)} disabled={saving} />
           )}
 
-          <div className="border-border bg-glass mt-5 rounded-2xl border p-4">
-            <p className="text-text mb-3 text-xs font-semibold">Tips for an accurate scan</p>
-            <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {PHOTO_TIPS.map(({ icon: Icon, text }) => (
-                <li key={text} className="text-text-dim flex items-center gap-2 text-xs">
-                  <span className="bg-accent/10 text-ink-green inline-flex size-7 shrink-0 items-center justify-center rounded-lg">
-                    <Icon size={14} aria-hidden="true" />
-                  </span>
-                  {text}
-                </li>
-              ))}
-            </ul>
+          <div className="text-text-mute mt-4 space-y-1 text-[11px]">
+            <p className="flex items-center gap-1.5">
+              <ShieldCheck size={13} aria-hidden="true" className="text-ink-green shrink-0" />
+              Your photo stays on this device.
+            </p>
+            <p>Results are simulated. Confirm with your extension officer.</p>
           </div>
-          <p className="text-text-mute mt-4 flex items-center gap-1.5 text-[11px]">
-            <ShieldCheck size={13} aria-hidden="true" className="text-ink-green" />
-            Your photo stays on this device.
-          </p>
         </Card>
 
         {/* Result */}
@@ -300,6 +291,22 @@ export function CropDoctorView() {
           </div>
         </Card>
       </div>
+      <details className="border-border bg-glass rounded-2xl border p-4">
+        <summary className="text-text focus-visible:outline-accent cursor-pointer rounded text-sm font-semibold">
+          Tips for a clear leaf photo
+        </summary>
+        <ul className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {PHOTO_TIPS.map(({ icon: Icon, text }) => (
+            <li key={text} className="text-text-dim flex items-center gap-2 text-xs">
+              <span className="bg-accent/10 text-ink-green inline-flex size-7 shrink-0 items-center justify-center rounded-lg">
+                <Icon size={14} aria-hidden="true" />
+              </span>
+              {text}
+            </li>
+          ))}
+        </ul>
+      </details>
+      <CropScanStats />
       <DiagnosisHistory />
     </>
   );

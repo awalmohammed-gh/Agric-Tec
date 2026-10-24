@@ -74,6 +74,30 @@ export function UploadZone({
           event.currentTarget.value = '';
         }}
       />
+      <div className="mb-3">
+        <div role="group" aria-label="Crop photo options" className="grid grid-cols-2 gap-2">
+          <Button
+            icon={Camera}
+            disabled={disabled}
+            onClick={() => setCameraOpen(true)}
+            className="min-w-0 px-2 text-xs sm:px-3"
+          >
+            Take photo
+          </Button>
+          <Button
+            variant="ghost"
+            icon={ImagePlus}
+            disabled={disabled}
+            onClick={() => inputRef.current?.click()}
+            className="min-w-0 px-2 text-xs sm:px-3"
+          >
+            Upload photo
+          </Button>
+        </div>
+        <p className="text-text-mute mt-2 text-center text-[11px] leading-relaxed">
+          Use your rear camera for a clear, close-up leaf photo.
+        </p>
+      </div>
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
@@ -132,30 +156,6 @@ export function UploadZone({
           className="bg-glass-strong text-text-mute mt-3 rounded-full px-3 py-1 text-xs"
         >
           PNG, JPG or WEBP up to 10MB
-        </p>
-      </div>
-      <div className="mt-3">
-        <div role="group" aria-label="Crop photo options" className="grid grid-cols-2 gap-2">
-          <Button
-            icon={Camera}
-            disabled={disabled}
-            onClick={() => setCameraOpen(true)}
-            className="min-w-0 px-2 text-xs sm:px-3"
-          >
-            Take photo
-          </Button>
-          <Button
-            variant="ghost"
-            icon={ImagePlus}
-            disabled={disabled}
-            onClick={() => inputRef.current?.click()}
-            className="min-w-0 px-2 text-xs sm:px-3"
-          >
-            Upload photo
-          </Button>
-        </div>
-        <p className="text-text-mute mt-2 text-center text-[11px] leading-relaxed">
-          Use your rear camera for a clear, close-up leaf photo.
         </p>
       </div>
       {cameraOpen && (

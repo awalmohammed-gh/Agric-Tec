@@ -91,7 +91,7 @@ export function YieldResult({
           className="bg-gold/10 text-ink-gold mb-4 flex items-start gap-2 rounded-xl p-3 text-xs leading-relaxed"
         >
           <CircleAlert size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
-          Inputs have changed. Predict again to update this estimate.
+          Your choices have changed. Select “Update my estimate” in the form to refresh these results.
         </p>
       )}
 

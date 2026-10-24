@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { Database, Plus, Sparkles } from 'lucide-react';
-import { PiHandWavingFill } from 'react-icons/pi';
 import { toast } from 'sonner';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { Badge } from '@/components/ui/badge';
@@ -181,13 +180,9 @@ export function DashboardHero({ className }: { className?: string }) {
           <p className="text-text-dim text-sm">{format(now, 'EEEE, d MMMM yyyy')}</p>
           <h2
             id="dashboard-greeting"
-            className="font-display text-text mt-1 text-2xl leading-tight font-bold @md:text-3xl"
+            className="font-display text-ink-green mt-1 w-fit text-2xl leading-tight font-bold @md:text-3xl"
           >
-            {greeting(now.getHours())}, <span className="text-gradient-brand">{firstName}</span>{' '}
-            <PiHandWavingFill
-              aria-hidden="true"
-              className="text-ink-gold -mt-1 inline-block size-7 align-middle"
-            />
+            {greeting(now.getHours())}, {firstName}
           </h2>
         </div>
 

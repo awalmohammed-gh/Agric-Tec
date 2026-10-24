@@ -32,8 +32,11 @@ export function AssistantChat() {
   }
 
   return (
-    <Card padding="none" className="min-w-0 rounded-3xl">
-      <div className="border-border flex items-center justify-between gap-3 border-b px-4 py-4 sm:px-6">
+    <Card
+      padding="none"
+      className="flex h-[calc(100svh-16rem)] min-h-80 min-w-0 flex-col rounded-3xl min-[900px]:h-[calc(100svh-13rem)]"
+    >
+      <div className="border-border flex shrink-0 items-center justify-between gap-3 border-b px-4 py-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <span className="border-accent/20 bg-accent/10 text-ink-green flex size-10 shrink-0 items-center justify-center rounded-2xl border">
             <Bot size={21} aria-hidden="true" />
@@ -59,7 +62,7 @@ export function AssistantChat() {
         </Button>
       </div>
       <ChatWindow />
-      <div className="border-border bg-glass border-t px-4 pt-4 pb-3 sm:px-6">
+      <div className="border-border bg-glass shrink-0 border-t px-4 pt-4 pb-3 sm:px-6">
         {hasConversation && <QuickPrompts />}
         <ChatInput />
       </div>

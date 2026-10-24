@@ -92,7 +92,7 @@ export function LoansHero() {
             id="loans-hero-title"
             className={cn(
               'font-display text-4xl leading-tight font-bold @xl:text-5xl',
-              maxAffordable > 0 ? 'text-gradient-brand' : 'text-text',
+              maxAffordable > 0 ? 'text-ink-green' : 'text-text',
             )}
           >
             {maxAffordable > 0 ? formatGHS(maxAffordable) : 'Not unlocked yet'}

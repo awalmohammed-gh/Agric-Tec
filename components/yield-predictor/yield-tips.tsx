@@ -30,7 +30,7 @@ export function YieldTips({ crop }: { crop: YieldCrop }) {
           <CropTile crop={crop} />
           <div>
             <h3 className="text-text flex items-center gap-2 text-[15px] font-bold">
-              Yield Optimization Tips for {crop}
+              Growing tips for {crop}
               <Lightbulb size={16} aria-hidden="true" className="text-ink-gold" />
             </h3>
             <p className="text-text-mute mt-0.5 text-xs">

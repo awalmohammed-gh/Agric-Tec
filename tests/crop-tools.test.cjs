@@ -367,7 +367,7 @@ test('yield and revenue are repeatable, scale by acreage and use shared crop bas
 test('yield tips change per crop, show all four tips, and results identify their inputs', () => {
   const cocoa = renderToStaticMarkup(createElement(YieldTips, { crop: 'Cocoa' }));
   const maize = renderToStaticMarkup(createElement(YieldTips, { crop: 'Maize' }));
-  assert.match(cocoa, /Yield Optimization Tips for Cocoa/);
+  assert.match(cocoa, /Growing tips for Cocoa/);
   assert.match(cocoa, /Prune regularly/);
   assert.match(maize, /Scout weekly/);
   assert.equal((cocoa.match(/<li\b/g) ?? []).length, 4);
@@ -380,7 +380,7 @@ test('yield tips change per crop, show all four tips, and results identify their
     }),
   );
   assert.match(rendered, /Maize/);
-  assert.match(rendered, /Predict again/);
+  assert.match(rendered, /Update my estimate/);
   assert.match(rendered, /Expected Revenue/);
   assert.match(rendered, /GHS 33,264/);
   assert.match(rendered, /Add to records as expected income/);

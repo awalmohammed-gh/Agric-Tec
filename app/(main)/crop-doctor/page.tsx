@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'AI Crop Doctor' };
 export default function CropDoctorPage() {
   return (
     <FeatureGate flag="cropDoctor">
-      <div className="@container space-y-6">
+      <div className="@container space-y-4">
         <CropDoctorHero />
         <CropDoctorView />
         <DiseaseGuide />

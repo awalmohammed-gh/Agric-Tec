@@ -121,9 +121,9 @@ export function ReportsHero() {
           </span>
           <h2
             id="reports-hero-title"
-            className="font-display text-text mt-4 text-3xl leading-tight font-bold @xl:text-4xl"
+            className="font-display text-ink-green mt-4 text-3xl leading-tight font-bold @xl:text-4xl"
           >
-            Your lender-ready <span className="text-gradient-brand">financial file</span>
+            Your lender-ready financial file
           </h2>
           <p className="text-text-dim mt-3 max-w-xl text-sm @xl:text-base">
             Turn your farm records into professional PDF reports that banks and microfinance

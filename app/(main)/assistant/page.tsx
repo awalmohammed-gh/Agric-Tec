@@ -10,18 +10,21 @@ export const metadata: Metadata = { title: 'AI Assistant' };
 export default function AssistantPage() {
   return (
     <FeatureGate flag="aiAssistant">
-      <div className="@container space-y-6">
+      <div className="@container space-y-4">
         <AssistantHero />
-        <div className="grid grid-cols-1 items-start gap-5 @4xl:grid-cols-[minmax(0,1fr)_290px]">
-          <AssistantChat />
+        <AssistantChat />
+        <details className="border-border bg-glass rounded-2xl border p-4">
+          <summary className="text-text focus-visible:outline-accent cursor-pointer rounded text-sm font-semibold">
+            About your assistant &amp; farm context
+          </summary>
           <aside
             aria-label="Assistant information"
-            className="grid gap-5 @2xl:grid-cols-2 @4xl:grid-cols-1"
+            className="mt-4 grid gap-5 @2xl:grid-cols-2"
           >
             <CapabilitiesCard />
             <FarmContextCard />
           </aside>
-        </div>
+        </details>
       </div>
     </FeatureGate>
   );
