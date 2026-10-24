@@ -30,14 +30,15 @@ export function LoanWorkspace() {
   return (
     <section id={ID} aria-label="Loan workspace" className="scroll-mt-28 space-y-5">
       <Tabs
+        fullWidth
         label="Loans and credit"
         idPrefix={ID}
         value={tab}
         onChange={setTab}
         tabs={[
-          { value: 'apply', label: 'Get a loan' },
-          { value: 'credit', label: 'Credit score' },
-          { value: 'applications', label: 'Applications', count: applications.length },
+          { value: 'apply', label: 'Compare loans' },
+          { value: 'credit', label: 'My credit score' },
+          { value: 'applications', label: 'My applications', count: applications.length },
         ]}
       />
 
@@ -46,11 +47,16 @@ export function LoanWorkspace() {
       </div>
 
       <div {...panel('credit')} className="space-y-6">
+        <CreditProfileCard />
         <LoanJourney />
-        <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-2">
-          <CreditProfileCard />
-          <ScoreLadder />
-        </div>
+        <details className="border-border bg-glass rounded-2xl border p-4">
+          <summary className="text-text focus-visible:outline-accent cursor-pointer rounded text-sm font-semibold">
+            Compare score bands and lender requirements
+          </summary>
+          <div className="mt-4">
+            <ScoreLadder />
+          </div>
+        </details>
       </div>
 
       <div {...panel('applications')}>

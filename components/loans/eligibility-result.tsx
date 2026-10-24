@@ -30,6 +30,7 @@ export interface EligibilityResultProps {
   partner: LoanPartner;
   onApply: () => void;
   onUseAmount: (amount: number) => void;
+  applyDisabled?: boolean;
 }
 
 export function EligibilityResult({
@@ -40,6 +41,7 @@ export function EligibilityResult({
   partner,
   onApply,
   onUseAmount,
+  applyDisabled = false,
 }: EligibilityResultProps) {
   if (eligibility.eligible) {
     return (
@@ -48,10 +50,11 @@ export function EligibilityResult({
         className="animate-fade-in border-accent/40 bg-accent/5 rounded-2xl border p-4 sm:p-5"
       >
         <h3 className="text-ink-green flex items-center gap-2 font-bold">
-          <CircleCheck size={20} aria-hidden="true" /> You&apos;re eligible
+          <CircleCheck size={20} aria-hidden="true" /> You can continue to review
         </h3>
         <p className="text-text-dim mt-1 mb-4 text-sm">
-          {partner.name} could lend you {formatGHS(amount)} based on your records.
+          Your records meet this app&apos;s checks for {formatGHS(amount)} with {partner.name}. The
+          lender still decides whether to approve your application.
         </p>
         <RepaymentBreakdown
           amount={amount}
@@ -59,8 +62,14 @@ export function EligibilityResult({
           partner={partner}
           repayment={repayment}
         />
-        <Button mutates icon={Send} onClick={onApply} className="mt-4 w-full">
-          Apply with {partner.name}
+        <Button
+          mutates
+          icon={Send}
+          onClick={onApply}
+          disabled={applyDisabled}
+          className="mt-4 w-full whitespace-normal"
+        >
+          Review application for {partner.name}
         </Button>
       </section>
     );
@@ -78,11 +87,11 @@ export function EligibilityResult({
       className="animate-fade-in border-danger/40 bg-danger/5 rounded-2xl border p-4 sm:p-5"
     >
       <h3 className="text-ink-red flex items-center gap-2 font-bold">
-        <XCircle size={20} aria-hidden="true" /> Not eligible yet
+        <XCircle size={20} aria-hidden="true" /> A few things to complete
       </h3>
       <p className="text-text-dim mt-1 text-sm">
         {eligibility.issues.length === 1 ? 'One thing' : `${eligibility.issues.length} things`} to
-        fix before {partner.name} can lend:
+        complete before you can apply to {partner.name} through this app:
       </p>
       <ul className="mt-3 space-y-2">
         {eligibility.issues.map((issue) => {

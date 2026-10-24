@@ -14,9 +14,9 @@ export const metadata: Metadata = { title: 'Loans & Credit' };
 export default function LoansPage() {
   return (
     <FeatureGate flag="loans">
-      <div className="@container space-y-6">
-        <GhanaCardLock />
+      <div className="@container space-y-4">
         <LoansHero />
+        <GhanaCardLock />
         <LoanWorkspace />
         <ApplyConfirmModal />
       </div>

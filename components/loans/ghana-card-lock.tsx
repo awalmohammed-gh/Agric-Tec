@@ -21,27 +21,29 @@ export function GhanaCardLock() {
   return (
     <section
       aria-labelledby="loans-locked-title"
-      className="border-gold/40 bg-gold/10 flex flex-col gap-4 rounded-3xl border p-5 sm:flex-row sm:items-center"
+      className="border-gold/40 bg-gold/10 flex flex-wrap items-start gap-3 rounded-2xl border p-4"
     >
-      <span className="bg-gold/20 text-ink-gold inline-flex size-12 shrink-0 items-center justify-center rounded-2xl">
+      <span className="bg-gold/20 text-ink-gold inline-flex size-9 shrink-0 items-center justify-center rounded-xl">
         {pending ? (
           <Hourglass size={22} aria-hidden="true" />
         ) : (
           <Lock size={22} aria-hidden="true" />
         )}
       </span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-40 flex-1">
         <h2 id="loans-locked-title" className="text-text text-base font-bold">
           {pending
             ? 'Your Ghana Card is being reviewed'
-            : 'Loans are locked until your Ghana Card is verified'}
+            : status === 'rejected'
+              ? 'Resubmit your Ghana Card to apply'
+              : 'Verify your Ghana Card before applying'}
         </h2>
         <p className="text-text-dim mt-1 text-sm">
           {pending
-            ? 'You can apply once it is verified, usually within one working day. Your score and offers are below.'
+            ? 'You can compare loans while you wait. Applications become available after verification.'
             : status === 'rejected'
               ? (reason ?? 'Your last card was rejected. Please resubmit it.')
-              : 'You can still see your credit score and lender offers. Verify your card to apply.'}
+              : 'You can compare loan costs and view your score now. Verification is required to apply.'}
         </p>
       </div>
       {!pending && (

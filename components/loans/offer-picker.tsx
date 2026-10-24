@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleAlert, CircleCheck, Landmark } from 'lucide-react';
+import { Check, CircleAlert, CircleCheck, Landmark } from 'lucide-react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 import type { LoanOffer } from '@/components/loans/loan-offers';
 import { formatGHS } from '@/lib/format';
@@ -33,9 +33,18 @@ export function OfferPicker({
 }) {
   return (
     <fieldset aria-describedby={error ? 'loan-partner-error' : undefined}>
-      <legend className="text-text-dim mb-2 text-xs font-semibold tracking-wide uppercase">
-        Choose a lender
+      <legend className="text-text mb-2 text-sm font-semibold">
+        4. Compare and choose a lender
       </legend>
+      <p className="text-text-mute mb-3 text-xs leading-relaxed">
+        Payments use your chosen amount and repayment period. A score match does not guarantee
+        approval. Your records and identity are checked next.
+      </p>
+      {offers.length === 0 && (
+        <p className="border-border text-text-dim rounded-xl border p-4 text-sm">
+          No lenders are available right now. You can still view your credit score and applications.
+        </p>
+      )}
       <div className="space-y-2">
         {offers.map((offer) => {
           const { partner, repayment } = offer;
@@ -55,7 +64,7 @@ export function OfferPicker({
               />
               <span
                 className={cn(
-                  'peer-focus-visible:outline-accent flex items-center gap-3 rounded-2xl border p-3 transition-colors peer-focus-visible:outline-2',
+                  'peer-focus-visible:outline-accent flex flex-wrap items-center gap-3 rounded-2xl border p-3 transition-colors peer-focus-visible:outline-2',
                   offer.offersTerm ? 'cursor-pointer' : 'cursor-not-allowed',
                   selected
                     ? 'border-accent/60 bg-accent/10 shadow-[0_0_0_3px_var(--accent-glow)]'
@@ -69,25 +78,14 @@ export function OfferPicker({
                 >
                   <Landmark size={18} />
                 </span>
-                <span className="min-w-0 flex-1">
+                <span className="min-w-32 flex-1">
                   <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                    <span className="text-text truncate text-sm font-semibold">{partner.name}</span>
-                    {offer.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className={cn(
-                          'rounded-full px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap',
-                          tag === 'Lowest payment'
-                            ? 'bg-accent/15 text-ink-green'
-                            : 'bg-purple/15 text-ink-purple',
-                        )}
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                    <span className="text-text text-sm font-semibold">{partner.name}</span>
+                    {selected && <Check size={14} aria-hidden="true" className="text-ink-green" />}
                   </span>
                   <span className="text-text-mute block text-[11px]">
-                    {partner.rate}% p.a. · {partner.minMonths}–{partner.maxMonths} months
+                    {partner.rate}% interest per year · {partner.minMonths}–{partner.maxMonths}{' '}
+                    months
                   </span>
                   <span
                     className={cn(
@@ -100,7 +98,7 @@ export function OfferPicker({
                     ) : (
                       <CircleCheck size={12} aria-hidden="true" />
                     )}
-                    {problem ?? 'You qualify'}
+                    {problem ?? 'Meets score, amount and period requirements'}
                   </span>
                 </span>
                 <span className="shrink-0 text-right">

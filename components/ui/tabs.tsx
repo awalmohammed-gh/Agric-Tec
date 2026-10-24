@@ -18,6 +18,8 @@ export interface TabsProps<V extends string> {
   className?: string;
   /** When set, tabs get ids and aria-controls pointing at `${idPrefix}-panel-${value}`. */
   idPrefix?: string;
+  /** Fit every tab across the available width, allowing labels to wrap on small screens. */
+  fullWidth?: boolean;
 }
 
 export function Tabs<V extends string>({
@@ -27,6 +29,7 @@ export function Tabs<V extends string>({
   label,
   className,
   idPrefix,
+  fullWidth = false,
 }: TabsProps<V>) {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -59,7 +62,10 @@ export function Tabs<V extends string>({
       <div
         role="tablist"
         aria-label={label}
-        className="glass inline-flex min-w-max gap-1 rounded-2xl p-1"
+        className={cn(
+          'glass gap-1 rounded-2xl p-1',
+          fullWidth ? 'grid w-full auto-cols-fr grid-flow-col' : 'inline-flex min-w-max',
+        )}
       >
         {tabs.map((tab, index) => {
           const selected = tab.value === value;
@@ -79,6 +85,8 @@ export function Tabs<V extends string>({
               onKeyDown={(event) => handleKeyDown(event, index)}
               className={cn(
                 'inline-flex min-h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold whitespace-nowrap transition-all duration-200',
+                fullWidth &&
+                  'min-w-0 justify-center gap-1 px-2 text-xs whitespace-normal sm:px-4 sm:text-sm',
                 selected
                   ? 'bg-linear-to-br from-[#34d399] to-[#10b981] text-[#022c22] shadow-[0_4px_16px_-4px_var(--accent-glow)]'
                   : 'text-text-dim hover:bg-glass-strong hover:text-text',

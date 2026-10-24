@@ -44,8 +44,8 @@ export function CreditProfileCard({ className }: { className?: string }) {
     <Card className={cn('flex flex-col', className)}>
       <CardHeader>
         <div>
-          <CardTitle>Credit Profile</CardTitle>
-          <CardSub>What makes up your score</CardSub>
+          <CardTitle>Understand your credit score</CardTitle>
+          <CardSub>Your farm records and profile help build this app&apos;s score.</CardSub>
         </div>
         <Badge color={LABEL_COLOR[creditLabel] ?? 'blue'}>{creditLabel}</Badge>
       </CardHeader>
@@ -57,16 +57,19 @@ export function CreditProfileCard({ className }: { className?: string }) {
         <span className="text-text-mute pb-1 text-sm">/ 850 credit score</span>
       </div>
 
-      <ScoreFactors />
+      <p className="text-text-dim text-sm">
+        Scores range from 300 to 850. Each lender has its own requirements, and your score alone
+        does not guarantee a loan.
+      </p>
 
       {top && top.available > 0 && (
         <div className="border-gold/30 bg-gold/10 mt-5 rounded-2xl border p-4">
           <p className="text-ink-gold flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
-            <Target size={14} aria-hidden="true" /> Biggest opportunity
+            <Target size={14} aria-hidden="true" /> Your next step
           </p>
           <p className="text-text mt-1 text-sm">
-            <strong>{top.label}</strong> has up to <strong>+{top.available} points</strong> waiting.{' '}
-            {top.help}.
+            {top.help}. Focus on <strong>{top.label.toLowerCase()}</strong> to help improve your
+            score.
           </p>
           <Link
             href={FACTOR_LINKS[top.key]}
@@ -81,6 +84,14 @@ export function CreditProfileCard({ className }: { className?: string }) {
           </Link>
         </div>
       )}
+      <details className="border-border mt-5 rounded-xl border p-4">
+        <summary className="text-text focus-visible:outline-accent cursor-pointer rounded text-sm font-semibold">
+          See how your score is calculated
+        </summary>
+        <div className="mt-4">
+          <ScoreFactors />
+        </div>
+      </details>
     </Card>
   );
 }

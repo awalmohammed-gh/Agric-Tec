@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Calculator,
+  Check,
   Droplets,
   LandPlot,
   ShieldCheck,
@@ -56,7 +57,7 @@ const PURPOSE_ICONS: Record<string, LucideIcon> = {
   'Storage & Processing': Warehouse,
 };
 
-const stepLabel = 'text-text-dim mb-2 text-xs font-semibold tracking-wide uppercase';
+const stepLabel = 'text-text mb-2 text-sm font-semibold';
 
 /**
  * Loan builder: amount, purpose and term on one side; every lender priced for that loan on
@@ -70,6 +71,13 @@ export function LoanApplicationForm({ className }: { className?: string }) {
   const ghanaCard = useGhanaCardStatus();
   const locked = ghanaCard !== 'verified';
   const [result, setResult] = useState<CheckResult | null>(null);
+  const resultRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (!result) return;
+    resultRef.current?.focus({ preventScroll: true });
+    resultRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
+  }, [result]);
   // The slider reaches the largest active lender's limit.
   const sliderMax = lenders.length
     ? Math.max(...lenders.map((l) => l.maxAmount))
@@ -140,9 +148,9 @@ export function LoanApplicationForm({ className }: { className?: string }) {
         <div>
           <CardTitle className="flex items-center gap-2">
             <Calculator size={17} aria-hidden="true" className="text-ink-green" />
-            Build your loan
+            Compare loan costs
           </CardTitle>
-          <CardSub>Set the amount and term, then pick the offer that suits you.</CardSub>
+          <CardSub>Choose an amount, purpose and repayment period, then compare lenders.</CardSub>
         </div>
       </CardHeader>
 
@@ -153,7 +161,7 @@ export function LoanApplicationForm({ className }: { className?: string }) {
       >
         <div className="@container min-w-0 space-y-6">
           <FormField
-            label="How much do you need?"
+            label="1. How much do you need?"
             htmlFor="loan-amount"
             error={errors.amount?.message}
           >
@@ -205,10 +213,10 @@ export function LoanApplicationForm({ className }: { className?: string }) {
               )}
             >
               {maxAffordable < MIN_LOAN
-                ? 'Record profitable sales to unlock a borrowing limit.'
+                ? 'Add your farm sales and costs to build a borrowing estimate.'
                 : withinLimit
-                  ? `Within your limit. You may be able to borrow up to ${formatGHS(maxAffordable)}`
-                  : `Above your limit of ${formatGHS(maxAffordable)}`}
+                  ? `Within your estimated limit of ${formatGHS(maxAffordable)}. Approval is checked separately.`
+                  : `Above your estimated limit of ${formatGHS(maxAffordable)}. Try a smaller amount.`}
             </p>
             <div className="flex flex-wrap gap-2">
               {QUICK_AMOUNTS.map((value) => (
@@ -236,14 +244,14 @@ export function LoanApplicationForm({ className }: { className?: string }) {
                   }
                   className="border-accent/40 bg-accent/10 text-ink-green min-h-9 rounded-full border px-3 text-xs font-semibold"
                 >
-                  Max {formatGHS(maxAffordable)}
+                  Estimated limit {formatGHS(maxAffordable)}
                 </button>
               )}
             </div>
           </FormField>
 
           <fieldset>
-            <legend className={stepLabel}>What is it for?</legend>
+            <legend className={stepLabel}>2. What will you use it for?</legend>
             <div className="grid grid-cols-2 gap-2 @md:grid-cols-3 @2xl:grid-cols-5">
               {LOAN_PURPOSES.map((p) => {
                 const Icon = PURPOSE_ICONS[p] ?? Sprout;
@@ -255,7 +263,10 @@ export function LoanApplicationForm({ className }: { className?: string }) {
                       {...register('purpose')}
                       className="peer sr-only"
                     />
-                    <span className="border-border bg-glass text-text-dim peer-checked:border-accent/60 peer-checked:bg-accent/15 peer-checked:text-ink-green peer-focus-visible:outline-accent hover:text-text flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center text-xs font-semibold transition-colors peer-focus-visible:outline-2">
+                    <span className="border-border bg-glass text-text-dim peer-checked:border-accent/60 peer-checked:bg-accent/15 peer-checked:text-ink-green peer-focus-visible:outline-accent hover:text-text relative flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center text-xs font-semibold transition-colors peer-focus-visible:outline-2">
+                      {purpose === p && (
+                        <Check size={13} aria-hidden="true" className="absolute top-1 right-1" />
+                      )}
                       <Icon size={20} aria-hidden="true" />
                       {p}
                     </span>
@@ -266,7 +277,10 @@ export function LoanApplicationForm({ className }: { className?: string }) {
           </fieldset>
 
           <fieldset>
-            <legend className={stepLabel}>Repayment period</legend>
+            <legend className={stepLabel}>3. How long will you take to repay?</legend>
+            <p className="text-text-mute mb-3 text-xs">
+              Payments are estimated monthly over this period.
+            </p>
             <div className="grid grid-cols-4 gap-2">
               {LOAN_PERIODS.map((m) => (
                 <label key={m} className="relative">
@@ -276,7 +290,10 @@ export function LoanApplicationForm({ className }: { className?: string }) {
                     {...register('months')}
                     className="peer sr-only"
                   />
-                  <span className="border-border bg-glass text-text-dim peer-checked:border-accent/60 peer-checked:bg-accent/15 peer-checked:text-ink-green peer-focus-visible:outline-accent hover:text-text flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-xl border text-sm font-bold transition-colors peer-focus-visible:outline-2">
+                  <span className="border-border bg-glass text-text-dim peer-checked:border-accent/60 peer-checked:bg-accent/15 peer-checked:text-ink-green peer-focus-visible:outline-accent hover:text-text relative flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-xl border text-sm font-bold transition-colors peer-focus-visible:outline-2">
+                    {period === m && (
+                      <Check size={12} aria-hidden="true" className="absolute top-1 right-1" />
+                    )}
                     {m}
                     <span className="text-[10px] font-medium">months</span>
                   </span>
@@ -301,32 +318,36 @@ export function LoanApplicationForm({ className }: { className?: string }) {
             className="border-accent/30 from-accent/15 via-accent/5 rounded-2xl border bg-linear-to-br to-transparent p-4"
           >
             <p className="text-text-mute text-[11px] font-semibold tracking-wider uppercase">
-              Your loan
+              Your estimated repayment
             </p>
             {valid ? (
               <>
+                <p className="text-text-dim mt-2 text-xs">Monthly payment for {period} months</p>
                 <p className="text-ink-green mt-1 text-3xl font-extrabold tracking-tight tabular-nums">
                   {formatGHS(selected.repayment.monthly)}
                   <span className="text-text-mute text-sm font-semibold"> /month</span>
                 </p>
-                <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <dl className="mt-3 grid grid-cols-1 gap-3 text-xs @sm:grid-cols-3">
                   <div>
-                    <dt className="text-text-mute">Borrow</dt>
+                    <dt className="text-text-mute">You borrow</dt>
                     <dd className="text-text font-semibold tabular-nums">{formatGHS(amount)}</dd>
                   </div>
                   <div>
-                    <dt className="text-text-mute">Interest</dt>
+                    <dt className="text-text-mute">Total interest</dt>
                     <dd className="text-text font-semibold tabular-nums">
                       {formatGHS(selected.repayment.interest)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-text-mute">Total</dt>
+                    <dt className="text-text-mute">Total to repay</dt>
                     <dd className="text-text font-bold tabular-nums">
                       {formatGHS(selected.repayment.total)}
                     </dd>
                   </div>
                 </dl>
+                <p className="text-text-mute mt-3 text-xs">
+                  {selected.partner.name} · {selected.partner.rate}% interest per year
+                </p>
               </>
             ) : (
               <p className="text-text-mute mt-1 text-sm">
@@ -340,11 +361,11 @@ export function LoanApplicationForm({ className }: { className?: string }) {
               <Button
                 type="submit"
                 icon={ShieldCheck}
-                disabled={locked}
+                disabled={locked || !valid}
                 aria-describedby={locked ? 'loan-card-locked' : undefined}
                 className="w-full"
               >
-                Check eligibility
+                Check if I can apply
               </Button>
             </span>
             {locked && (
@@ -356,7 +377,10 @@ export function LoanApplicationForm({ className }: { className?: string }) {
               </p>
             )}
             <p className="text-text-mute mt-2 text-center text-[11px]">
-              Estimates only. The lender sets final terms.
+              This check does not send an application. You can review it before submitting.
+            </p>
+            <p className="text-text-mute mt-2 text-center text-[11px]">
+              Estimates only. The lender confirms approval, fees and final terms.
             </p>
           </div>
         </div>
@@ -364,9 +388,16 @@ export function LoanApplicationForm({ className }: { className?: string }) {
 
       {result && (
         <div className={cn('mt-6 transition-opacity', stale && 'opacity-50')}>
+          <h2
+            ref={resultRef}
+            tabIndex={-1}
+            className="text-ink-green font-display focus-visible:outline-accent mb-3 scroll-mt-28 rounded text-xl font-bold"
+          >
+            Your application check
+          </h2>
           {stale && (
             <p className="text-ink-gold mb-2 text-xs font-semibold">
-              Your inputs changed. Check eligibility again to update.
+              Your choices changed. Select “Check if I can apply” again to refresh this result.
             </p>
           )}
           <EligibilityResult
@@ -375,6 +406,7 @@ export function LoanApplicationForm({ className }: { className?: string }) {
             amount={result.values.amount}
             months={result.values.months}
             partner={result.partner}
+            applyDisabled={stale}
             onApply={() => openConfirm(result.values)}
             onUseAmount={(value) => {
               setValue('amount', value, { shouldValidate: true });

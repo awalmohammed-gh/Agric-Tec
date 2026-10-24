@@ -1,151 +1,53 @@
 'use client';
 
-import {
-  BadgePercent,
-  Building2,
-  Calculator,
-  Gauge,
-  ListChecks,
-  Sparkles,
-  type LucideIcon,
-} from 'lucide-react';
-import { ScoreGauge } from '@/components/ui/score-gauge';
 import { useFarmStats } from '@/hooks/use-farm-stats';
+import { useGhanaCardStatus } from '@/hooks/use-ghana-card';
 import { formatGHS } from '@/lib/format';
-import { cn } from '@/lib/utils';
-import { useLoanStore, type LoanTab } from '@/store/loan-store';
-import { usePlatformStore } from '@/store/platform-store';
-import type { CreditConfig } from '@/types/admin';
 
-/** Loan ready from the "Good" band; eligible with some lenders from the platform minimum. */
-function status(score: number, config: CreditConfig): { label: string; tone: string } {
-  if (score >= config.bands.good)
-    return { label: 'Loan ready', tone: 'border-accent/40 bg-accent/15 text-ink-green' };
-  if (score >= config.eligibility.minScore)
-    return { label: 'Eligible with some lenders', tone: 'border-gold/40 bg-gold/15 text-ink-gold' };
-  return { label: 'Building credit', tone: 'border-danger/40 bg-danger/15 text-ink-red' };
-}
-
-function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
-  return (
-    <div className="border-border bg-glass flex items-center gap-3 rounded-2xl border px-3.5 py-3">
-      <span className="bg-accent/15 text-ink-green inline-flex size-9 shrink-0 items-center justify-center rounded-xl">
-        <Icon size={17} aria-hidden="true" />
-      </span>
-      <div className="min-w-0">
-        <p className="text-text-mute text-[11px]">{label}</p>
-        <p className="text-text truncate text-sm font-bold">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-/** Borrowing power as the headline, with the credit gauge and key lending facts. */
 export function LoansHero() {
-  const { credit, creditLabel, annualizedProfit, recordCount, borrowingPower, creditConfig } =
-    useFarmStats();
-  const lenders = usePlatformStore((s) => s.lenders);
-  const maxAffordable = borrowingPower;
-  const multiple = creditConfig.eligibility.maxProfitMultiplier;
-  const matched = lenders.filter((p) => credit.score >= p.minScore).length;
-  const best = lenders.length
-    ? lenders.reduce((low, p) => (p.rate < low.rate ? p : low))
-    : undefined;
-  const { label, tone } = status(credit.score, creditConfig);
-  const setTab = useLoanStore((s) => s.setTab);
-
-  /** Opens a tab of the loan workspace and brings it into view. */
-  function openTab(tab: LoanTab) {
-    setTab(tab);
-    document
-      .getElementById('loan-workspace')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  const { credit, creditLabel, borrowingPower } = useFarmStats();
+  const ghanaCard = useGhanaCardStatus();
 
   return (
-    <section
-      aria-labelledby="loans-hero-title"
-      className="border-border bg-glass shadow-glass @container relative overflow-hidden rounded-3xl border p-6 sm:p-8"
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-28 -right-20 size-96 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.22),transparent_70%)]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-36 -left-24 size-96 rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.16),transparent_70%)]"
-      />
-
-      <div className="relative grid items-center gap-8 @3xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="border-purple/30 bg-purple/10 text-ink-purple inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold">
-              <Sparkles size={13} aria-hidden="true" /> AI Loan Matching
-            </span>
-            <span className={cn('rounded-full border px-3 py-1 text-xs font-semibold', tone)}>
-              {label}
-            </span>
-          </div>
-
-          <p className="text-text-dim mt-5 text-sm font-semibold">Your borrowing power</p>
-          <h2
-            id="loans-hero-title"
-            className={cn(
-              'font-display text-4xl leading-tight font-bold @xl:text-5xl',
-              maxAffordable > 0 ? 'text-ink-green' : 'text-text',
-            )}
-          >
-            {maxAffordable > 0 ? formatGHS(maxAffordable) : 'Not unlocked yet'}
-          </h2>
-          <p className="text-text-dim mt-2 max-w-xl text-sm">
-            {maxAffordable > 0
-              ? `Up to ${multiple}× your annualized profit of ${formatGHS(annualizedProfit)}. Lenders still set the final amount.`
-              : 'Record profitable sales and your borrowing limit will appear here.'}
-          </p>
-
-          <div className="mt-6 flex flex-col gap-3 @md:flex-row">
-            <button
-              type="button"
-              onClick={() => openTab('apply')}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-linear-to-br from-[#34d399] to-[#10b981] px-5 text-sm font-semibold text-[#022c22] shadow-[0_8px_24px_-6px_var(--accent-glow)] transition-transform hover:-translate-y-0.5"
-            >
-              <Calculator size={16} aria-hidden="true" /> Build my loan
-            </button>
-            <button
-              type="button"
-              onClick={() => openTab('credit')}
-              className="glass text-text hover:bg-glass-strong inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition-colors"
-            >
-              <Gauge size={16} aria-hidden="true" /> See my credit score
-            </button>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-3 @lg:grid-cols-3">
-            <Stat
-              icon={Building2}
-              label="Lenders matched"
-              value={`${matched} of ${lenders.length}`}
-            />
-            <Stat
-              icon={BadgePercent}
-              label="Best rate"
-              value={best ? `${best.rate}% · ${best.name.split(' ')[0]}` : 'No lenders open'}
-            />
-            <Stat icon={ListChecks} label="Farm records" value={String(recordCount)} />
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center">
-          <ScoreGauge
-            value={credit.score}
-            min={300}
-            max={850}
-            label="Credit score"
-            caption={creditLabel}
-          />
-          <p className="text-text-mute mt-2 text-xs">Scores range from 300 to 850</p>
-        </div>
+    <header className="space-y-4">
+      <div>
+        <h1 className="font-display text-ink-green text-2xl leading-tight font-bold sm:text-3xl">
+          Loans &amp; Credit
+        </h1>
+        <p className="text-text-dim mt-1 text-sm">
+          Compare loan costs, understand your credit score and track your applications.
+        </p>
       </div>
-    </section>
+      <dl className="grid grid-cols-2 gap-3">
+        <div className="border-border bg-glass rounded-2xl border p-4">
+          <dt className="text-text-dim text-xs font-semibold">Your credit score</dt>
+          <dd className="mt-1">
+            <span className="text-text text-xl font-bold @lg:text-2xl">{credit.score}</span>{' '}
+            <span className="text-text-mute text-sm">/ 850</span>
+            <p className="text-text-mute mt-1 text-xs">{creditLabel}</p>
+          </dd>
+        </div>
+        <div className="border-border bg-glass rounded-2xl border p-4">
+          <dt className="text-text-dim text-xs font-semibold">Estimated borrowing limit</dt>
+          <dd className="mt-1">
+            <span className="text-ink-green text-xl font-bold break-words @lg:text-2xl">
+              {borrowingPower > 0 ? formatGHS(borrowingPower) : 'No estimate yet'}
+            </span>
+            <p className="text-text-mute mt-1 text-xs">
+              {borrowingPower > 0 ? 'Based on recorded farm profit' : 'Add farm sales and costs'}
+            </p>
+          </dd>
+        </div>
+      </dl>
+      <p className="text-text-mute text-xs leading-relaxed">
+        Your score and estimated limit do not confirm approval. The lender decides the final amount
+        and terms.
+      </p>
+      {ghanaCard === 'verified' && (
+        <p className="text-ink-green text-xs font-semibold">
+          Ghana Card verified. Choose a loan below to check its requirements.
+        </p>
+      )}
+    </header>
   );
 }

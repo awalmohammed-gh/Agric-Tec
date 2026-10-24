@@ -62,6 +62,11 @@ const { parseISODate } = require('../lib/format.ts');
 const { profitMargin, totalExpenses, totalIncome } = require('../lib/calculations/finance.ts');
 const { calculateCreditScore, isProfileComplete } = require('../lib/calculations/credit-score.ts');
 const { checkEligibility } = require('../lib/calculations/loan.ts');
+const { monthlyRepayment } = require('../lib/calculations/loan.ts');
+const { LOAN_PARTNERS } = require('../constants/loan-partners.ts');
+const { rankOffers } = require('../components/loans/loan-offers.ts');
+const { OfferPicker } = require('../components/loans/offer-picker.tsx');
+const { EligibilityResult } = require('../components/loans/eligibility-result.tsx');
 const { getAssistantReply } = require('../lib/ai/assistant-replies.ts');
 const { DEFAULT_CREDIT_CONFIG, DEFAULT_FLAGS } = require('../lib/admin/defaults.ts');
 const { buildSeedWorld, DEMO_PASSWORDS, SUPER_ADMIN_EMAIL } = require('../lib/admin/seed.ts');
@@ -424,4 +429,46 @@ test('applications: farmers see the admin’s status; old per-farmer application
       (a) => a.id === app.id,
     ),
   );
+});
+
+test('loan comparisons explain partial checks without promising approval or a personal best rate', () => {
+  const offers = rankOffers(10000, 12, 560, LOAN_PARTNERS);
+  const markup = renderToStaticMarkup(
+    createElement(OfferPicker, {
+      offers,
+      months: 12,
+      selectedId: 'sinapi',
+      registration: { name: 'partnerId', onChange() {}, onBlur() {}, ref() {} },
+    }),
+  );
+  assert.match(markup, /Meets score, amount and period requirements/);
+  assert.match(markup, /Needs 60 more score points/);
+  assert.match(markup, /does not guarantee/);
+  assert.match(markup, /interest per year/);
+  assert.doesNotMatch(markup, /You qualify|Best match|Best rate/);
+});
+
+test('an outdated loan check cannot advance to application review', () => {
+  const partner = LOAN_PARTNERS[0];
+  const props = {
+    eligibility: { eligible: true, issues: [], reasons: [], maxAffordable: 20000 },
+    repayment: monthlyRepayment(10000, partner.rate, 12),
+    amount: 10000,
+    months: 12,
+    partner,
+    onApply() {},
+    onUseAmount() {},
+  };
+  for (const applyDisabled of [true, false]) {
+    const markup = renderToStaticMarkup(
+      createElement(EligibilityResult, { ...props, applyDisabled }),
+    );
+    const button = markup.match(/<button\b[^>]*>[\s\S]*?Review application[\s\S]*?<\/button>/)?.[0];
+    assert.ok(button, 'Application review action is present');
+    assert.equal(/\bdisabled=""/.test(button), applyDisabled);
+    assert.match(markup, /lender still decides/);
+    assert.match(markup, /Monthly payment/);
+    assert.match(markup, /Total repayment/);
+    assert.match(markup, /Total interest/);
+  }
 });
