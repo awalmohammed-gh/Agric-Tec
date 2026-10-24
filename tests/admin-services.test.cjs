@@ -261,7 +261,14 @@ test('a super admin suspend writes exactly one audit entry with before and after
 });
 
 test('the audit log has no update or delete, and other guards hold', async () => {
-  assert.deepEqual(Object.keys(auditService).sort(), ['archiveInfo', 'exportJSON', 'list']);
+  // Read and export only: nothing can update or delete an entry.
+  assert.deepEqual(Object.keys(auditService).sort(), [
+    'actors',
+    'archiveInfo',
+    'exportFiltered',
+    'exportJSON',
+    'list',
+  ]);
 
   // Role changes: nobody changes their own access, and a demotion takes effect at once.
   const team = await teamService.list();
@@ -357,10 +364,10 @@ test('the seed is identical after a reset, and backups round-trip', async () => 
   const auditBefore = readAuditLog().length;
   await farmersService.suspend((await farmersService.list())[0].userId, 'Before restore');
   await assert.rejects(
-    () => backupService.importAll('{"app":"other"}', 'IMPORT'),
+    () => backupService.importAll('{"app":"other"}', 'RESTORE'),
     /not an AgriCtec/,
   );
-  await backupService.importAll(json, 'IMPORT');
+  await backupService.importAll(json, 'RESTORE');
   const restored = seedSnapshot();
   for (const key of Object.keys(initialSeed)) {
     assert.equal(restored[key], initialSeed[key], `${key} restored from backup`);

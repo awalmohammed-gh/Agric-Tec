@@ -14,7 +14,9 @@ import {
   plansSchema,
   weatherSchema,
 } from '@/lib/admin/schemas';
-import { readUsers } from '@/lib/admin/farmer-data';
+import { getCurrentAdmin, readAdmins } from '@/lib/admin/admin-session';
+import { readUsers, writeUsers } from '@/lib/admin/farmer-data';
+import { hashPassword } from '@/services/auth.service';
 import { clearSeedData, seedPlatform } from '@/lib/admin/seed';
 import { delay, storage } from '@/services/storage';
 
@@ -28,8 +30,48 @@ const PROTECTED = new Set<string>([
   PLATFORM_KEYS.auditArchive,
 ]);
 
-export const IMPORT_CONFIRMATION = 'IMPORT';
+/** Typed by the admin before a restore replaces everything. */
+export const IMPORT_CONFIRMATION = 'RESTORE';
 export const RESET_CONFIRMATION = 'RESET';
+export const DELETE_FARMERS_CONFIRMATION = 'DELETE ALL FARMERS';
+
+/** What a backup holds, for the summary shown before restoring ("60 farmers, 25 applications…"). */
+export interface BackupSummary {
+  exportedAt: string;
+  keys: number;
+  farmers: number;
+  records: number;
+  momo: number;
+  applications: number;
+  verifications: number;
+  riskFlags: number;
+  lenders: number;
+  announcements: number;
+}
+
+export function summarizeBackup(backup: PlatformBackup): BackupSummary {
+  const list = (key: string) => {
+    const value = backup.data[key];
+    return Array.isArray(value) ? value : [];
+  };
+  const users = list('users') as { id?: unknown; isGuest?: unknown }[];
+  const perUser = (name: string) =>
+    Object.entries(backup.data)
+      .filter(([key, value]) => key.endsWith(`:${name}`) && Array.isArray(value))
+      .reduce((total, [, value]) => total + (value as unknown[]).length, 0);
+  return {
+    exportedAt: backup.exportedAt,
+    keys: Object.keys(backup.data).filter((key) => !PROTECTED.has(key)).length,
+    farmers: users.filter((u) => u.isGuest !== true).length,
+    records: perUser('records'),
+    momo: perUser('momo'),
+    applications: list(PLATFORM_KEYS.loanApplications).length,
+    verifications: list(PLATFORM_KEYS.verifications).length,
+    riskFlags: list(PLATFORM_KEYS.riskFlags).length,
+    lenders: list(PLATFORM_KEYS.lenders).length,
+    announcements: list(PLATFORM_KEYS.announcements).length,
+  };
+}
 
 const withId = z.looseObject({ id: z.string().min(1), userId: z.string().min(1) });
 
@@ -151,6 +193,41 @@ export const backupService = {
         const backup = parsePlatformBackup(json);
         storage.replaceKeys(backup.data, (key) => PROTECTED.has(key));
         return { keys: Object.keys(backup.data).filter((key) => !PROTECTED.has(key)).length };
+      },
+    );
+  },
+
+  /**
+   * Deletes every farmer account and all farmer data (records, MoMo, profiles, applications,
+   * verifications, risk flags). The team, the platform settings, content and the audit log are
+   * kept. Needs "DELETE ALL FARMERS" and the current super admin's password.
+   */
+  async deleteAllFarmers(confirmation: string, password: string): Promise<{ farmers: number }> {
+    await delay();
+    const admin = getCurrentAdmin();
+    const stored = admin && readAdmins().find((a) => a.id === admin.id);
+    return withAudit(
+      {
+        permission: 'data.manage',
+        action: 'system.delete_farmers',
+        targetType: 'system',
+        summary: (result) => `Deleted all farmer data (${result.farmers} accounts)`,
+      },
+      async () => {
+        if (confirmation !== DELETE_FARMERS_CONFIRMATION)
+          throw new Error(`Type ${DELETE_FARMERS_CONFIRMATION} to confirm.`);
+        if (!stored || stored.passwordHash !== (await hashPassword(password)))
+          throw new Error('That password is not correct.');
+        const users = readUsers();
+        users.forEach((user) => storage.clearUser(user.id));
+        writeUsers([]);
+        storage.set(PLATFORM_KEYS.loanApplications, []);
+        storage.set(PLATFORM_KEYS.verifications, []);
+        storage.set(PLATFORM_KEYS.riskFlags, []);
+        // Any farmer signed in on this device is signed out (their account is gone).
+        storage.remove('session');
+        storage.remove('guestId');
+        return { farmers: users.filter((u) => !u.isGuest).length };
       },
     );
   },

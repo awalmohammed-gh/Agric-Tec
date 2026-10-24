@@ -1,15 +1,14 @@
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
+import { SystemSettings } from '@/components/admin/settings/system-settings';
 
 export const metadata: Metadata = { title: 'System Settings' };
 
-/** Guarded by settings.manage. Built in phase A14. */
+/** Guarded by settings.manage (Super Admin only; every change is checked again in the service). */
 export default function SettingsPage() {
   return (
-    <AdminPlaceholder
-      permission="settings.manage"
-      phase="A14"
-      features={['Feature flags and maintenance mode', 'Plans, backups and “Reset demo data”']}
-    />
+    <RequirePermission permission="settings.manage">
+      <SystemSettings />
+    </RequirePermission>
   );
 }

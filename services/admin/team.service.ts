@@ -7,6 +7,7 @@ import {
   type StoredAdmin,
 } from '@/lib/admin/admin-session';
 import { withAudit } from '@/lib/admin/audit';
+import { readUsers } from '@/lib/admin/farmer-data';
 import { makeTempPassword } from '@/lib/admin/passwords';
 import { canManageRole, ROLE_LABELS, ROLE_RANK } from '@/lib/admin/permissions';
 import { generateId } from '@/lib/utils';
@@ -73,6 +74,12 @@ export const teamService = {
         if (!EMAIL.test(normalized)) throw new Error('Enter a valid email address.');
         if (readAdmins().some((a) => a.email === normalized)) {
           throw new Error('A team member with this email already exists.');
+        }
+        // Staff and farmer sign-ins are separate: one email is never both.
+        if (readUsers().some((u) => !u.isGuest && u.email === normalized)) {
+          throw new Error(
+            'This email belongs to a farmer account. Use a different email for staff.',
+          );
         }
         const temporaryPassword = makeTempPassword();
         const stored: StoredAdmin = {

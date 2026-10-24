@@ -84,6 +84,7 @@ export const featureFlagsSchema = z.object({
   pdfReports: z.boolean(),
   maintenanceMode: z.boolean(),
   maintenanceMessage: z.string().trim().max(300),
+  maintenanceEndsAt: z.iso.datetime({ offset: true }).optional(),
 });
 
 export const plansSchema = z

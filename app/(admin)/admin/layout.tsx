@@ -5,6 +5,7 @@ import { AdminSearch } from '@/components/admin/layout/admin-search';
 import { AdminSidebar, AdminSidebarDrawer } from '@/components/admin/layout/admin-sidebar';
 import { AdminTopbar } from '@/components/admin/layout/admin-topbar';
 import { ChangePasswordDialog } from '@/components/admin/layout/admin-user-menu';
+import { MaintenanceBanner } from '@/components/admin/layout/maintenance-banner';
 import { PageContainer } from '@/components/layout/page-container';
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           {/* 272px = 12px inset + 260px floating sidebar (from 1024px). */}
           <main className="min-w-0 flex-1 px-4 pb-16 sm:px-6 lg:ml-[272px] lg:pt-3">
             <AdminTopbar />
+            <MaintenanceBanner />
             <PageContainer>{children}</PageContainer>
           </main>
         </div>

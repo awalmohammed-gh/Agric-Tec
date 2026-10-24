@@ -1,15 +1,14 @@
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
+import { ReportsCenter } from '@/components/admin/reports/reports-center';
 
 export const metadata: Metadata = { title: 'Reports & Analytics' };
 
-/** Guarded by reports.export. Built in phase A14. */
+/** Guarded by reports.export (every export checks it again and is audited). */
 export default function ReportsPage() {
   return (
-    <AdminPlaceholder
-      permission="reports.export"
-      phase="A14"
-      features={['Platform-wide analytics', 'CSV exports']}
-    />
+    <RequirePermission permission="reports.export">
+      <ReportsCenter />
+    </RequirePermission>
   );
 }

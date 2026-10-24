@@ -1,15 +1,14 @@
 import type { Metadata } from 'next';
-import { AdminPlaceholder } from '@/components/admin/layout/admin-placeholder';
+import { AuditLogView } from '@/components/admin/audit-log/audit-log-view';
+import { RequirePermission } from '@/components/admin/layout/require-permission';
 
 export const metadata: Metadata = { title: 'Audit Log' };
 
-/** Guarded by audit.view. Built in phase A14. */
+/** Guarded by audit.view. Read-only: the log has no edit or delete anywhere. */
 export default function AuditLogPage() {
   return (
-    <AdminPlaceholder
-      permission="audit.view"
-      phase="A14"
-      features={['Every admin action with before → after', 'Filters and JSON export']}
-    />
+    <RequirePermission permission="audit.view">
+      <AuditLogView />
+    </RequirePermission>
   );
 }

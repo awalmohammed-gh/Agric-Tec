@@ -169,6 +169,8 @@ export interface FeatureFlags {
   pdfReports: boolean;
   maintenanceMode: boolean;
   maintenanceMessage: string;
+  /** Optional: maintenance switches itself off at this time (ISO). */
+  maintenanceEndsAt?: string;
 }
 
 export interface Plan {
@@ -324,6 +326,8 @@ export interface AuditFilter {
   actorId?: string;
   /** Exact action, or a prefix ending in '.' such as 'farmer.'. */
   action?: string;
+  /** An action group (lib/admin/audit-groups.ts). */
+  group?: 'farmer' | 'loan' | 'config' | 'content' | 'team' | 'system' | 'auth';
   targetType?: AuditEntry['targetType'];
   targetId?: string;
   /** Inclusive ISO date or timestamp bounds. */

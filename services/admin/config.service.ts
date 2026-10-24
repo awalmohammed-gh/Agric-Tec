@@ -17,11 +17,23 @@ const readCredit = () =>
   storage.get<CreditConfig>(PLATFORM_KEYS.creditConfig, DEFAULT_CREDIT_CONFIG);
 const readHistory = () => storage.get<CreditConfig[]>(PLATFORM_KEYS.creditHistory, []);
 
-/** The feature flags right now, without latency (auth.service checks them inside its own calls). */
-export const readFlags = (): FeatureFlags => ({
-  ...DEFAULT_FLAGS,
-  ...storage.get<Partial<FeatureFlags>>(PLATFORM_KEYS.flags, {}),
-});
+/**
+ * The feature flags right now, without latency (auth.service checks them inside its own calls).
+ * Maintenance with an end time past is reported as off: it ends by itself, no admin needed.
+ */
+export const readFlags = (now = new Date()): FeatureFlags => {
+  const flags: FeatureFlags = {
+    ...DEFAULT_FLAGS,
+    ...storage.get<Partial<FeatureFlags>>(PLATFORM_KEYS.flags, {}),
+  };
+  if (
+    flags.maintenanceMode &&
+    flags.maintenanceEndsAt &&
+    flags.maintenanceEndsAt <= now.toISOString()
+  )
+    return { ...flags, maintenanceMode: false, maintenanceEndsAt: undefined };
+  return flags;
+};
 
 /**
  * Saves `input` as the next version and moves the current one into history. Every version is
