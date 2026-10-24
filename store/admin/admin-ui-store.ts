@@ -11,6 +11,9 @@ interface AdminUiState {
   /** The change-password dialog from the user menu. */
   changePasswordOpen: boolean;
   setChangePasswordOpen: (open: boolean) => void;
+  /** The "Your name" dialog (top bar and user menu). */
+  nameOpen: boolean;
+  setNameOpen: (open: boolean) => void;
 }
 
 /** UI-only state for the admin console (nothing here is platform data). */
@@ -24,4 +27,7 @@ export const useAdminUiStore = create<AdminUiState>()((set) => ({
 
   changePasswordOpen: false,
   setChangePasswordOpen: (changePasswordOpen) => set({ changePasswordOpen }),
+
+  nameOpen: false,
+  setNameOpen: (nameOpen) => set({ nameOpen }),
 }));

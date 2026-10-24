@@ -9,6 +9,7 @@ import {
   type MomoPeriod,
   type NetworkFilter,
 } from '@/components/momo/momo-filters';
+import { NetworkLogo } from '@/components/momo/network-logo';
 import { MOMO_NETWORKS } from '@/components/momo/momo-schema';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -123,12 +124,7 @@ export function MomoToolbar({
                     : 'border-border bg-glass text-text-dim hover:text-text',
                 )}
               >
-                {network !== 'all' && (
-                  <span
-                    aria-hidden="true"
-                    className={cn('size-2 rounded-full', NETWORK_STYLES[network].dot)}
-                  />
-                )}
+                {network !== 'all' && <NetworkLogo network={network} size={18} />}
                 {network === 'all' ? 'All networks' : network}
               </button>
             );

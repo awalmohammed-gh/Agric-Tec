@@ -2,12 +2,12 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronsUpDown, KeyRound, LogOut } from 'lucide-react';
+import { ChevronsUpDown, KeyRound, LogOut, UserPen } from 'lucide-react';
 import { toast } from 'sonner';
 import { ChangePasswordForm } from '@/components/admin/auth/change-password-form';
+import { hasDefaultName } from '@/components/admin/layout/admin-name';
 import { RoleBadge } from '@/components/admin/layout/role-badge';
 import { Modal } from '@/components/ui/modal';
-import { ROLE_LABELS } from '@/lib/admin/permissions';
 import { cn } from '@/lib/utils';
 import { useAdminAuthStore } from '@/store/admin/admin-auth-store';
 import { useAdminUiStore } from '@/store/admin/admin-ui-store';
@@ -15,7 +15,10 @@ import { useAdminUiStore } from '@/store/admin/admin-ui-store';
 const itemClass =
   'flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors focus:outline-none focus-visible:bg-glass-strong hover:bg-glass-strong';
 
-/** Name, email and role, with "Change password" and "Sign out" (same keyboard model as the farmer menu). */
+/**
+ * Name, email and role, with "Your name", "Change password" and "Sign out" (same keyboard model
+ * as the farmer menu).
+ */
 export function AdminUserMenu() {
   const router = useRouter();
   const menuId = useId();
@@ -27,6 +30,7 @@ export function AdminUserMenu() {
   const admin = useAdminAuthStore((s) => s.admin);
   const signOut = useAdminAuthStore((s) => s.signOut);
   const openChangePassword = useAdminUiStore((s) => s.setChangePasswordOpen);
+  const openName = useAdminUiStore((s) => s.setNameOpen);
 
   const items = () =>
     Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
@@ -107,6 +111,19 @@ export function AdminUserMenu() {
             tabIndex={-1}
             onClick={() => {
               close(false);
+              openName(true);
+            }}
+            className={cn(itemClass, 'text-text-dim hover:text-text')}
+          >
+            <UserPen size={16} aria-hidden="true" />
+            {hasDefaultName(admin) ? 'Add your name' : 'Edit your name'}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => {
+              close(false);
               openChangePassword(true);
             }}
             className={cn(itemClass, 'text-text-dim hover:text-text')}
@@ -151,7 +168,7 @@ export function AdminUserMenu() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="text-text block truncate text-sm font-semibold">{admin.name}</span>
-          <span className="text-text-mute block truncate text-xs">{ROLE_LABELS[admin.role]}</span>
+          <span className="text-text-mute block truncate text-xs">{admin.email}</span>
         </span>
         <ChevronsUpDown size={16} aria-hidden="true" className="text-text-mute shrink-0" />
       </button>

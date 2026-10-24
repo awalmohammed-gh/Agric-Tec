@@ -14,11 +14,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  groupMomoByMonth,
-  NETWORK_STYLES,
-  type MomoMonthGroup,
-} from '@/components/momo/momo-filters';
+import { groupMomoByMonth, type MomoMonthGroup } from '@/components/momo/momo-filters';
+import { NetworkLogo } from '@/components/momo/network-logo';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -61,11 +58,10 @@ function TransactionRow({
       >
         <Arrow size={19} />
         {t.network && (
-          <span
-            className={cn(
-              'ring-bg-2 absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2',
-              NETWORK_STYLES[t.network].dot,
-            )}
+          <NetworkLogo
+            network={t.network}
+            size={20}
+            className="ring-bg-2 absolute -right-1 -bottom-1 ring-2"
           />
         )}
       </span>

@@ -4,6 +4,7 @@ import { AdminDataLoader } from '@/components/admin/layout/admin-data-loader';
 import { AdminSearch } from '@/components/admin/layout/admin-search';
 import { AdminSidebar, AdminSidebarDrawer } from '@/components/admin/layout/admin-sidebar';
 import { AdminTopbar } from '@/components/admin/layout/admin-topbar';
+import { EditNameDialog } from '@/components/admin/layout/admin-name';
 import { ChangePasswordDialog } from '@/components/admin/layout/admin-user-menu';
 import { MaintenanceBanner } from '@/components/admin/layout/maintenance-banner';
 import { PageContainer } from '@/components/layout/page-container';
@@ -34,6 +35,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
         <AdminSearch />
         <ChangePasswordDialog />
+        <EditNameDialog />
       </AdminDataLoader>
     </>
   );

@@ -267,6 +267,34 @@ export const adminAuthService = {
     return admin;
   },
 
+  /**
+   * The signed-in admin's own display name: shown in the top bar, the account menu and the team
+   * list, and on every audit entry from now on. Any role may change its own name (logged).
+   */
+  async updateName(name: string): Promise<AdminUser> {
+    await delay();
+    const { session } = await adminAuthService.sessionState();
+    if (!session) throw new Error('Your session has ended. Sign in again.');
+    const clean = name.trim().replace(/\s+/g, ' ');
+    if (clean.length < 2) throw new Error('Enter your full name.');
+    if (clean.length > 60) throw new Error('Keep your name under 60 characters.');
+    const admins = readAdmins();
+    const stored = admins.find((a) => a.id === session.admin.id)!;
+    if (clean === stored.name) return toAdminUser(stored);
+    const updated = { ...stored, name: clean };
+    writeAdmins(admins.map((a) => (a.id === stored.id ? updated : a)));
+    const admin = toAdminUser(updated);
+    appendAudit(admin, {
+      action: 'admin.rename',
+      targetType: 'admin',
+      targetId: admin.id,
+      summary: `${stored.name} changed their name to ${clean}`,
+      before: { name: stored.name },
+      after: { name: clean },
+    });
+    return admin;
+  },
+
   /** Counts a failed login; the fifth in a row locks the login for 5 minutes. */
   async recordFailedAttempt(): Promise<LockStatus> {
     await delay(0);

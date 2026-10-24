@@ -1,17 +1,6 @@
 'use client';
 
-import {
-  Ban,
-  Calendar,
-  Eye,
-  KeyRound,
-  Mail,
-  MapPin,
-  Pencil,
-  Phone,
-  RotateCcw,
-  Trash2,
-} from 'lucide-react';
+import { Ban, Calendar, Eye, KeyRound, Mail, MapPin, Phone, RotateCcw, Trash2 } from 'lucide-react';
 import { RowMenu } from '@/components/admin/shared/row-menu';
 import { StatusBadge } from '@/components/admin/shared/status-badge';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +14,6 @@ import { locationLabel } from '@/lib/profile';
 import type { FarmerAccount } from '@/types/admin';
 
 export interface HeaderActions {
-  onEdit: () => void;
   onViewAs: () => void;
   onSuspend: () => void;
   onReactivate: () => void;
@@ -91,11 +79,6 @@ export function FarmerHeader({
         <div className="flex flex-wrap items-center gap-4">
           <ScoreRing value={farmer.stats.score} max={850} label="Credit score" size={84} />
           <div className="flex flex-wrap items-center gap-2">
-            {abilities.tag && (
-              <Button size="sm" variant="ghost" icon={Pencil} onClick={actions.onEdit}>
-                Edit profile
-              </Button>
-            )}
             {abilities.impersonate && (
               <Button size="sm" variant="ghost" icon={Eye} onClick={actions.onViewAs}>
                 View as farmer

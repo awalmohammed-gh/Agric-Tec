@@ -77,7 +77,7 @@ export function AdminLoginForm({ next, reason }: { next: string; reason?: AdminL
   const locked = remaining !== null && remaining > 0;
 
   function enterConsole() {
-    toast.success('Welcome to the admin console');
+    toast.success('Welcome back');
     router.replace(next);
     router.refresh();
   }
@@ -102,7 +102,7 @@ export function AdminLoginForm({ next, reason }: { next: string; reason?: AdminL
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-text text-2xl font-bold">AgriCtec Admin Console</h1>
+        <h1 className="font-display text-text text-2xl font-bold">AgriCtec Admin</h1>
         <p className="text-text-dim mt-1 text-sm">Sign in with your staff account.</p>
       </div>
 

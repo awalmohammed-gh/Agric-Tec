@@ -81,7 +81,7 @@ export const ROLE_RANK: Record<AdminRole, number> = {
 export const PERMISSION_LABELS: Record<Permission, string> = {
   'overview.view': 'view the overview',
   'farmers.view': 'view farmers',
-  'farmers.edit': 'edit farmers',
+  'farmers.edit': 'add farmer notes and tags or reset their passwords',
   'farmers.suspend': 'suspend farmers',
   'farmers.delete': 'permanently delete farmers',
   'farmers.impersonate': 'view the app as a farmer',

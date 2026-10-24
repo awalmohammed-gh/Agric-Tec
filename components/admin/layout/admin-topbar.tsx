@@ -4,16 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronRight, Menu, Search } from 'lucide-react';
 import { adminBreadcrumbs } from '@/components/admin/layout/admin-breadcrumbs';
+import { AdminNameChip } from '@/components/admin/layout/admin-name';
 import { AdminNotifications } from '@/components/admin/layout/admin-notifications';
-import { RoleBadge } from '@/components/admin/layout/role-badge';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
-import { useAdminAuthStore } from '@/store/admin/admin-auth-store';
 import { useAdminDataStore } from '@/store/admin/admin-data-store';
 import { useAdminUiStore } from '@/store/admin/admin-ui-store';
 
 export function AdminTopbar() {
   const pathname = usePathname();
-  const admin = useAdminAuthStore((s) => s.admin);
   const farmers = useAdminDataStore((s) => s.farmers);
   const applications = useAdminDataStore((s) => s.applications);
   const openSidebar = useAdminUiStore((s) => s.openSidebar);
@@ -85,7 +83,7 @@ export function AdminTopbar() {
           </button>
           <AdminNotifications />
           <ThemeToggle />
-          {admin && <RoleBadge role={admin.role} className="hidden sm:inline-flex" />}
+          <AdminNameChip />
         </div>
       </div>
     </header>

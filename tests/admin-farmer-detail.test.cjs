@@ -147,15 +147,9 @@ test('the profile page shows exactly what the farmer sees when they log in', asy
   resetAllStores();
 });
 
-test('editing the region is audited with before → after', async () => {
-  const farmer = farmers.find((f) => f.profile.region !== 'Volta');
-  await farmersService.updateProfile(farmer.userId, { region: 'Volta' });
-  const entry = readAuditLog().at(-1);
-  assert.equal(entry.action, 'farmer.update');
-  assert.equal(entry.targetId, farmer.userId);
-  assert.deepEqual(entry.before, { region: farmer.profile.region });
-  assert.deepEqual(entry.after, { region: 'Volta' });
-  assert.equal((await farmersService.get(farmer.userId)).profile.region, 'Volta');
+test('only the farmer edits their profile: the console has no way to change it', () => {
+  // The farmer knows their own details; the console can read them, never write them.
+  assert.equal('updateProfile' in farmersService, false);
 });
 
 test('view as farmer: audited, single-use, and strictly read-only', async () => {

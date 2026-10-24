@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Sparkline } from '@/components/charts/sparkline';
 import { NETWORK_STYLES, networkTotals } from '@/components/momo/momo-filters';
+import { NetworkLogo } from '@/components/momo/network-logo';
 import { useFarmStats } from '@/hooks/use-farm-stats';
 import { percentChange } from '@/lib/calculations/finance';
 import { formatCompactGHS, formatGHS } from '@/lib/format';
@@ -199,10 +200,7 @@ export function MomoHero() {
               <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
                 {networks.map((n) => (
                   <li key={n.network} className="text-text-dim inline-flex items-center gap-1.5">
-                    <span
-                      aria-hidden="true"
-                      className={cn('size-2 rounded-full', NETWORK_STYLES[n.network].dot)}
-                    />
+                    <NetworkLogo network={n.network} size={18} />
                     {n.network}
                     <span className="text-text-mute tabular-nums">
                       {networkSum > 0 ? `${Math.round((n.total / networkSum) * 100)}%` : '0%'}

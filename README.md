@@ -58,7 +58,7 @@ checks the permission again (`lib/admin/permissions.ts`), so hiding is never the
 | ------------------------------------------------------ | :-----: | :-----: | :---: | :---------: |
 | Overview                                               |   ✅    |   ✅    |  ✅   |     ✅      |
 | View farmers                                           |   ✅    |   ✅    |  ✅   |     ✅      |
-| Edit farmers, notes, password resets                   |         |   ✅    |  ✅   |     ✅      |
+| Farmer notes, tags, password resets                    |         |   ✅    |  ✅   |     ✅      |
 | Suspend / reactivate                                   |         |         |  ✅   |     ✅      |
 | Delete farmers permanently                             |         |         |       |     ✅      |
 | View as farmer (read-only)                             |         |   ✅    |  ✅   |     ✅      |

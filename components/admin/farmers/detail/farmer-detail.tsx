@@ -11,7 +11,6 @@ import { ActivityTab } from '@/components/admin/farmers/detail/activity-tab';
 import { CreditTab } from '@/components/admin/farmers/detail/credit-tab';
 import { DeleteFarmerDialog } from '@/components/admin/farmers/detail/delete-farmer-dialog';
 import { DiagnosesTab } from '@/components/admin/farmers/detail/diagnoses-tab';
-import { EditProfileModal } from '@/components/admin/farmers/detail/edit-profile-modal';
 import { FarmerHeader } from '@/components/admin/farmers/detail/farmer-header';
 import { LoansTab } from '@/components/admin/farmers/detail/loans-tab';
 import { MomoTab } from '@/components/admin/farmers/detail/momo-tab';
@@ -47,7 +46,7 @@ type TabKey =
   | 'notes'
   | 'activity';
 
-type Dialog = 'edit' | 'suspend' | 'reactivate' | 'reset' | 'delete' | null;
+type Dialog = 'suspend' | 'reactivate' | 'reset' | 'delete' | null;
 
 type LoadState =
   | { status: 'loading' }
@@ -155,7 +154,6 @@ export function FarmerDetail({ id }: { id: string }) {
         abilities={abilities}
         canDelete={canDelete}
         actions={{
-          onEdit: () => setDialog('edit'),
           onViewAs: () => void viewAsFarmer(farmer),
           onSuspend: () => setDialog('suspend'),
           onReactivate: () => setDialog('reactivate'),
@@ -184,12 +182,6 @@ export function FarmerDetail({ id }: { id: string }) {
         {tab === 'activity' && canAudit && <ActivityTab farmerId={id} version={version} />}
       </div>
 
-      <EditProfileModal
-        farmer={farmer}
-        open={dialog === 'edit'}
-        onClose={close}
-        onSaved={() => void afterChange()}
-      />
       <SuspendDialog
         farmers={dialog === 'suspend' ? [farmer] : []}
         onClose={close}

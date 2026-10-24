@@ -18,6 +18,8 @@ interface AdminAuthState {
   signIn: (email: string, password: string) => Promise<AdminUser>;
   signOut: (reason?: SignOutReason) => Promise<void>;
   changePassword: (currentPassword: string, nextPassword: string) => Promise<AdminUser>;
+  /** Saves the signed-in admin's own display name. */
+  updateName: (name: string) => Promise<AdminUser>;
   /** Marks activity now. Saved to storage at most once every 30 seconds, unless `force`. */
   touch: (force?: boolean) => void;
 }
@@ -70,6 +72,12 @@ export const useAdminAuthStore = create<AdminAuthState>()((set) => ({
 
   changePassword: async (currentPassword, nextPassword) => {
     const admin = await adminAuthService.changePassword(currentPassword, nextPassword);
+    set({ admin });
+    return admin;
+  },
+
+  updateName: async (name) => {
+    const admin = await adminAuthService.updateName(name);
     set({ admin });
     return admin;
   },

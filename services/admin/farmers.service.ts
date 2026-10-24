@@ -1,4 +1,3 @@
-import { REGIONS } from '@/constants/regions';
 import { getCurrentAdmin, requirePermission } from '@/lib/admin/admin-session';
 import { withAudit } from '@/lib/admin/audit';
 import {
@@ -7,7 +6,6 @@ import {
   readMeta,
   readUsers,
   writeMeta,
-  writeProfile,
   writeUsers,
 } from '@/lib/admin/farmer-data';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
@@ -18,16 +16,7 @@ import { toCSV } from '@/lib/export/csv';
 import { generateId } from '@/lib/utils';
 import { hashPassword, type StoredUser } from '@/services/auth.service';
 import { delay, storage } from '@/services/storage';
-import type { Profile } from '@/types';
 import type { FarmerAccount, FarmerDetail } from '@/types/admin';
-
-/** Profile fields an admin may edit. Verification changes go through verifications.service. */
-export type FarmerProfilePatch = Partial<
-  Pick<
-    Profile,
-    'name' | 'phone' | 'email' | 'region' | 'farmName' | 'acres' | 'farmType' | 'primaryCrops'
-  >
->;
 
 function findUser(id: string): StoredUser {
   const user = readUsers().find((u) => u.id === id);
@@ -97,42 +86,6 @@ export const farmersService = {
     await delay();
     requirePermission('farmers.view');
     return buildFarmerAccount(findUser(id));
-  },
-
-  async updateProfile(id: string, patch: FarmerProfilePatch): Promise<FarmerAccount> {
-    await delay();
-    const user = findUser(id);
-    const profile = readFarmerData(id).profile;
-    const fields = Object.keys(patch) as (keyof FarmerProfilePatch)[];
-    return withAudit(
-      {
-        permission: 'farmers.edit',
-        action: 'farmer.update',
-        targetType: 'farmer',
-        targetId: id,
-        summary: `Edited ${fields.join(', ')} for ${label(user)}`,
-        before: Object.fromEntries(fields.map((f) => [f, profile[f]])),
-        after: (account) => Object.fromEntries(fields.map((f) => [f, account.profile[f]])),
-      },
-      async () => {
-        if (patch.name !== undefined && !patch.name.trim()) throw new Error('Name is required.');
-        if (patch.region !== undefined && !REGIONS.includes(patch.region)) {
-          throw new Error('Choose a valid region.');
-        }
-        if (patch.acres !== undefined && (!Number.isFinite(patch.acres) || patch.acres < 0)) {
-          throw new Error('Acres must be zero or more.');
-        }
-        // A new region: the old constituency belonged to the previous one.
-        const regionChanged = patch.region !== undefined && patch.region !== profile.region;
-        writeProfile({
-          ...profile,
-          ...patch,
-          ...(regionChanged && { constituency: '' }),
-          userId: id,
-        });
-        return buildFarmerAccount(findUser(id));
-      },
-    );
   },
 
   async suspend(id: string, reason: string): Promise<FarmerAccount> {

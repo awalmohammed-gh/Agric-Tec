@@ -117,7 +117,7 @@ function PlatformLoader({ children }: { children: ReactNode }) {
   if (state !== 'ready') {
     return (
       <div role="status" className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <AdminBrand tag="Console" />
+        <AdminBrand />
         <p className="text-text-dim flex items-center gap-2 text-sm">
           <Loader2 size={16} aria-hidden="true" className="text-ink-purple animate-spin" />
           {state === 'seeding' ? 'Preparing demo data…' : 'Loading the console…'}

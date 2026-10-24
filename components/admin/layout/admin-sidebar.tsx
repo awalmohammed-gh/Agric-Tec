@@ -109,10 +109,7 @@ export function AdminSidebar() {
       aria-label="Sidebar"
       className="glass shadow-glass fixed inset-y-3 left-3 z-40 hidden w-[260px] flex-col overflow-hidden rounded-3xl backdrop-blur-xl lg:flex"
     >
-      <AdminBrand
-        tag="Console"
-        className="border-border h-[calc(var(--spacing-header)-1px)] shrink-0 border-b px-5"
-      />
+      <AdminBrand className="border-border h-[calc(var(--spacing-header)-1px)] shrink-0 border-b px-5" />
       <AdminSidebarContent />
     </aside>
   );
@@ -155,7 +152,7 @@ export function AdminSidebarDrawer() {
         className="animate-slide-in-left border-border bg-bg-2 shadow-glass relative flex h-full w-[280px] max-w-[85vw] flex-col border-r focus:outline-none"
       >
         <div className="border-border flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4">
-          <AdminBrand tag="Console" />
+          <AdminBrand />
           <button
             type="button"
             onClick={close}

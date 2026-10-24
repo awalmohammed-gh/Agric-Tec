@@ -2,6 +2,7 @@
 
 import { ShieldAlert, Smartphone } from 'lucide-react';
 import type { TabProps } from '@/components/admin/farmers/detail/types';
+import { NetworkLogo } from '@/components/momo/network-logo';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -47,7 +48,20 @@ export function MomoTab({ data }: TabProps) {
         </span>
       ),
     },
-    { key: 'network', header: 'Network', sortable: true, render: (t) => t.network ?? '—' },
+    {
+      key: 'network',
+      header: 'Network',
+      sortable: true,
+      render: (t) =>
+        t.network ? (
+          <span className="inline-flex items-center gap-2">
+            <NetworkLogo network={t.network} size={20} />
+            {t.network}
+          </span>
+        ) : (
+          '—'
+        ),
+    },
     {
       key: 'amount',
       header: 'Amount',

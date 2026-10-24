@@ -5,7 +5,7 @@ import { AdminBrand } from '@/components/admin/layout/admin-brand';
 import { Card } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: { default: 'Admin Console', template: '%s | AgriCtec Admin' },
+  title: { default: 'AgriCtec Admin', template: '%s | AgriCtec Admin' },
   robots: { index: false, follow: false },
 };
 

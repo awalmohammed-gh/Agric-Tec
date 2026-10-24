@@ -190,13 +190,6 @@ const blobText = async (value) => (typeof value === 'string' ? value : value.tex
 const WRITES = [
   // Farmers
   {
-    label: 'Edit farmer profile',
-    permission: 'farmers.edit',
-    audit: 'farmer.update',
-    before: true,
-    run: (role) => farmersService.updateProfile(activeFarmer().id, { farmName: `QA Farm ${role}` }),
-  },
-  {
     label: 'Add admin note',
     permission: 'farmers.edit',
     audit: 'farmer.note',

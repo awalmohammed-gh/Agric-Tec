@@ -13,6 +13,7 @@ import {
   type MomoFormValues,
 } from '@/components/momo/momo-schema';
 import { NETWORK_STYLES } from '@/components/momo/momo-filters';
+import { NetworkLogo } from '@/components/momo/network-logo';
 import { Button } from '@/components/ui/button';
 import { FormField, fieldErrorId, fieldHintId } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
@@ -246,10 +247,7 @@ function MomoForm({
                       : 'border-border bg-bg-2 text-text-dim hover:text-text',
                   )}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={cn('size-2 shrink-0 rounded-full', NETWORK_STYLES[option].dot)}
-                  />
+                  <NetworkLogo network={option} size={20} />
                   {option}
                 </span>
               </label>
