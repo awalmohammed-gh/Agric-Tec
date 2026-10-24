@@ -125,7 +125,7 @@ export function MaintenanceModeCard({
             />
           </label>
 
-          <label className={cn('block', !on && 'opacity-60')}>
+          <label className="block">
             <span className="text-text-dim mb-1.5 block text-xs font-semibold">
               Auto-end at (optional)
             </span>
@@ -136,7 +136,7 @@ export function MaintenanceModeCard({
               onChange={(e) => setEndsAt(e.target.value)}
               aria-invalid={endError ? true : undefined}
               className={cn(
-                'bg-bg-2 text-text focus:border-purple/70 min-h-11 w-full rounded-xl border px-3.5 text-sm outline-none',
+                'bg-bg-2 text-text focus:border-purple/70 min-h-11 w-full rounded-xl border px-3.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-60',
                 endError ? 'border-danger' : 'border-border',
               )}
             />

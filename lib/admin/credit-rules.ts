@@ -4,6 +4,7 @@
 
 import { DEFAULT_CREDIT_CONFIG } from '@/lib/admin/defaults';
 import { calculateCreditScore, scoreLabel, type ScoreLabel } from '@/lib/calculations/credit-score';
+import { mapInChunks, type ChunkOptions } from '@/lib/chunked';
 import type { FarmRecord, MomoTransaction, Profile } from '@/types';
 import type { CreditConfig, CreditConfigInput } from '@/types/admin';
 
@@ -243,30 +244,26 @@ const asConfig = (values: CreditConfigInput): CreditConfig => ({
   ...values,
 });
 
-/** Re-scores every farmer under the live rules and the draft (nothing is saved). */
-export function impactOf(
-  inputs: ScoringInput[],
-  current: CreditConfigInput,
-  draft: CreditConfigInput,
-): Impact {
-  const live = asConfig(current);
-  const next = asConfig(draft);
-  const farmers = inputs.map((input): FarmerImpact => {
-    const now = calculateCreditScore(input.records, input.momo, input.profile, live).score;
-    const then = calculateCreditScore(input.records, input.momo, input.profile, next).score;
-    return {
-      userId: input.userId,
-      name: input.name,
-      region: input.region,
-      current: now,
-      draft: then,
-      delta: then - now,
-      currentBand: scoreLabel(now, live.bands),
-      draftBand: scoreLabel(then, next.bands),
-      eligibleNow: meetsEligibility(input, now, live),
-      eligibleDraft: meetsEligibility(input, then, next),
-    };
-  });
+/** One farmer scored under the live rules and the draft. */
+function scoreImpact(input: ScoringInput, live: CreditConfig, next: CreditConfig): FarmerImpact {
+  const now = calculateCreditScore(input.records, input.momo, input.profile, live).score;
+  const then = calculateCreditScore(input.records, input.momo, input.profile, next).score;
+  return {
+    userId: input.userId,
+    name: input.name,
+    region: input.region,
+    current: now,
+    draft: then,
+    delta: then - now,
+    currentBand: scoreLabel(now, live.bands),
+    draftBand: scoreLabel(then, next.bands),
+    eligibleNow: meetsEligibility(input, now, live),
+    eligibleDraft: meetsEligibility(input, then, next),
+  };
+}
+
+/** The totals over every scored farmer. */
+function summarizeImpact(farmers: FarmerImpact[]): Impact {
   const average = (pick: (f: FarmerImpact) => number) =>
     farmers.length ? Math.round(farmers.reduce((s, f) => s + pick(f), 0) / farmers.length) : 0;
   const count = (pick: (f: FarmerImpact) => ScoreLabel) =>
@@ -287,4 +284,31 @@ export function impactOf(
       .slice(0, 10),
     changedScores: farmers.filter((f) => f.delta !== 0).length,
   };
+}
+
+/** Re-scores every farmer under the live rules and the draft (nothing is saved). */
+export function impactOf(
+  inputs: ScoringInput[],
+  current: CreditConfigInput,
+  draft: CreditConfigInput,
+): Impact {
+  const live = asConfig(current);
+  const next = asConfig(draft);
+  return summarizeImpact(inputs.map((input) => scoreImpact(input, live, next)));
+}
+
+/**
+ * impactOf, a few farmers at a time with the browser free in between (the preview recalculates as
+ * the admin types). Same result; throws an AbortError when `signal` aborts.
+ */
+export async function impactInChunks(
+  inputs: ScoringInput[],
+  current: CreditConfigInput,
+  draft: CreditConfigInput,
+  options: ChunkOptions = {},
+): Promise<Impact> {
+  const live = asConfig(current);
+  const next = asConfig(draft);
+  const farmers = await mapInChunks(inputs, (input) => scoreImpact(input, live, next), options);
+  return summarizeImpact(farmers);
 }

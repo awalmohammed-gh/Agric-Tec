@@ -29,7 +29,7 @@ import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useAdminRole } from '@/hooks/admin/use-can';
 import { eligibilityChecks, totalCost } from '@/lib/admin/loan-pipeline';
-import { LOAN_STATUS_LABELS, LOAN_TRANSITIONS } from '@/lib/admin/loan-status';
+import { DELETED_FARMER_LABEL, LOAN_STATUS_LABELS, nextStatuses } from '@/lib/admin/loan-status';
 import { can } from '@/lib/admin/permissions';
 import { bandTone } from '@/lib/admin/score-tone';
 import { scoreLabel } from '@/lib/calculations/credit-score';
@@ -46,6 +46,8 @@ interface PageData {
   app: LoanApplication;
   /** Null when the role can't view farmers, or the farmer was deleted. */
   farmer: FarmerDetail | null;
+  /** The farmer's account is gone: the application stays, but can only be closed out. */
+  farmerDeleted: boolean;
   lender?: Lender;
   config: CreditConfig;
 }
@@ -59,16 +61,23 @@ type LoadState =
 async function fetchLoanPage(id: string, role: AdminRole | undefined): Promise<LoadState> {
   try {
     const app = await loanApplicationsService.get(id);
-    const [farmer, lenders, config] = await Promise.all([
+    const [farmer, farmerDeleted, lenders, config] = await Promise.all([
       can(role, 'farmers.view')
         ? farmersService.getDetail(app.userId).catch(() => null)
         : Promise.resolve(null),
+      loanApplicationsService.farmerExists(app.userId).then((exists) => !exists),
       lendersService.list({ includeInactive: true }),
       configService.getCreditConfig(),
     ]);
     return {
       status: 'ready',
-      data: { app, farmer, lender: lenders.find((l) => l.id === app.partnerId), config },
+      data: {
+        app,
+        farmer,
+        farmerDeleted,
+        lender: lenders.find((l) => l.id === app.partnerId),
+        config,
+      },
     };
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : 'Could not load the application';
@@ -97,6 +106,7 @@ export function ApplicationDetail({ id }: { id: string }) {
   const refreshConsole = useAdminDataStore((s) => s.refresh);
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [version, setVersion] = useState(0);
+  const syncVersion = useAdminDataStore((s) => s.syncVersion);
   const [change, setChange] = useState<StatusChange | null>(null);
   const [now] = useState(() => new Date());
 
@@ -106,7 +116,7 @@ export function ApplicationDetail({ id }: { id: string }) {
     return () => {
       active = false;
     };
-  }, [id, role, version]);
+  }, [id, role, version, syncVersion]);
 
   if (state.status === 'loading') return <AdminLoading />;
 
@@ -136,10 +146,14 @@ export function ApplicationDetail({ id }: { id: string }) {
     );
   }
 
-  const { app, farmer, lender, config } = state.data;
+  const { app, farmer, farmerDeleted, lender, config } = state.data;
   const account = farmer?.account;
-  const name = account ? account.profile.name || account.email : 'Unknown farmer';
-  const moves = canManage ? LOAN_TRANSITIONS[app.status] : [];
+  const name = account
+    ? account.profile.name || account.email
+    : farmerDeleted
+      ? DELETED_FARMER_LABEL
+      : 'Farmer';
+  const moves = canManage ? nextStatuses(app.status, farmerDeleted) : [];
   const cost = totalCost(app);
   const age = Math.max(0, differenceInCalendarDays(now, new Date(app.createdAt)));
   const scoreNow = account?.stats.score;
@@ -262,8 +276,8 @@ export function ApplicationDetail({ id }: { id: string }) {
                 </div>
               ) : (
                 <p className="text-text-mute text-sm">
-                  {can(role, 'farmers.view')
-                    ? 'This farmer’s account no longer exists.'
+                  {farmerDeleted
+                    ? 'This farmer’s account was permanently deleted. The application stays on record for the lender; it can only be closed now.'
                     : 'Your role can’t view farmer profiles.'}
                 </p>
               )}

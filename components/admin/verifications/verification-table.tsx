@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { differenceInCalendarDays, formatDistanceStrict, subDays } from 'date-fns';
 import { ArrowRight, CheckCheck, Clock, Inbox, PlayCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ import {
   queueSortValue,
   type QueueTab,
 } from '@/lib/admin/verification-queue';
+import { replaceQuery } from '@/lib/url-state';
 import { cn } from '@/lib/utils';
 import { verificationsService } from '@/services/admin/verifications.service';
 import { useAdminDataStore } from '@/store/admin/admin-data-store';
@@ -50,7 +51,6 @@ const isKind = (value: string): value is VerificationKind =>
  * with keyboard shortcuts; phone and location checks can be approved in bulk.
  */
 export function VerificationTable() {
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const canReview = useCan('verifications.review');
@@ -108,7 +108,7 @@ export function VerificationTable() {
     search.delete('dir');
     const query = search.toString();
     table.clearSelection();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    replaceQuery(pathname, query);
   }
 
   /** "Start reviewing": the oldest pending request in the current view. */

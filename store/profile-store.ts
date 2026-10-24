@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { isReadOnly, READ_ONLY_MESSAGE } from '@/lib/read-only';
 import { defaultProfile, profileService } from '@/services/profile.service';
-import type { Profile, StoreStatus } from '@/types';
+import type { LoadOptions, Profile, StoreStatus } from '@/types';
 import { ghanaPhone, normalizePhone } from '@/lib/profile';
 
 export type ProfileUpdate = Partial<Omit<Profile, 'userId' | 'verification'>> & {
@@ -16,7 +16,7 @@ interface ProfileState {
   userId: string | null;
   profile: Profile | null;
   status: StoreStatus;
-  load: (userId: string) => Promise<void>;
+  load: (userId: string, options?: LoadOptions) => Promise<void>;
   save: (partial: ProfileUpdate) => Promise<Profile>;
   verifyPhone: (expectedPhone: string) => Promise<Profile>;
 }
@@ -65,8 +65,8 @@ export const useProfileStore = create<ProfileState>()((set, get) => {
     profile: null,
     status: 'idle',
 
-    load: async (userId) => {
-      set({ userId, status: 'loading' });
+    load: async (userId, { silent = false } = {}) => {
+      set(silent ? { userId } : { userId, status: 'loading' });
       try {
         const profile = await profileService.get(userId);
         if (get().userId !== userId) return;

@@ -31,6 +31,21 @@ export async function loadAllStores(userId: string): Promise<void> {
   ]);
 }
 
+/**
+ * Reloads the farmer's data in place, with no loading state: another tab changed it.
+ * (The platform store has its own refresh(); it is kept in step separately.)
+ */
+export async function refreshUserStores(userId: string): Promise<void> {
+  const silent = { silent: true };
+  await Promise.all([
+    useFarmStore.getState().load(userId, silent),
+    useProfileStore.getState().load(userId, silent),
+    useChatStore.getState().load(userId, silent),
+    useSettingsStore.getState().load(userId, silent),
+    useLoanStore.getState().load(userId, silent),
+  ]);
+}
+
 /** Empties every in-memory store, so no data from the previous user is left behind. */
 export function resetAllStores(): void {
   useModalStore.getState().closeModal();

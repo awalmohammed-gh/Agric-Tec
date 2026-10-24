@@ -146,11 +146,20 @@ export const authService = {
    * admin is signed out of an already-open session. Also records the visit as activity.
    */
   async checkAccount(userId: string): Promise<AccountStatus | 'deleted'> {
+    const status = await this.accountStatus(userId);
+    if (status !== 'deleted' && status !== 'suspended') markActive(userId);
+    return status;
+  },
+
+  /**
+   * The account's status, without recording a visit. For checks that react to another tab's
+   * writes: recording one would write again and make the tabs answer each other forever.
+   */
+  async accountStatus(userId: string): Promise<AccountStatus | 'deleted'> {
     await delay(0);
     const user = readUsers().find((u) => u.id === userId);
     // An admin can delete an account permanently; its open session must end too.
     if (!user) return 'deleted';
-    if (user.status !== 'suspended') markActive(userId);
     return user.status ?? 'active';
   },
 

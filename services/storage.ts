@@ -80,6 +80,22 @@ export const storage = {
   },
 
   /**
+   * Calls `listener` when ANOTHER tab changes app data (the browser never fires `storage` in the
+   * tab that wrote). `key` comes without the "agrictec:" prefix, or null when storage was cleared.
+   * Returns the unsubscribe function.
+   */
+  onExternalChange(listener: (key: string | null) => void): () => void {
+    if (!isBrowser()) return () => {};
+    const handler = (event: StorageEvent) => {
+      if (event.storageArea !== window.localStorage) return;
+      if (event.key === null) listener(null);
+      else if (event.key.startsWith(PREFIX)) listener(event.key.slice(PREFIX.length));
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  },
+
+  /**
    * Roughly how much of the browser's storage the app uses, in bytes: the characters of every
    * app key and value, counted as UTF-16 (two bytes each), which is how browsers measure the quota.
    */

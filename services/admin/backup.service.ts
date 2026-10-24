@@ -98,7 +98,8 @@ const KEY_SCHEMAS: Partial<Record<string, z.ZodType>> = {
     z.looseObject({
       id: z.string().min(1),
       email: z.string(),
-      passwordHash: z.string(),
+      // Backups made since phase A15 have no password hashes; older ones still do.
+      passwordHash: z.string().optional(),
       isGuest: z.boolean(),
     }),
   ),
@@ -134,8 +135,46 @@ export function parsePlatformBackup(json: string): PlatformBackup {
   return parsed.data;
 }
 
+const USERS_KEY = 'users';
+
+/** Farmer accounts as written to a backup file: everything except the password hash. */
+function withoutPasswords(users: unknown): unknown {
+  if (!Array.isArray(users)) return users;
+  return users.map((user: unknown) =>
+    user && typeof user === 'object'
+      ? Object.fromEntries(Object.entries(user).filter(([field]) => field !== 'passwordHash'))
+      : user,
+  );
+}
+
+/**
+ * Farmer accounts as restored: each keeps the password it has on this device now. An account that
+ * only exists in the backup gets none (it can't sign in) until an admin resets its password.
+ */
+function withCurrentPasswords(users: unknown): unknown {
+  if (!Array.isArray(users)) return users;
+  const current = new Map(readUsers().map((user) => [user.id, user.passwordHash]));
+  return users.map((user: { id: string; passwordHash?: string }) => ({
+    ...user,
+    passwordHash: current.get(user.id) ?? user.passwordHash ?? '',
+  }));
+}
+
+/** What the platform holds right now: the before and after of a change that replaces or wipes it. */
+function platformCounts() {
+  return {
+    farmers: readUsers().filter((u) => !u.isGuest).length,
+    applications: storage.get<unknown[]>(PLATFORM_KEYS.loanApplications, []).length,
+    verifications: storage.get<unknown[]>(PLATFORM_KEYS.verifications, []).length,
+    riskFlags: storage.get<unknown[]>(PLATFORM_KEYS.riskFlags, []).length,
+  };
+}
+
 export const backupService = {
-  /** One JSON file with every app key (except sign-ins, the team and the audit trail). */
+  /**
+   * One JSON file with every app key (except sign-ins, the team and the audit trail). Password
+   * hashes are left out of the farmer accounts: a backup file must never carry them.
+   */
   async exportAll(): Promise<string> {
     await delay();
     const keys = storage
@@ -156,7 +195,8 @@ export const backupService = {
           const raw = storage.getRaw(key);
           if (raw === null) continue;
           try {
-            data[key] = JSON.parse(raw);
+            const value: unknown = JSON.parse(raw);
+            data[key] = key === USERS_KEY ? withoutPasswords(value) : value;
           } catch {
             // A corrupt value is skipped rather than breaking the whole backup.
           }
@@ -174,8 +214,9 @@ export const backupService = {
   },
 
   /**
-   * Replaces all platform and farmer data with the backup. The caller must pass "IMPORT" after the
-   * admin confirms. Sign-ins, the team and the audit trail are never replaced. All or nothing.
+   * Replaces all platform and farmer data with the backup. The caller must pass "RESTORE" after
+   * the admin confirms. Sign-ins, the team and the audit trail are never replaced; accounts keep
+   * their current passwords. All or nothing.
    */
   async importAll(json: string, confirmation: string): Promise<{ keys: number }> {
     await delay();
@@ -185,13 +226,17 @@ export const backupService = {
         action: 'system.import',
         targetType: 'system',
         summary: 'Imported a platform backup',
+        before: platformCounts(),
+        after: (result) => ({ keys: result.keys, ...platformCounts() }),
       },
       async () => {
         if (confirmation !== IMPORT_CONFIRMATION) {
           throw new Error(`Type ${IMPORT_CONFIRMATION} to confirm the import.`);
         }
         const backup = parsePlatformBackup(json);
-        storage.replaceKeys(backup.data, (key) => PROTECTED.has(key));
+        const data = { ...backup.data };
+        if (USERS_KEY in data) data[USERS_KEY] = withCurrentPasswords(data[USERS_KEY]);
+        storage.replaceKeys(data, (key) => PROTECTED.has(key));
         return { keys: Object.keys(backup.data).filter((key) => !PROTECTED.has(key)).length };
       },
     );
@@ -212,6 +257,8 @@ export const backupService = {
         action: 'system.delete_farmers',
         targetType: 'system',
         summary: (result) => `Deleted all farmer data (${result.farmers} accounts)`,
+        before: platformCounts(),
+        after: () => platformCounts(),
       },
       async () => {
         if (confirmation !== DELETE_FARMERS_CONFIRMATION)
@@ -241,6 +288,8 @@ export const backupService = {
         action: 'system.reset_demo',
         targetType: 'system',
         summary: 'Reset the demo data',
+        before: platformCounts(),
+        after: () => platformCounts(),
       },
       async () => {
         if (confirmation !== RESET_CONFIRMATION) {

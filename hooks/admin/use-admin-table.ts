@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useDebounce } from '@/hooks/use-debounce';
+import { replaceQuery } from '@/lib/url-state';
 
 // No manual useMemo/useCallback: the React Compiler memoizes this hook.
 
@@ -59,7 +60,6 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
     pageSize = 25,
     canSelect = () => true,
   } = options;
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
@@ -70,8 +70,7 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
       else next.set(key, value);
     }
     if (resetPage) next.delete('page');
-    const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    replaceQuery(pathname, next);
   }
 
   // Search: the input updates at once; the URL and the results follow 250ms after typing stops.
@@ -84,9 +83,8 @@ export function useAdminTable<T>(rows: T[], options: AdminTableOptions<T>) {
     if (debouncedQuery) next.set('q', debouncedQuery);
     else next.delete('q');
     next.delete('page');
-    const search = next.toString();
-    router.replace(search ? `${pathname}?${search}` : pathname, { scroll: false });
-  }, [debouncedQuery, urlQuery, params, pathname, router]);
+    replaceQuery(pathname, next);
+  }, [debouncedQuery, urlQuery, params, pathname]);
 
   const filterValues: Record<string, string> = Object.fromEntries(
     Object.keys(filters)

@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Columns3, Download, Rows3, Search, SlidersHorizontal, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/admin/layout/page-header';
@@ -20,9 +20,10 @@ import { Select } from '@/components/ui/select';
 import { useAdminTable } from '@/hooks/admin/use-admin-table';
 import { useCan } from '@/hooks/admin/use-can';
 import { loanFilterFns, regionOfFarmer, type LoanFilterName } from '@/lib/admin/loan-pipeline';
-import { LOAN_STATUSES, LOAN_STATUS_LABELS } from '@/lib/admin/loan-status';
+import { DELETED_FARMER_LABEL, LOAN_STATUSES, LOAN_STATUS_LABELS } from '@/lib/admin/loan-status';
 import { downloadFile } from '@/lib/export/csv';
 import { formatGHS } from '@/lib/format';
+import { replaceQuery } from '@/lib/url-state';
 import { cn } from '@/lib/utils';
 import { loanApplicationsService } from '@/services/admin/loan-applications.service';
 import { useAdminDataStore } from '@/store/admin/admin-data-store';
@@ -49,7 +50,6 @@ const FILTER_LABELS: Record<LoanFilterName, string> = {
  */
 export function LoanApplications() {
   const id = useId();
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const canManage = useCan('loans.manage');
@@ -69,8 +69,10 @@ export function LoanApplications() {
   const lenderOf = (app: LoanApplication) => lenderById.get(app.partnerId);
   const nameOf = (app: LoanApplication) => {
     const farmer = farmerOf(app);
-    return farmer ? farmer.profile.name || farmer.email : 'Unknown farmer';
+    return farmer ? farmer.profile.name || farmer.email : DELETED_FARMER_LABEL;
   };
+  /** The farmer list holds every account, so a missing farmer was deleted. */
+  const farmerDeleted = (app: LoanApplication) => !farmerById.has(app.userId);
 
   const table = useAdminTable(applications, {
     getRowId: (app) => app.id,
@@ -100,7 +102,7 @@ export function LoanApplications() {
   function setView(next: View) {
     const search = new URLSearchParams(params.toString());
     search.set('view', next);
-    router.replace(`${pathname}?${search.toString()}`, { scroll: false });
+    replaceQuery(pathname, search);
   }
 
   const value = (name: LoanFilterName) => table.filters[name] ?? '';
@@ -371,6 +373,7 @@ export function LoanApplications() {
         <ApplicationsBoard
           applications={table.filteredRows}
           farmerName={nameOf}
+          farmerDeleted={farmerDeleted}
           lenderOf={lenderOf}
           canManage={canManage}
           now={now}
@@ -380,6 +383,7 @@ export function LoanApplications() {
         <ApplicationsTable
           table={table}
           farmerOf={farmerOf}
+          farmerDeleted={farmerDeleted}
           lenderOf={lenderOf}
           canManage={canManage}
           loading={status === 'loading' && applications.length === 0}

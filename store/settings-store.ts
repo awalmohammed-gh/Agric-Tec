@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { isReadOnly, READ_ONLY_MESSAGE } from '@/lib/read-only';
 import { DEFAULT_SETTINGS, settingsService } from '@/services/settings.service';
-import type { Language, NotificationSettings, StoreStatus } from '@/types';
+import type { Language, LoadOptions, NotificationSettings, StoreStatus } from '@/types';
 
 let saves: Promise<unknown> = Promise.resolve();
 export async function waitForSettingsSaves(): Promise<void> {
@@ -13,7 +13,7 @@ interface SettingsState {
   language: Language;
   notifications: NotificationSettings;
   status: StoreStatus;
-  load: (userId: string) => Promise<void>;
+  load: (userId: string, options?: LoadOptions) => Promise<void>;
   setLanguage: (language: Language) => Promise<void>;
   toggleNotification: (key: keyof NotificationSettings) => Promise<void>;
 }
@@ -49,8 +49,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => {
     notifications: DEFAULT_SETTINGS.notifications,
     status: 'idle',
 
-    load: async (userId) => {
-      set({ userId, status: 'loading' });
+    load: async (userId, { silent = false } = {}) => {
+      set(silent ? { userId } : { userId, status: 'loading' });
       try {
         const settings = await settingsService.get(userId);
         if (get().userId !== userId) return;

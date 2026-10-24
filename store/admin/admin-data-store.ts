@@ -33,8 +33,15 @@ interface AdminDataState {
   status: StoreStatus;
   error: string | null;
   loadedAt: string | null;
+  /**
+   * Goes up each time another tab changed platform data. Pages that keep their own copy of
+   * service data (audit log, team, lenders, settings…) list it in their load effect to reload.
+   */
+  syncVersion: number;
   /** Reloads everything the current admin may view (other datasets stay empty). */
   refresh: () => Promise<void>;
+  /** After another tab's change: reloads the store, then tells the pages (syncVersion). */
+  syncFromOtherTab: () => Promise<void>;
   reset: () => void;
 }
 
@@ -48,6 +55,7 @@ const EMPTY = {
   status: 'idle' as StoreStatus,
   error: null,
   loadedAt: null,
+  syncVersion: 0,
 };
 
 export function countBadges(
@@ -65,7 +73,7 @@ export function countBadges(
 // Ignores a slow refresh that finishes after a newer one started.
 let latestRefresh = 0;
 
-export const useAdminDataStore = create<AdminDataState>()((set) => ({
+export const useAdminDataStore = create<AdminDataState>()((set, get) => ({
   ...EMPTY,
 
   refresh: async () => {
@@ -100,6 +108,11 @@ export const useAdminDataStore = create<AdminDataState>()((set) => ({
         error: error instanceof Error ? error.message : 'Could not load data.',
       });
     }
+  },
+
+  syncFromOtherTab: async () => {
+    await get().refresh();
+    set((state) => ({ syncVersion: state.syncVersion + 1 }));
   },
 
   reset: () => {

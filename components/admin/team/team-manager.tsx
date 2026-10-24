@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { activeSuperAdminCount, lockReason } from '@/lib/admin/team';
 import { teamService } from '@/services/admin/team.service';
 import { useAdminAuthStore } from '@/store/admin/admin-auth-store';
+import { useAdminDataStore } from '@/store/admin/admin-data-store';
 import type { AdminUser } from '@/types/admin';
 
 type Pending = { action: 'toggle' | 'reset'; member: AdminUser } | null;
@@ -31,6 +32,7 @@ export function TeamManager() {
   const me = useAdminAuthStore((s) => s.admin);
   const [team, setTeam] = useState<AdminUser[] | null>(null);
   const [version, setVersion] = useState(0);
+  const syncVersion = useAdminDataStore((s) => s.syncVersion);
   const [now, setNow] = useState(() => new Date());
   const [inviting, setInviting] = useState(false);
   const [roleFor, setRoleFor] = useState<AdminUser | null>(null);
@@ -52,7 +54,7 @@ export function TeamManager() {
     return () => {
       active = false;
     };
-  }, [version]);
+  }, [version, syncVersion]);
 
   const reload = () => setVersion((v) => v + 1);
 

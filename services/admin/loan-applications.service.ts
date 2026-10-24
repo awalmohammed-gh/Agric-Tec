@@ -1,7 +1,7 @@
 import { getYear } from 'date-fns';
 import { getCurrentAdmin, requirePermission } from '@/lib/admin/admin-session';
 import { withAudit } from '@/lib/admin/audit';
-import { readProfile } from '@/lib/admin/farmer-data';
+import { readProfile, readUsers } from '@/lib/admin/farmer-data';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
 import { statusChangeSchema, type StatusChangeInput } from '@/lib/admin/loan-pipeline';
 import { LOAN_STATUS_LABELS } from '@/lib/admin/loan-status';
@@ -68,6 +68,13 @@ export const loanApplicationsService = {
           (!filter.userId || a.userId === filter.userId),
       )
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  /** False once the farmer's account was permanently deleted (the application stays on record). */
+  async farmerExists(userId: string): Promise<boolean> {
+    await delay(0);
+    requirePermission('loans.view');
+    return readUsers().some((u) => u.id === userId);
   },
 
   async get(id: string): Promise<LoanApplication> {
@@ -177,7 +184,11 @@ export const loanApplicationsService = {
         },
       },
       async () => {
-        const valid = parseOrThrow(statusChangeSchema(app, status), details);
+        const farmerDeleted = !readUsers().some((u) => u.id === app.userId);
+        const valid = parseOrThrow(
+          statusChangeSchema(app, status, new Date(), farmerDeleted),
+          details,
+        );
         const note = valid.note?.trim();
         const disbursed = status === 'disbursed';
         const updated: LoanApplication = {

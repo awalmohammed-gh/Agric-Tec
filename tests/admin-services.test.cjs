@@ -368,9 +368,16 @@ test('the seed is identical after a reset, and backups round-trip', async () => 
     /not an AgriCtec/,
   );
   await backupService.importAll(json, 'RESTORE');
+  assert.ok(!json.includes('passwordHash'), 'a backup never carries password hashes');
   const restored = seedSnapshot();
   for (const key of Object.keys(initialSeed)) {
-    assert.equal(restored[key], initialSeed[key], `${key} restored from backup`);
+    // Parsed, not as text: the restore puts each account's current password back (A15), which
+    // changes the field order but not the data.
+    assert.deepEqual(
+      JSON.parse(restored[key]),
+      JSON.parse(initialSeed[key]),
+      `${key} restored from backup`,
+    );
   }
   assert.ok(readAuditLog().length > auditBefore, 'import never rewrites the audit trail');
 });

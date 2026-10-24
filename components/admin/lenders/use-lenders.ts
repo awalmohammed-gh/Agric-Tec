@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { lendersService } from '@/services/admin/lenders.service';
+import { useAdminDataStore } from '@/store/admin/admin-data-store';
 import type { Lender } from '@/types/admin';
 
 type LendersState =
@@ -12,6 +13,7 @@ type LendersState =
 /** Every lender, active or not. `reload()` reads them again after a change. */
 export function useLenders() {
   const [version, setVersion] = useState(0);
+  const syncVersion = useAdminDataStore((s) => s.syncVersion);
   const [state, setState] = useState<LendersState>({ status: 'loading', lenders: [] });
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export function useLenders() {
     return () => {
       active = false;
     };
-  }, [version]);
+  }, [version, syncVersion]);
 
   return { ...state, reload: () => setVersion((v) => v + 1) };
 }

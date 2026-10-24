@@ -44,6 +44,7 @@ export function SystemSettings() {
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [seeded, setSeeded] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const syncVersion = useAdminDataStore((s) => s.syncVersion);
   const [active, setActive] = useState('features');
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export function SystemSettings() {
     return () => {
       alive = false;
     };
-  }, [version]);
+  }, [version, syncVersion]);
 
   // Highlight the section in view in the side menu.
   useEffect(() => {

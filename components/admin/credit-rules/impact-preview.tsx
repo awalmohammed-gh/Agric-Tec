@@ -39,6 +39,33 @@ export function DeltaBadge({ delta, className }: { delta: number; className?: st
   );
 }
 
+/** "Re-scoring 24 of 60 farmers": a thin bar while the preview works through every farmer. */
+function ScoringProgress({ progress }: { progress: { done: number; total: number } | null }) {
+  const percent = progress?.total ? Math.round((progress.done / progress.total) * 100) : 0;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-text-mute text-xs" aria-live="polite">
+        {progress
+          ? `Re-scoring ${progress.done} of ${progress.total} farmers…`
+          : 'Re-scoring every farmer…'}
+      </p>
+      <span
+        role="progressbar"
+        aria-label="Impact preview progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        className="bg-glass-strong block h-1 w-full overflow-hidden rounded-full"
+      >
+        <span
+          className="bg-purple block h-full rounded-full transition-[width] duration-200"
+          style={{ width: `${percent}%` }}
+        />
+      </span>
+    </div>
+  );
+}
+
 /** A farmer row: name, live → draft score, change. */
 function FarmerRow({ farmer }: { farmer: FarmerImpact }) {
   return (
@@ -127,12 +154,17 @@ function Disclosure({
  */
 export function ImpactPreview({
   impact,
+  calculating = false,
+  progress = null,
   liveVersion,
   hasChanges,
   error,
 }: {
-  /** Null while the farmers load. */
+  /** Null until the first calculation finishes. */
   impact: Impact | null;
+  /** The shown impact is for an earlier draft: a newer one is being worked out. */
+  calculating?: boolean;
+  progress?: { done: number; total: number } | null;
   liveVersion: number;
   hasChanges: boolean;
   /** The draft can't be scored as it stands (e.g. weights off 100). */
@@ -141,6 +173,7 @@ export function ImpactPreview({
   if (!impact) {
     return (
       <div className="space-y-3" role="status" aria-label="Scoring every farmer">
+        <ScoringProgress progress={progress} />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-28 w-full" />
@@ -153,7 +186,8 @@ export function ImpactPreview({
   const peak = Math.max(1, ...BANDS.flatMap((b) => [impact.bandsCurrent[b], impact.bandsDraft[b]]));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" aria-busy={calculating}>
+      {calculating && <ScoringProgress progress={progress} />}
       {/* Average */}
       <div>
         <p className="text-text-mute text-xs font-semibold">Average score</p>

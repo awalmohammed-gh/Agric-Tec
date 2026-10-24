@@ -5,7 +5,6 @@ import { calculateCreditScore } from '@/lib/calculations/credit-score';
 import { totalExpenses, totalIncome } from '@/lib/calculations/finance';
 import { DEFAULT_CREDIT_CONFIG } from '@/lib/admin/defaults';
 import { FARMER_ADMIN_META, FARMER_DATA, PLATFORM_KEYS } from '@/lib/admin/keys';
-import type { RiskSubject } from '@/lib/admin/risk-rules';
 import { normalizeProfile, safeProfile } from '@/lib/profile';
 import { USERS_KEY, type StoredUser } from '@/services/auth.service';
 import { storage, userKey } from '@/services/storage';
@@ -104,11 +103,3 @@ export const confirmedRiskCount = (userId: string): number =>
   storage
     .get<RiskFlag[]>(PLATFORM_KEYS.riskFlags, [])
     .filter((f) => f.userId === userId && f.status === 'confirmed').length;
-
-/** Every farmer as a risk-rule input. Guests are included: fraud can start there too. */
-export function readRiskSubjects(): RiskSubject[] {
-  return readUsers().map((user) => {
-    const { profile, records, momo } = readFarmerData(user.id);
-    return { userId: user.id, profile, records, momo };
-  });
-}

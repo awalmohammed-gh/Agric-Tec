@@ -11,6 +11,7 @@ import type {
   NewDiagnosisInput,
   NewMomoInput,
   NewRecordInput,
+  LoadOptions,
   StoreStatus,
 } from '@/types';
 
@@ -20,7 +21,7 @@ interface FarmState {
   momo: MomoTransaction[];
   diagnoses: Diagnosis[];
   status: StoreStatus;
-  load: (userId: string) => Promise<void>;
+  load: (userId: string, options?: LoadOptions) => Promise<void>;
   addRecord: (input: NewRecordInput) => Promise<FarmRecord>;
   updateRecord: (id: string, patch: Partial<NewRecordInput>) => Promise<FarmRecord>;
   deleteRecord: (id: string) => Promise<void>;
@@ -52,8 +53,8 @@ export const useFarmStore = create<FarmState>()((set, get) => {
     diagnoses: [],
     status: 'idle',
 
-    load: async (userId) => {
-      set({ userId, status: 'loading' });
+    load: async (userId, { silent = false } = {}) => {
+      set(silent ? { userId } : { userId, status: 'loading' });
       try {
         const [records, momo, diagnoses] = await Promise.all([
           recordsService.list(userId),

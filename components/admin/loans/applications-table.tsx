@@ -12,7 +12,7 @@ import { RowMenu, type RowMenuItem } from '@/components/admin/shared/row-menu';
 import { StatusBadge } from '@/components/admin/shared/status-badge';
 import type { AdminTableState } from '@/hooks/admin/use-admin-table';
 import { ageInDays } from '@/lib/admin/loan-pipeline';
-import { LOAN_STATUS_LABELS, LOAN_TRANSITIONS } from '@/lib/admin/loan-status';
+import { DELETED_FARMER_LABEL, LOAN_STATUS_LABELS, nextStatuses } from '@/lib/admin/loan-status';
 import { formatDate, formatGHS } from '@/lib/format';
 import type { FarmerAccount, Lender, LoanApplication, LoanStatus } from '@/types/admin';
 
@@ -20,6 +20,7 @@ import type { FarmerAccount, Lender, LoanApplication, LoanStatus } from '@/types
 export function ApplicationsTable({
   table,
   farmerOf,
+  farmerDeleted,
   lenderOf,
   canManage,
   loading,
@@ -28,6 +29,7 @@ export function ApplicationsTable({
 }: {
   table: AdminTableState<LoanApplication>;
   farmerOf: (app: LoanApplication) => FarmerAccount | undefined;
+  farmerDeleted: (app: LoanApplication) => boolean;
   lenderOf: (app: LoanApplication) => Lender | undefined;
   canManage: boolean;
   loading: boolean;
@@ -37,7 +39,7 @@ export function ApplicationsTable({
   const router = useRouter();
   const nameOf = (app: LoanApplication) => {
     const farmer = farmerOf(app);
-    return farmer ? farmer.profile.name || farmer.email : 'Unknown farmer';
+    return farmer ? farmer.profile.name || farmer.email : DELETED_FARMER_LABEL;
   };
 
   const menu = (app: LoanApplication): RowMenuItem[] => [
@@ -47,7 +49,7 @@ export function ApplicationsTable({
       onSelect: () => router.push(`/admin/loans/${app.id}`),
     },
     ...(canManage
-      ? LOAN_TRANSITIONS[app.status].map((to) => ({
+      ? nextStatuses(app.status, farmerDeleted(app)).map((to) => ({
           label: `Move to ${LOAN_STATUS_LABELS[to]}`,
           icon: to === 'rejected' || to === 'defaulted' ? Ban : ArrowRight,
           danger: to === 'rejected' || to === 'defaulted',

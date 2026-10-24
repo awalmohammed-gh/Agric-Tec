@@ -35,6 +35,21 @@ export const LOAN_TRANSITIONS: Record<LoanStatus, readonly LoanStatus[]> = {
 export const canTransition = (from: LoanStatus, to: LoanStatus): boolean =>
   LOAN_TRANSITIONS[from].includes(to);
 
+/**
+ * Once the farmer's account is deleted, an application can only be closed out (rejected, or for
+ * money already sent, repaid or defaulted): nobody is left to review, approve or pay.
+ */
+export const CLOSING_STATUSES: readonly LoanStatus[] = ['rejected', 'repaid', 'defaulted'];
+
+/** Where an application may go next. With `farmerDeleted`, only the moves that close it. */
+export const nextStatuses = (from: LoanStatus, farmerDeleted = false): readonly LoanStatus[] =>
+  farmerDeleted
+    ? LOAN_TRANSITIONS[from].filter((to) => CLOSING_STATUSES.includes(to))
+    : LOAN_TRANSITIONS[from];
+
+/** Shown wherever a deleted farmer's name would be. */
+export const DELETED_FARMER_LABEL = 'Farmer deleted';
+
 /** Still in progress: a lender with any of these cannot be removed. */
 export const OPEN_LOAN_STATUSES: readonly LoanStatus[] = [
   'submitted',

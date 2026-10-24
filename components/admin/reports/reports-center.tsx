@@ -32,6 +32,7 @@ import {
   type ReportData,
   type ReportFormat,
 } from '@/services/admin/reports.service';
+import { useAdminDataStore } from '@/store/admin/admin-data-store';
 
 const ICONS: Record<ReportId, { icon: LucideIcon; tone: string }> = {
   platform: { icon: LayoutDashboard, tone: 'bg-purple/12 text-ink-purple' },
@@ -53,6 +54,7 @@ export function ReportsCenter() {
   const [data, setData] = useState<ReportData | null>(null);
   const [preview, setPreview] = useState<AdminReport | null>(null);
   const [busy, setBusy] = useState<{ id: ReportId; format: ReportFormat } | null>(null);
+  const syncVersion = useAdminDataStore((s) => s.syncVersion);
 
   useEffect(() => {
     let active = true;
@@ -64,7 +66,7 @@ export function ReportsCenter() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [syncVersion]);
 
   async function exportReport(id: ReportId, format: ReportFormat) {
     setBusy({ id, format });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -25,10 +25,12 @@ import {
   tabOf,
   type AnnouncementTab,
 } from '@/lib/admin/announcements';
+import { replaceQuery } from '@/lib/url-state';
 import {
   announcementsService,
   type AnnouncementInput,
 } from '@/services/admin/announcements.service';
+import { useAdminDataStore } from '@/store/admin/admin-data-store';
 import { farmersService } from '@/services/admin/farmers.service';
 import type { Announcement, FarmerAccount } from '@/types/admin';
 
@@ -54,7 +56,6 @@ function prefillFrom(params: URLSearchParams): AnnouncementFormMode | null {
  * through the audited service, which checks the same rules again.
  */
 export function AnnouncementsManager() {
-  const router = useRouter();
   const params = useSearchParams();
   const [items, setItems] = useState<Announcement[] | null>(null);
   const [farmers, setFarmers] = useState<FarmerAccount[]>([]);
@@ -68,6 +69,7 @@ export function AnnouncementsManager() {
   );
   const [busy, setBusy] = useState(false);
   const [version, setVersion] = useState(0);
+  const syncVersion = useAdminDataStore((s) => s.syncVersion);
 
   useEffect(() => {
     let active = true;
@@ -80,7 +82,7 @@ export function AnnouncementsManager() {
     return () => {
       active = false;
     };
-  }, [version]);
+  }, [version, syncVersion]);
 
   // Keep the tabs honest as time passes (scheduled → active → ended).
   useEffect(() => {
@@ -91,8 +93,8 @@ export function AnnouncementsManager() {
   // The pre-fill is read once; drop it from the URL so a reload doesn't reopen the form.
   const hasPrefill = params.get('new') === '1';
   useEffect(() => {
-    if (hasPrefill) router.replace('/admin/announcements', { scroll: false });
-  }, [hasPrefill, router]);
+    if (hasPrefill) replaceQuery('/admin/announcements', '');
+  }, [hasPrefill]);
 
   const reload = () => setVersion((v) => v + 1);
 

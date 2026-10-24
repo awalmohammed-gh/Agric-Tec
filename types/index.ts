@@ -202,11 +202,7 @@ export interface YieldResult {
 }
 
 export type EligibilityIssueCode =
-  | 'records'
-  | 'affordability'
-  | 'score'
-  | 'lender-max'
-  | 'ghana-card';
+  'records' | 'affordability' | 'score' | 'lender-max' | 'ghana-card';
 
 export interface EligibilityIssue {
   code: EligibilityIssueCode;
@@ -250,6 +246,11 @@ export interface NotificationSettings {
 // ---------- Phase 3: services & stores ----------
 
 export type StoreStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+export interface LoadOptions {
+  /** Reload in place: keep the current data on screen, with no loading state (cross-tab sync). */
+  silent?: boolean;
+}
 
 export interface AppSettings {
   language: Language;

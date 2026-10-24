@@ -10,12 +10,15 @@
   --border: rgba(255, 255, 255, 0.12);
   --text: #f5f7fb;
   --text-dim: #a8b0c0;
-  --text-mute: #6b7280;
+  /* ≥4.5:1 on every dark surface, chips included (#6b7280 was 2.6–4:1); still dimmer than text-dim. */
+  --text-mute: #949bab;
   --accent: #10b981;
   --accent-2: #34d399;
   --accent-glow: rgba(16, 185, 129, 0.4);
   --gold: #f5c451;
   --danger: #ef4444;
+  /* Solid red behind white text (count badges, the maintenance banner): 4.8:1, both themes. */
+  --danger-strong: #dc2626;
   --warning: #f59e0b;
   --info: #3b82f6;
   --purple: #a855f7;
@@ -69,6 +72,7 @@
   --color-accent-2: var(--accent-2);
   --color-gold: var(--gold);
   --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
   --color-warning: var(--warning);
   --color-info: var(--info);
   --color-purple: var(--purple);

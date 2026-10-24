@@ -5,22 +5,29 @@ import {
   buildFarmerAccount,
   readFarmerData,
   readProfile,
-  readRiskSubjects,
   readUsers,
 } from '@/lib/admin/farmer-data';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
 import {
-  detectRisks,
   RISK_RULE_LABELS,
+  RISK_RULES,
   riskKey,
   ruleById,
   SEVERITY_ORDER,
   type RelatedKind,
 } from '@/lib/admin/risk-rules';
+import { mapInChunks } from '@/lib/chunked';
 import { generateId } from '@/lib/utils';
 import { delay, storage } from '@/services/storage';
 import type { FarmRecord, MomoTransaction } from '@/types';
 import type { FarmerAccount, RiskFlag, RiskFlagFilter } from '@/types/admin';
+
+/** Where a running scan is: reading the farmers, checking the rules, comparing with known flags. */
+export interface ScanProgress {
+  phase: 'reading' | 'checking' | 'comparing';
+  done: number;
+  total: number;
+}
 
 /** A flag's evidence for the review screen. `related` marks the items the flag is about. */
 export interface RiskRelated {
@@ -70,8 +77,10 @@ export const riskService = {
   /**
    * Runs every rule over every farmer and stores only findings that are new. A finding is the same
    * when rule + farmer + related IDs match, whatever its status, so a dismissed flag never returns.
+   * Runs in slices (a few farmers, then one rule, at a time), so the console stays responsive and
+   * `onProgress` can drive a real progress bar.
    */
-  async runScan(): Promise<RiskFlag[]> {
+  async runScan(onProgress?: (progress: ScanProgress) => void): Promise<RiskFlag[]> {
     await delay();
     return withAudit(
       {
@@ -82,11 +91,28 @@ export const riskService = {
         after: (found) => ({ newFlags: found.length, ids: found.map((f) => f.id) }),
       },
       async () => {
+        // Every account as a rule input. Guests are included: fraud can start there too.
+        const subjects = await mapInChunks(
+          readUsers(),
+          (user) => {
+            const { profile, records, momo } = readFarmerData(user.id);
+            return { userId: user.id, profile, records, momo };
+          },
+          { onProgress: (done, total) => onProgress?.({ phase: 'reading', done, total }) },
+        );
+        const detected = (
+          await mapInChunks(RISK_RULES, (rule) => rule.detect(subjects), {
+            size: 1,
+            onProgress: (done, total) => onProgress?.({ phase: 'checking', done, total }),
+          })
+        ).flat();
+        onProgress?.({ phase: 'comparing', done: detected.length, total: detected.length });
+
         const existing = read();
         const known = new Set(existing.map(riskKey));
         const now = new Date().toISOString();
         const found: RiskFlag[] = [];
-        for (const risk of detectRisks(readRiskSubjects())) {
+        for (const risk of detected) {
           const key = riskKey(risk);
           if (known.has(key)) continue;
           known.add(key);

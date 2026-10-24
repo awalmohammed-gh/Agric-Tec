@@ -105,7 +105,7 @@ export function BackupRestoreCard({ onRestored }: { onRestored: () => void }) {
       id="backup"
       icon={DatabaseBackup}
       title="Backup & restore"
-      description="Every platform setting and all farmer data in one JSON file. Admin sign-ins, the team and the audit log are never included or replaced."
+      description="Every platform setting and all farmer data in one JSON file. Passwords, admin sign-ins, the team and the audit log are never included or replaced: farmers keep their current passwords."
     >
       <div className="grid gap-4 md:grid-cols-2">
         <div className="border-border flex flex-col rounded-2xl border p-4">

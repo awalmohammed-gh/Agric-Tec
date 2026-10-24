@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDebounce } from '@/hooks/use-debounce';
 import { downloadFile } from '@/lib/export/csv';
 import { auditService } from '@/services/admin/audit.service';
+import { useAdminDataStore } from '@/store/admin/admin-data-store';
 import type { AuditEntry, AuditFilter, Paged } from '@/types/admin';
 
 const toFilter = (state: AuditFilterState): AuditFilter => ({
@@ -48,6 +49,7 @@ export function AuditLogView() {
   const [exporting, setExporting] = useState<'json' | 'csv' | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [version, setVersion] = useState(0);
+  const syncVersion = useAdminDataStore((s) => s.syncVersion);
   const filter = toFilter({ ...state, search });
   const filterKey = JSON.stringify(filter);
 
@@ -69,7 +71,7 @@ export function AuditLogView() {
     return () => {
       active = false;
     };
-  }, [filterKey, page, version]);
+  }, [filterKey, page, version, syncVersion]);
 
   function changeFilter(next: AuditFilterState) {
     setState(next);

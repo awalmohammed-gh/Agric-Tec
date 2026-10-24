@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { assertWritable } from '@/lib/read-only';
 import { loansService } from '@/services/loans.service';
 import { useAuthStore } from '@/store/auth-store';
-import type { LoanApplication, LoanApplicationInput, StoreStatus } from '@/types';
+import type { LoadOptions, LoanApplication, LoanApplicationInput, StoreStatus } from '@/types';
 
 /** The three tabs of the Loans & Credit page. */
 export type LoanTab = 'apply' | 'credit' | 'applications';
@@ -23,7 +23,7 @@ interface LoanState {
   tab: LoanTab;
   /** When set, the apply-confirmation modal is open for this draft. */
   confirm: LoanDraft | null;
-  load: (userId: string) => Promise<void>;
+  load: (userId: string, options?: LoadOptions) => Promise<void>;
   setTab: (tab: LoanTab) => void;
   openConfirm: (draft: LoanDraft) => void;
   closeConfirm: () => void;
@@ -38,8 +38,8 @@ export const useLoanStore = create<LoanState>()((set, get) => ({
   tab: 'apply',
   confirm: null,
 
-  load: async (userId) => {
-    set({ userId, status: 'loading' });
+  load: async (userId, { silent = false } = {}) => {
+    set(silent ? { userId } : { userId, status: 'loading' });
     try {
       const applications = await loansService.listApplications(userId);
       if (get().userId !== userId) return;

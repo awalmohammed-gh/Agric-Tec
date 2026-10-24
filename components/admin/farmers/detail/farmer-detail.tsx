@@ -86,6 +86,7 @@ export function FarmerDetail({ id }: { id: string }) {
   const [dialog, setDialog] = useState<Dialog>(null);
   // Bumped after every change so the Activity tab reloads too.
   const [version, setVersion] = useState(0);
+  const syncVersion = useAdminDataStore((s) => s.syncVersion);
 
   useEffect(() => {
     let active = true;
@@ -93,7 +94,7 @@ export function FarmerDetail({ id }: { id: string }) {
     return () => {
       active = false;
     };
-  }, [id, role, version]);
+  }, [id, role, version, syncVersion]);
 
   /** After a change: reload this page (and the Activity tab) and the console's cached data. */
   async function reload() {

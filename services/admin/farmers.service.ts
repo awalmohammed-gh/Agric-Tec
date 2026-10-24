@@ -181,7 +181,9 @@ export const farmersService = {
 
   /**
    * Permanently deletes the farmer: their account, every "agrictec:<id>:*" key, and their
-   * verifications, applications and risk flags. `confirmation` must be their email or name.
+   * verifications (masked card + hash) and risk flags. Loan applications stay on record, shown as
+   * "Farmer deleted": they hold no contact details, and lenders keep their history (phase A15).
+   * `confirmation` must be their email or name.
    */
   async remove(id: string, confirmation: string): Promise<void> {
     await delay();
@@ -215,11 +217,7 @@ export const farmersService = {
         }
         storage.clearUser(id);
         writeUsers(readUsers().filter((u) => u.id !== id));
-        for (const key of [
-          PLATFORM_KEYS.verifications,
-          PLATFORM_KEYS.loanApplications,
-          PLATFORM_KEYS.riskFlags,
-        ]) {
+        for (const key of [PLATFORM_KEYS.verifications, PLATFORM_KEYS.riskFlags]) {
           storage.set(
             key,
             storage.get<{ userId: string }[]>(key, []).filter((item) => item.userId !== id),

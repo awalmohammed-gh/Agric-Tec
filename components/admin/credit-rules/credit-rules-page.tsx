@@ -11,6 +11,7 @@ import { ImpactPreview } from '@/components/admin/credit-rules/impact-preview';
 import { PublishDialog } from '@/components/admin/credit-rules/publish-dialog';
 import { ScoreSimulator } from '@/components/admin/credit-rules/score-simulator';
 import { TargetsEditor } from '@/components/admin/credit-rules/targets-editor';
+import { useImpact } from '@/components/admin/credit-rules/use-impact';
 import { VersionHistory } from '@/components/admin/credit-rules/version-history';
 import { WeightsEditor } from '@/components/admin/credit-rules/weights-editor';
 import { PRIMARY_CLASS } from '@/components/admin/shared/action-styles';
@@ -23,7 +24,6 @@ import {
   configChanges,
   configValues,
   draftIssues,
-  impactOf,
   type ScoringInput,
 } from '@/lib/admin/credit-rules';
 import { cn } from '@/lib/utils';
@@ -92,6 +92,12 @@ export function CreditRulesPage() {
 
   const ready = state.status === 'ready' && draft !== null;
   const live = state.status === 'ready' ? state.live : null;
+  // Re-scored a few farmers at a time after each edit, so typing stays smooth (phase A15).
+  const { impact, calculating, progress } = useImpact(
+    state.status === 'ready' ? state.inputs : null,
+    live,
+    draft,
+  );
   const changes = ready && live ? configChanges(live, draft) : [];
   const dirty = changes.length > 0;
 
@@ -120,13 +126,14 @@ export function CreditRulesPage() {
   const issues = draftIssues(draft);
   const issueCount = Object.keys(issues).length;
   const liveValues = configValues(live);
-  const impact = impactOf(inputs, liveValues, draft);
-  const canPublish = dirty && issueCount === 0;
+  const canPublish = dirty && issueCount === 0 && !calculating;
   const publishHint = !dirty
     ? 'Change a rule first'
     : issueCount
       ? 'Fix the highlighted rules first'
-      : undefined;
+      : calculating
+        ? 'Working out the impact…'
+        : undefined;
 
   function afterPublish() {
     setPublishing(false);
@@ -291,6 +298,8 @@ export function CreditRulesPage() {
                 </div>
                 <ImpactPreview
                   impact={impact}
+                  calculating={calculating}
+                  progress={progress}
                   liveVersion={live.version}
                   hasChanges={dirty}
                   error={issues.weights ?? issues.bands}
@@ -332,10 +341,12 @@ export function CreditRulesPage() {
           <p className="text-text px-1 text-sm">
             <span className="font-semibold">{changes.length}</span> unpublished change
             {changes.length === 1 ? '' : 's'}
-            <span className="text-text-mute">
-              {' '}
-              · avg {impact.averageCurrent} → {impact.averageDraft}
-            </span>
+            {impact && !calculating && (
+              <span className="text-text-mute">
+                {' '}
+                · avg {impact.averageCurrent} → {impact.averageDraft}
+              </span>
+            )}
           </p>
           <Button size="sm" variant="ghost" icon={Undo2} onClick={() => setDiscarding(true)}>
             Discard
@@ -348,7 +359,7 @@ export function CreditRulesPage() {
         open={publishing}
         live={live}
         draft={draft}
-        impact={impact}
+        impact={calculating ? null : impact}
         onClose={() => setPublishing(false)}
         onPublished={afterPublish}
       />

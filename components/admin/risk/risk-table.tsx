@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { formatDistanceStrict } from 'date-fns';
 import { ArrowRight, Search, ShieldCheck } from 'lucide-react';
 import { RiskDetailModal } from '@/components/admin/risk/risk-detail-modal';
@@ -27,6 +27,7 @@ import {
   SEVERITY_LABELS,
   SEVERITY_ORDER,
 } from '@/lib/admin/risk-rules';
+import { replaceQuery } from '@/lib/url-state';
 import type { FarmerAccount, RiskFlag } from '@/types/admin';
 
 type StatusTab = RiskFlag['status'] | 'all';
@@ -56,7 +57,6 @@ export function RiskTable({
   loading: boolean;
   onChanged: () => void;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [now] = useState(() => new Date());
@@ -97,7 +97,7 @@ export function RiskTable({
     else search.set('status', next);
     search.delete('page');
     const query = search.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    replaceQuery(pathname, query);
   }
 
   const detected = (f: RiskFlag) => (

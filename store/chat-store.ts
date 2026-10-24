@@ -9,7 +9,7 @@ import { chatService } from '@/services/chat.service';
 import { useFarmStore } from '@/store/farm-store';
 import { cropNames } from '@/lib/profile';
 import { useProfileStore } from '@/store/profile-store';
-import type { ChatMessage, StoreStatus } from '@/types';
+import type { ChatMessage, LoadOptions, StoreStatus } from '@/types';
 
 let loadVersion = 0;
 
@@ -28,7 +28,7 @@ interface ChatState {
   messages: ChatMessage[];
   isTyping: boolean;
   status: StoreStatus;
-  load: (userId: string) => Promise<void>;
+  load: (userId: string, options?: LoadOptions) => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   clear: () => Promise<void>;
 }
@@ -39,9 +39,9 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   isTyping: false,
   status: 'idle',
 
-  load: async (userId) => {
+  load: async (userId, { silent = false } = {}) => {
     const version = ++loadVersion;
-    set({ userId, messages: [], isTyping: false, status: 'loading' });
+    if (!silent) set({ userId, messages: [], isTyping: false, status: 'loading' });
     try {
       const history = await chatService.list(userId);
       if (get().userId !== userId || version !== loadVersion) return;

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import {
   APPROVED_LOAN_STATUSES,
   canTransition,
+  CLOSING_STATUSES,
   DISBURSED_LOAN_STATUSES,
   LOAN_STATUS_LABELS,
   noteRequired,
@@ -79,7 +80,13 @@ export interface StatusChangeInput {
  * allowed; approved, rejected and defaulted need a note; disbursed needs the date the funds
  * went out (not in the future, not before the application) and a transfer reference.
  */
-export function statusChangeSchema(app: LoanApplication, to: LoanStatus, now = new Date()) {
+/** `farmerDeleted`: the farmer's account is gone, so only the moves that close it are valid. */
+export function statusChangeSchema(
+  app: LoanApplication,
+  to: LoanStatus,
+  now = new Date(),
+  farmerDeleted = false,
+) {
   const today = format(now, 'yyyy-MM-dd');
   const sent = format(new Date(app.createdAt), 'yyyy-MM-dd');
   return z
@@ -98,6 +105,12 @@ export function statusChangeSchema(app: LoanApplication, to: LoanStatus, now = n
           code: 'custom',
           path: ['status'],
           message: `An application can’t move from ${LOAN_STATUS_LABELS[app.status]} to ${LOAN_STATUS_LABELS[to]}.`,
+        });
+      } else if (farmerDeleted && !CLOSING_STATUSES.includes(to)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['status'],
+          message: `This farmer’s account was deleted, so the application can only be closed, not moved to ${LOAN_STATUS_LABELS[to]}.`,
         });
       }
       if (noteRequired(to) && (value.note ?? '').trim().length < 3) {

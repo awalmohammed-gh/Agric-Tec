@@ -6,7 +6,7 @@ import { ArrowRight, Ban, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { RowMenu } from '@/components/admin/shared/row-menu';
 import { ageInDays } from '@/lib/admin/loan-pipeline';
-import { LOAN_STATUSES, LOAN_STATUS_LABELS, LOAN_TRANSITIONS } from '@/lib/admin/loan-status';
+import { LOAN_STATUSES, LOAN_STATUS_LABELS, nextStatuses } from '@/lib/admin/loan-status';
 import { formatCompactGHS, formatGHS } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Lender, LoanApplication, LoanStatus } from '@/types/admin';
@@ -41,6 +41,7 @@ interface Drag {
 export function ApplicationsBoard({
   applications,
   farmerName,
+  farmerDeleted,
   lenderOf,
   canManage,
   now,
@@ -48,6 +49,8 @@ export function ApplicationsBoard({
 }: {
   applications: LoanApplication[];
   farmerName: (app: LoanApplication) => string;
+  /** Its farmer's account is gone: the card can only move to a closing status. */
+  farmerDeleted: (app: LoanApplication) => boolean;
   lenderOf: (app: LoanApplication) => Lender | undefined;
   canManage: boolean;
   now: Date;
@@ -55,7 +58,7 @@ export function ApplicationsBoard({
 }) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const dropped = useRef(false);
-  const allowed = drag ? LOAN_TRANSITIONS[drag.app.status] : [];
+  const allowed = drag ? nextStatuses(drag.app.status, farmerDeleted(drag.app)) : [];
 
   function enterColumn(status: LoanStatus, event: DragEvent) {
     if (!drag) return;
@@ -79,7 +82,7 @@ export function ApplicationsBoard({
   function endDrag() {
     if (drag && !dropped.current && drag.over && drag.over !== drag.app.status) {
       const from = LOAN_STATUS_LABELS[drag.app.status];
-      const next = LOAN_TRANSITIONS[drag.app.status].map((s) => LOAN_STATUS_LABELS[s]);
+      const next = allowed.map((s) => LOAN_STATUS_LABELS[s]);
       if (!allowed.includes(drag.over)) {
         toast.error(`${from} can’t move to ${LOAN_STATUS_LABELS[drag.over]}`, {
           description: next.length
@@ -159,7 +162,7 @@ export function ApplicationsBoard({
                 )}
                 {cards.map((app) => {
                   const lender = lenderOf(app);
-                  const moves = canManage ? LOAN_TRANSITIONS[app.status] : [];
+                  const moves = canManage ? nextStatuses(app.status, farmerDeleted(app)) : [];
                   const name = farmerName(app);
                   const age = ageInDays(app, now);
                   return (
