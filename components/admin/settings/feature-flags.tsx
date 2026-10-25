@@ -81,8 +81,8 @@ const FLAGS: Record<FlagKey, FlagMeta> = {
   market: {
     label: 'Market & weather',
     icon: Store,
-    description: 'Crop prices, trends and the weather advisory.',
-    whenOff: 'It leaves the menu; its page says it is unavailable.',
+    description: 'The separate Market Prices and Weather pages.',
+    whenOff: 'Both leave the menu; each page says it is unavailable.',
   },
   pdfReports: {
     label: 'PDF reports',

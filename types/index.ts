@@ -174,6 +174,21 @@ export interface MarketPrice {
   unit: string;
   price: number;
   change: number;
+  id?: string;
+  status?: 'draft' | 'published';
+  scope?: 'market' | 'region' | 'national';
+  region?: string;
+  market?: string;
+  quantity?: number;
+  packageWeightKg?: number;
+  priceMax?: number;
+  observedAt?: string;
+  source?: import('./market').MarketSource;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  nationalCoverageConfirmed?: boolean;
+  country?: 'GH';
+  currency?: 'GHS';
 }
 
 export type WeatherCondition = 'sunny' | 'partly-cloudy' | 'showers' | 'storm';

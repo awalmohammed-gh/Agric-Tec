@@ -256,3 +256,96 @@ test('successful mock checkout updates the live plan, persists on reload and upd
   assert.equal(useSubscriptionStore.getState().snapshot.subscription.planId, 'premium');
   assert.equal(useSubscriptionStore.getState().snapshot.subscription.payment.status, 'simulated');
 });
+
+test('AI usage banner shows percentages, low-credit and exhausted warnings without limiting Advanced', () => {
+  const { createElement } = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const hook = require('../hooks/use-subscription.ts');
+  const original = hook.useSubscription;
+  const { AiUsageBanner } = require('../components/subscription/ai-usage-banner.tsx');
+  let data;
+  hook.useSubscription = () => data;
+  const render = (used, feature = 'aiAssistant', limit = 100) => {
+    data = {
+      ready: true,
+      plan: { name: limit === null ? 'Advanced' : 'Premium' },
+      snapshot: {
+        creditsUsed: used,
+        creditsLimit: limit,
+        creditsRemaining: limit === null ? null : Math.max(0, limit - used),
+        resetsAt: '2026-11-01T00:00:00.000Z',
+      },
+    };
+    return renderToStaticMarkup(createElement(AiUsageBanner, { feature }));
+  };
+  try {
+    for (const used of [0, 25, 79, 80, 95, 100, 110]) {
+      const html = render(used);
+      assert.ok(html.includes(`You have used ${Math.min(used, 100)}%`));
+      assert.ok(html.includes(`value="${Math.min(used, 100)}"`));
+      assert.equal(html.includes('role="alert"'), used >= 80);
+      assert.ok(html.includes('Shared by AI Assistant and Crop Doctor'));
+      if (used === 80) assert.match(html, /running low/);
+      if (used === 95) assert.match(html, /almost finished/);
+      if (used >= 100) {
+        assert.match(html, /Your AI credits are finished/);
+        assert.match(html, /Upgrade your plan/);
+        assert.match(html, /1 Nov 2026/);
+      }
+    }
+    assert.match(render(96, 'cropDoctor'), /need 5 credits for another scan; you have 4 left/);
+    const advanced = render(300, 'aiAssistant', null);
+    assert.match(advanced, /Unlimited AI credits/);
+    assert.doesNotMatch(advanced, /<progress|%|role="alert"|finished/);
+    data = { ready: false, plan: { name: 'Free' }, snapshot: null };
+    const loading = renderToStaticMarkup(createElement(AiUsageBanner, { feature: 'aiAssistant' }));
+    assert.match(loading, /Loading AI credit usage/);
+    assert.doesNotMatch(loading, /Unlimited|role="alert"/);
+  } finally {
+    hook.useSubscription = original;
+  }
+});
+
+test('the assistant toast starts at 90 percent and does not repeat after messages, navigation or reload', () => {
+  const alertModule = '../lib/subscriptions/usage-alert.ts';
+  let { claimAiUsageAlert } = require(alertModule);
+  const base = subscriptionService.activateMock('toast-farmer', 'premium', 'card', now);
+  const snapshot = (creditsUsed, patch = {}) => ({
+    ...base,
+    creditsUsed,
+    creditsLimit: 100,
+    creditsRemaining: Math.max(0, 100 - creditsUsed),
+    ...patch,
+  });
+  assert.equal(claimAiUsageAlert(snapshot(89)), null);
+  const alert = claimAiUsageAlert(snapshot(90));
+  assert.match(alert.title, /nearly finished/);
+  assert.match(alert.description, /90%.*10 credits remain.*upgrade/);
+  assert.equal(claimAiUsageAlert(snapshot(91)), null);
+  assert.equal(claimAiUsageAlert(snapshot(100)), null);
+  delete require.cache[require.resolve(alertModule)];
+  ({ claimAiUsageAlert } = require(alertModule));
+  assert.equal(
+    claimAiUsageAlert(snapshot(95)),
+    null,
+    'The monthly warning is remembered after reload',
+  );
+  assert.ok(
+    claimAiUsageAlert(snapshot(90, { resetsAt: '2026-12-01T00:00:00.000Z' })),
+    'A new month can warn again',
+  );
+  const other = snapshot(90, {
+    subscription: { ...base.subscription, userId: 'other-toast-farmer' },
+  });
+  assert.ok(claimAiUsageAlert(other), 'Each account has its own warning');
+  assert.equal(
+    claimAiUsageAlert(snapshot(500, { creditsLimit: null, creditsRemaining: null })),
+    null,
+  );
+  assert.equal(claimAiUsageAlert(snapshot(0, { creditsLimit: 0, creditsRemaining: 0 })), null);
+  const exhausted = claimAiUsageAlert(
+    snapshot(100, { subscription: { ...base.subscription, userId: 'exhausted-toast-farmer' } }),
+  );
+  assert.match(exhausted.title, /finished/);
+  assert.match(exhausted.description, /100%.*0 credits remain/);
+});

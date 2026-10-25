@@ -10,13 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useChatStore } from '@/store/chat-store';
-import { AiUsageBanner } from '@/components/subscription/ai-usage-banner';
+import { useAiCreditWarning } from '@/hooks/use-ai-credit-warning';
 
 export function AssistantChat() {
+  useAiCreditWarning();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const isTyping = useChatStore((state) => state.isTyping);
   const status = useChatStore((state) => state.status);
+  const userId = useChatStore((state) => state.userId);
   const clear = useChatStore((state) => state.clear);
   const hasConversation = useChatStore((state) => state.messages.length > 1);
 
@@ -35,9 +37,9 @@ export function AssistantChat() {
   return (
     <Card
       padding="none"
-      className="flex h-[calc(100svh-16rem)] min-h-80 min-w-0 flex-col rounded-3xl min-[900px]:h-[calc(100svh-13rem)]"
+      className="flex h-[calc(100svh-8rem)] min-h-[36rem] min-w-0 flex-col rounded-3xl min-[900px]:min-h-[42rem]"
     >
-      <div className="border-border flex shrink-0 items-center justify-between gap-3 border-b px-4 py-4 sm:px-6">
+      <div className="border-border flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <span className="border-accent/20 bg-accent/10 text-ink-green flex size-10 shrink-0 items-center justify-center rounded-2xl border">
             <Bot size={21} aria-hidden="true" />
@@ -62,11 +64,19 @@ export function AssistantChat() {
           Clear chat
         </Button>
       </div>
-      <AiUsageBanner feature="aiAssistant" />
       <ChatWindow />
-      <div className="border-border bg-glass shrink-0 border-t px-4 pt-4 pb-3 sm:px-6">
-        {hasConversation && <QuickPrompts />}
-        <ChatInput />
+      <div className="border-border bg-glass shrink-0 border-t px-4 py-3 sm:px-6">
+        {hasConversation && (
+          <details className="mb-2">
+            <summary className="text-text-dim focus-visible:outline-accent cursor-pointer rounded text-xs font-medium">
+              Suggested questions
+            </summary>
+            <div className="mt-2">
+              <QuickPrompts />
+            </div>
+          </details>
+        )}
+        <ChatInput key={userId} />
       </div>
       <ConfirmDialog
         open={confirmOpen}

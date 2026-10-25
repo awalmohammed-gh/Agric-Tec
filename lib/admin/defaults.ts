@@ -4,7 +4,6 @@ import { BASE_YIELD_PER_ACRE, CROP_TIPS, PRICE_PER_TONNE } from '@/constants/cro
 import { LOAN_PARTNERS } from '@/constants/loan-partners';
 import { PLAN_CATALOG } from '@/lib/subscriptions/plans';
 import { MOCK_DIAGNOSES } from '@/data/mock/diagnoses';
-import { MARKET_PRICES } from '@/data/mock/market-prices';
 import type { MarketPrice } from '@/types';
 import type {
   AssistantKnowledgeItem,
@@ -59,7 +58,8 @@ export const DEFAULT_LENDERS: Lender[] = LOAN_PARTNERS.map((partner) => ({
   createdAt: BUILT_IN,
 }));
 
-export const DEFAULT_MARKET_PRICES: MarketPrice[] = MARKET_PRICES.map((price) => ({ ...price }));
+/** No real prices have been sourced yet. Administrators add evidence-backed observations. */
+export const DEFAULT_MARKET_PRICES: MarketPrice[] = [];
 
 const CROP_EMOJI: Record<KnownCrop, string> = {
   Maize: '🌽',
@@ -152,7 +152,7 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
     reply: {
       title: 'Cocoa Prices',
       intro:
-        'These are indicative mock prices from the app’s market data, not a live buying quote.',
+        'Only published, source-backed market observations are shown. Prices vary by location, unit and date.',
       bullets: [
         '{cocoaPrice}',
         'Compare the unit, weight and any deductions before agreeing to a sale.',
@@ -169,7 +169,7 @@ export const DEFAULT_ASSISTANT_KB: AssistantKnowledgeItem[] = [
     reply: {
       title: 'Weather Intelligence',
       intro:
-        'Today’s app weather: {weather}. This is simulated weather, not a live forecast for {region}.',
+        'Weather information: {weather}. Use the Weather page for location-specific availability.',
       bullets: [
         '{rainAdvice}',
         '{fieldWorkAdvice}',

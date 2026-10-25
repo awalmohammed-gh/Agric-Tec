@@ -84,7 +84,11 @@ export const contentService = {
 
   async getMarketPrices(): Promise<MarketPrice[]> {
     await delay();
-    return read<MarketPrice[]>(PLATFORM_KEYS.market, DEFAULT_MARKET_PRICES);
+    return read<MarketPrice[]>(PLATFORM_KEYS.market, DEFAULT_MARKET_PRICES).map((price, index) => ({
+      ...price,
+      id: price.id ?? `legacy-market-${index}`,
+      status: price.status ?? 'draft',
+    }));
   },
 
   async saveMarketPrices(prices: MarketPrice[]): Promise<MarketPrice[]> {
@@ -98,7 +102,7 @@ export const contentService = {
     );
   },
 
-  /** When set, the farmer app shows this instead of the simulated weather. */
+  /** Legacy storage retained for migration; shared weather never treats overrides as live data. */
   async getWeatherOverride(): Promise<Weather | null> {
     await delay();
     return read<Weather | null>(PLATFORM_KEYS.weatherOverride, null);

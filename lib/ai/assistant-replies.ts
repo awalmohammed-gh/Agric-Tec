@@ -12,6 +12,7 @@ import {
 import { scoreLabel } from '@/lib/calculations/credit-score';
 import { LOANS_LOCKED_HINT } from '@/lib/calculations/loan';
 import { formatGHS } from '@/lib/format';
+import { formatMarketAmount, unitLabel } from '@/lib/market/evidence';
 import { marketService } from '@/services/market.service';
 import { delay } from '@/services/storage';
 import type { AssistantReply, CreditScoreBreakdown, GhanaCardStatus } from '@/types';
@@ -204,21 +205,25 @@ async function placeholderValues(
   }
   if (['weather', 'rainAdvice', 'fieldWorkAdvice'].some((t) => tokens.has(t))) {
     const weather = await marketService.getWeather();
-    values.weather = `${weather.description}, ${weather.temp}°C, ${weather.humidity}% humidity and ${weather.rainChance}% chance of rain`;
-    values.rainAdvice =
-      weather.rainChance >= 60
+    values.weather = weather
+      ? `${weather.description}, ${weather.temp}°C, ${weather.humidity}% humidity and ${weather.rainChance}% chance of rain`
+      : 'Weather data unavailable. Open the Weather page to select your location.';
+    values.rainAdvice = !weather
+      ? 'Location-specific rainfall advice is unavailable until a real weather provider is connected.'
+      : weather.rainChance >= 60
         ? 'Check field drainage and postpone spraying if rain is expected.'
         : 'Check soil moisture and mulch to reduce water loss; water young plants where needed.';
-    values.fieldWorkAdvice =
-      weather.condition === 'storm'
+    values.fieldWorkAdvice = !weather
+      ? 'Check a trusted local forecast before planning weather-sensitive field work.'
+      : weather.condition === 'storm'
         ? 'Stay out of exposed fields during thunderstorms and secure loose equipment.'
         : 'Plan demanding field work for cooler morning hours and keep drinking water nearby.';
   }
   if (tokens.has('cocoaPrice')) {
     const cocoa = (await marketService.getPrices()).find((price) => price.crop === 'Cocoa');
     values.cocoaPrice = cocoa
-      ? `Cocoa: ${formatGHS(cocoa.price)} per ${cocoa.unit} (illustrative).`
-      : 'An indicative cocoa price is currently unavailable.';
+      ? `Cocoa: ${formatMarketAmount(cocoa.price)} per ${unitLabel(cocoa)}; ${cocoa.market || cocoa.region || 'source-reported coverage'}, observed ${cocoa.observedAt}. Source: ${cocoa.source?.publisher}.`
+      : 'Market price data unavailable. No published, reviewed cocoa observation is available.';
   }
   return values;
 }

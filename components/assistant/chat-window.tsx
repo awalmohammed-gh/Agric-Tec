@@ -28,7 +28,7 @@ export function ChatWindow() {
       aria-live="polite"
       aria-relevant="additions text"
       tabIndex={0}
-      className="bg-bg-2/40 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6"
+      className="bg-bg-2/40 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5"
     >
       {isWelcome ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center">

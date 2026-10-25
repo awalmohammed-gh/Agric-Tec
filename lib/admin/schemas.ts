@@ -2,6 +2,7 @@
 // so a bad form or a hand-edited backup file can never corrupt what farmers see.
 
 import { z } from 'zod';
+import { marketPriceSchema, publicationError } from '@/lib/market/evidence';
 import { CROPS } from '@/constants/crops';
 import { REGIONS } from '@/constants/regions';
 import { MESSAGE_MAX, TITLE_MAX } from '@/lib/admin/announcements';
@@ -167,14 +168,25 @@ export const lenderSchema = z.intersection(
   z.object({ id: text(80), createdAt: timestamp }),
 );
 
-export const marketPricesSchema = z.array(
-  z.object({
-    crop: text(40),
-    unit: text(30),
-    price: z.number().min(0).max(1_000_000),
-    change: z.number().min(-100).max(1000),
-  }),
-);
+export const marketPricesSchema = z
+  .array(marketPriceSchema)
+  .max(1000)
+  .superRefine((prices, ctx) => {
+    const ids = new Set<string>();
+    prices.forEach((price, index) => {
+      if (price.id && ids.has(price.id))
+        ctx.addIssue({
+          code: 'custom',
+          path: [index, 'id'],
+          message: 'Each observation needs its own ID.',
+        });
+      if (price.id) ids.add(price.id);
+      if (price.status === 'published') {
+        const error = publicationError(price, new Date().toISOString().slice(0, 10));
+        if (error) ctx.addIssue({ code: 'custom', path: [index], message: error });
+      }
+    });
+  });
 
 export const weatherSchema = z.object({
   condition: z.enum(['sunny', 'partly-cloudy', 'showers', 'storm']),

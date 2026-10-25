@@ -8,6 +8,7 @@ import {
   Wheat,
   HandCoins,
   Store,
+  CloudSun,
   UserCog,
   UserRound,
   Settings,
@@ -57,7 +58,8 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Finance',
     items: [
       { label: 'Loans & Credit', href: '/loans', icon: HandCoins, flag: 'loans' },
-      { label: 'Market & Weather', href: '/market', icon: Store, flag: 'market' },
+      { label: 'Market Prices', href: '/market', icon: Store, flag: 'market' },
+      { label: 'Weather', href: '/weather', icon: CloudSun, flag: 'market' },
     ],
   },
   {
@@ -104,8 +106,12 @@ export const PAGE_META: Record<string, { title: string; subtitle: string }> = {
     subtitle: 'Check your credit score, compare lenders and apply for farm loans.',
   },
   '/market': {
-    title: 'Market & Weather',
-    subtitle: 'Live crop prices and local weather to plan your farm work.',
+    title: 'Market Prices',
+    subtitle: 'Compare source-backed crop prices across Ghana.',
+  },
+  '/weather': {
+    title: 'Weather',
+    subtitle: 'Choose your location to view weather conditions and forecasts.',
   },
   '/settings': {
     title: 'Profile & Settings',

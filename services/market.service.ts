@@ -1,108 +1,24 @@
-import { format, getMonth, getYear, startOfMonth, subMonths } from 'date-fns';
-import { WEATHER_CONDITIONS } from '@/data/mock/weather';
-import { marketCropKey } from '@/lib/market/data';
+import { publishedPrices } from '@/lib/market/evidence';
 import { contentService } from '@/services/admin/content.service';
-import { sessionStore } from '@/services/storage';
 import type { MarketPrice, PriceTrends, Weather } from '@/types';
 
-const WEATHER_KEY = 'weather';
-
+/** Compatibility shape for integrations that still use the older current-weather model. */
 export interface WeatherSnapshot extends Weather {
   updatedAt: string;
 }
 
-// A fallback when sessionStorage is unavailable: re-renders still cannot change the weather.
-let tabWeather: WeatherSnapshot | null = null;
-
-function validWeather(value: Weather | null): value is Weather {
-  return Boolean(
-    value &&
-    WEATHER_CONDITIONS.some((condition) => condition.condition === value.condition) &&
-    Number.isFinite(value.temp) &&
-    Number.isFinite(value.humidity) &&
-    Number.isFinite(value.rainChance),
-  );
-}
-
-/** Small, fast seeded PRNG: the same seed always returns the same sequence. */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** Turns a string into a 32-bit number to use as a seed. */
-function hashString(value: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
 export const marketService = {
-  /**
-   * The admin's weather override when one is set. Otherwise picks one simulated condition per
-   * browser session, so it stays the same until the tab closes.
-   */
-  async getWeather(): Promise<WeatherSnapshot> {
-    const override = await contentService.getWeatherOverride();
-    if (override) return { ...override, updatedAt: new Date().toISOString() };
-    if (tabWeather) return { ...tabWeather };
-    const saved = sessionStore.get<WeatherSnapshot | null>(WEATHER_KEY, null);
-    if (validWeather(saved)) {
-      // Backfill timestamps in histories saved before the market page existed.
-      const updatedAt =
-        saved.updatedAt && Number.isFinite(Date.parse(saved.updatedAt))
-          ? saved.updatedAt
-          : new Date().toISOString();
-      tabWeather = { ...saved, updatedAt };
-      sessionStore.set(WEATHER_KEY, tabWeather);
-      return { ...tabWeather };
-    }
-    // The only random pick: once per session, then reused.
-    const picked = WEATHER_CONDITIONS[Math.floor(Math.random() * WEATHER_CONDITIONS.length)];
-    tabWeather = { ...picked, updatedAt: new Date().toISOString() };
-    sessionStore.set(WEATHER_KEY, tabWeather);
-    return { ...tabWeather };
+  /** No connected provider: never use old overrides, random conditions or session samples. */
+  async getWeather(): Promise<WeatherSnapshot | null> {
+    return null;
   },
-
-  /** The admin's market prices (defaults: data/mock/market-prices.ts), as fresh copies. */
   async getPrices(): Promise<MarketPrice[]> {
-    return contentService.getMarketPrices();
+    return publishedPrices(await contentService.getMarketPrices());
   },
-
-  /**
-   * Deterministic price history for each crop over the last N months.
-   * Each point is seeded from the crop name plus the calendar month, so the lines never jump
-   * between renders, and the latest month always equals today's price.
-   */
-  async getPriceTrends(crops: string[], months: number): Promise<PriceTrends> {
-    const listed = await contentService.getMarketPrices();
-    const thisMonth = startOfMonth(new Date());
-    const monthStarts = Array.from({ length: months }, (_, i) =>
-      subMonths(thisMonth, months - 1 - i),
-    );
-
-    return {
-      labels: monthStarts.map((month) => format(month, 'MMM')),
-      series: crops.map((crop) => {
-        const current =
-          listed.find((p) => marketCropKey(p.crop) === marketCropKey(crop))?.price ?? 100;
-        const prices = monthStarts.map((month, i) => {
-          if (i === months - 1) return current;
-          const monthIndex = getYear(month) * 12 + getMonth(month);
-          const random = mulberry32(hashString(`${crop}:${monthIndex}`))();
-          return Math.round(current * (0.88 + random * 0.24)); // within ±12% of today
-        });
-        return { crop, prices };
-      }),
-    };
+  /** Historical charts stay empty until source-backed observations are connected. */
+  async getPriceTrends(_crops: string[], _months: number): Promise<PriceTrends> {
+    void _crops;
+    void _months;
+    return { labels: [], series: [] };
   },
 };

@@ -27,6 +27,16 @@ export function PriceTrendChart({
     color: colors[index % colors.length],
   }));
   const formatValue = percentage ? formatPriceChange : formatGHS;
+  if (!trends.labels.length || !trends.series.length)
+    return (
+      <Card className="rounded-3xl">
+        <CardTitle>Price history unavailable</CardTitle>
+        <CardSub>
+          Historical observations from documented sources are needed before a price trend can be
+          shown.
+        </CardSub>
+      </Card>
+    );
   const unitFor = (crop: string) =>
     prices.find((price) => marketCropKey(price.crop) === marketCropKey(crop))?.unit ??
     'listed unit';
@@ -42,7 +52,7 @@ export function PriceTrendChart({
           <CardSub>
             {percentage
               ? `Percentage change from ${trends.labels[0]} — every crop starts at 0%`
-              : 'Compare demo prices, or switch to % change to compare relative movement'}
+              : 'Compare supplied historical observations, or switch to percentage change'}
           </CardSub>
         </div>
         <div className="flex items-center gap-2">
@@ -93,8 +103,8 @@ export function PriceTrendChart({
           <table className="w-full min-w-96 text-right tabular-nums">
             <caption className="sr-only">
               {percentage
-                ? 'Demo price percentage changes from the first month'
-                : 'Demo prices in GHS per listed market unit'}
+                ? 'Source-backed price percentage changes from the first month'
+                : 'Source-backed observations in GHS per listed market unit'}
             </caption>
             <thead>
               <tr>

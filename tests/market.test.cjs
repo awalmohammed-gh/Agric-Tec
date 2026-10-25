@@ -29,234 +29,528 @@ for (const extension of ['.ts', '.tsx']) {
     module._compile(outputText, filename);
   };
 }
-
 const { createElement } = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
-const { MARKET_PRICES } = require('../data/mock/market-prices.ts');
-const { WEATHER_CONDITIONS } = require('../data/mock/weather.ts');
-const { getWeatherAdvice } = require('../lib/ai/weather-advisory.ts');
-const { isPrimaryCrop, sortMarketPrices, percentageSeries } = require('../lib/market/data.ts');
-const { DemoDataNotice } = require('../components/market/demo-data-notice.tsx');
-const { WeatherCard } = require('../components/market/weather-card.tsx');
-const { WeatherAdvisory } = require('../components/market/weather-advisory.tsx');
+const { publishedPrice } = require('./market-fixtures.cjs');
+const { marketService } = require('../services/market.service.ts');
+const { weatherService } = require('../services/weather.service.ts');
+const { marketResearchService } = require('../services/market-research.service.ts');
+const {
+  publicationError,
+  publishedPrices,
+  filterMarketPrices,
+  EMPTY_MARKET_FILTERS,
+  supportedRanges,
+  evidenceToDraft,
+} = require('../lib/market/evidence.ts');
+const {
+  requestWeatherLocation,
+  requestInitialWeatherLocation,
+  validWeatherLocation,
+  weatherLocationKey,
+} = require('../lib/market/weather-location.ts');
+const { createDemoWeather } = require('../lib/market/demo-weather.ts');
+const { marketPricesSchema } = require('../lib/admin/schemas.ts');
+const { marketReference } = require('../lib/admin/crop-pricing.ts');
+const { PLATFORM_KEYS } = require('../lib/admin/keys.ts');
+const { storage } = require('../services/storage.ts');
 const { MarketPrices } = require('../components/market/market-prices.tsx');
-const { PriceTrendChart } = require('../components/market/price-trend-chart.tsx');
-const { CROP_ICONS } = require('../components/ui/crop-icon.tsx');
-
+const { WeatherCard, WeatherReadings } = require('../components/market/weather-card.tsx');
+const { MarketResearchPanel } = require('../components/admin/content/market-research-panel.tsx');
+const { DemoDataNotice } = require('../components/market/demo-data-notice.tsx');
+const values = new Map();
 const sessionValues = new Map();
-const sessionStorage = {
-  getItem: (key) => sessionValues.get(key) ?? null,
-  setItem: (key, value) => sessionValues.set(key, value),
+global.window = {
+  localStorage: {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
+  },
+  sessionStorage: {
+    getItem: (key) => sessionValues.get(key) ?? null,
+    setItem: (key, value) => sessionValues.set(key, value),
+    removeItem: (key) => sessionValues.delete(key),
+  },
 };
-global.window = { sessionStorage };
-const freshService = () => {
-  delete require.cache[require.resolve('../services/market.service.ts')];
-  return require('../services/market.service.ts').marketService;
-};
+const accra = { kind: 'place', label: 'Accra, Ghana', region: 'Greater Accra', city: 'Accra' };
+const kumasi = { kind: 'place', label: 'Kumasi, Ghana', region: 'Ashanti', city: 'Kumasi' };
+const query = { crop: 'Maize', unit: 'kg', quantity: 1, region: 'Ashanti' };
+function evidence(patch = {}) {
+  const price = publishedPrice(patch);
+  return { ...price, id: price.id, region: price.region, source: price.source };
+}
+function forecast(location = accra) {
+  // Provider fixture, never exposed by the default application service.
+  return {
+    location,
+    provider: 'Test provider only',
+    updatedAt: '2026-01-16T12:00:00.000Z',
+    current: {
+      temp: 27,
+      description: 'Test condition',
+      humidity: 65,
+      rainMm: 2,
+      rainChance: 30,
+      windKph: 11,
+    },
+    daily: [
+      {
+        date: '2026-01-17',
+        description: 'Test daily condition',
+        minTemp: 21,
+        maxTemp: 29,
+        rainMm: 3,
+        rainChance: 40,
+        windKph: 12,
+      },
+    ],
+    upcoming: [
+      {
+        time: '2026-01-16T14:00:00.000Z',
+        description: 'Test upcoming condition',
+        temp: 26,
+        rainChance: 35,
+      },
+    ],
+  };
+}
 
-test('weather and its timestamp survive repeat requests, navigation and a same-tab reload', async () => {
-  sessionValues.clear();
-  const random = Math.random;
-  let picks = 0;
+test('unconnected services never invent prices, history or weather, even with old samples stored', async () => {
+  storage.set(PLATFORM_KEYS.weatherOverride, {
+    condition: 'storm',
+    temp: 24,
+    description: 'Legacy fake condition',
+    humidity: 90,
+    rainChance: 95,
+  });
+  window.sessionStorage.setItem('agrictec:weather', JSON.stringify({ temp: 999 }));
+  storage.set(PLATFORM_KEYS.market, [{ crop: 'Cocoa', price: 999, unit: 'kg', change: 20 }]);
+  const original = Math.random;
   Math.random = () => {
-    picks++;
-    return 0;
+    throw new Error('Random readings are forbidden');
   };
   try {
-    const service = freshService();
-    const [first, concurrent] = await Promise.all([service.getWeather(), service.getWeather()]);
-    assert.deepEqual(first, concurrent);
-    assert.equal(first.condition, 'sunny');
-    assert.ok(Number.isFinite(Date.parse(first.updatedAt)));
-    assert.deepEqual(await service.getWeather(), first);
-    assert.deepEqual(await freshService().getWeather(), first);
-    const mutable = await service.getWeather();
-    mutable.temp = 999;
-    assert.equal((await service.getWeather()).temp, first.temp);
-    assert.equal(picks, 1);
-
-    // A fresh module and a fresh session represent opening a new tab.
-    sessionValues.clear();
-    Math.random = () => {
-      picks++;
-      return 0.99;
-    };
-    const anotherTab = await freshService().getWeather();
-    assert.equal(anotherTab.condition, 'storm');
-    assert.equal(picks, 2);
+    assert.equal(await marketService.getWeather(), null);
+    assert.deepEqual(await marketService.getPrices(), []);
+    assert.deepEqual(await marketService.getPriceTrends(['Maize'], 6), { labels: [], series: [] });
+    assert.equal((await weatherService.getForecast(accra)).status, 'unavailable');
+    const research = await marketResearchService.research(query);
+    assert.equal(research.status, 'unavailable');
+    assert.equal(research.message, 'Market price data unavailable');
+    assert.ok(!('data' in research));
   } finally {
-    Math.random = random;
+    Math.random = original;
   }
+  storage.remove(PLATFORM_KEYS.market);
+  storage.remove(PLATFORM_KEYS.weatherOverride);
 });
 
-test('old weather snapshots get a stable timestamp and malformed snapshots are replaced', async () => {
-  sessionValues.set('agrictec:weather', JSON.stringify(WEATHER_CONDITIONS[2]));
-  const restored = await freshService().getWeather();
-  assert.equal(restored.condition, 'showers');
-  assert.ok(restored.updatedAt);
-  assert.deepEqual(await freshService().getWeather(), restored);
-  sessionValues.set(
-    'agrictec:weather',
-    JSON.stringify({ condition: 'not-a-condition', temp: 'hot' }),
-  );
-  const replaced = await freshService().getWeather();
-  assert.ok(WEATHER_CONDITIONS.some((weather) => weather.condition === replaced.condition));
-  assert.ok(Number.isFinite(replaced.temp));
-});
-
-test('weather stays stable in memory when session storage is unavailable', async () => {
-  const warn = console.warn;
-  console.warn = () => {};
-  window.sessionStorage = {
-    getItem() {
-      throw new Error('Unavailable');
-    },
-    setItem() {
-      throw new Error('Unavailable');
-    },
-  };
-  try {
-    const service = freshService();
-    const first = await service.getWeather();
-    assert.deepEqual(await service.getWeather(), first);
-  } finally {
-    window.sessionStorage = sessionStorage;
-    console.warn = warn;
+test('publication requires Ghana/GHS evidence, standard units, dates, source and an administrator review', () => {
+  assert.equal(publicationError(publishedPrice()), null);
+  const invalid = [
+    { source: undefined },
+    { reviewedAt: undefined },
+    { reviewedBy: '' },
+    { observedAt: undefined },
+    { region: 'Unknown region' },
+    { market: '' },
+    { unit: 'basket' },
+    { quantity: 0 },
+    { price: 0 },
+    { priceMax: 1 },
+    { country: 'US' },
+    { currency: 'USD' },
+    { source: { ...publishedPrice().source, url: 'javascript:alert(1)' } },
+    { source: { ...publishedPrice().source, publishedAt: '2026-02-30' } },
+  ];
+  for (const patch of invalid) {
+    const item = publishedPrice(patch);
+    assert.ok(publicationError(item), JSON.stringify(patch));
+    assert.equal(marketPricesSchema.safeParse([item]).success, false);
   }
+  assert.ok(publicationError(publishedPrice({ observedAt: '2027-01-01' }), '2026-10-25'));
+  assert.equal(publishedPrices([publishedPrice({ status: 'draft' }), publishedPrice()]).length, 1);
 });
 
-test('prices and six-month histories are repeatable and Rice uses the actual listed price', async () => {
-  const service = freshService();
-  const prices = await service.getPrices();
-  const original = prices.map((price) => ({ ...price }));
-  prices[0].price = -1;
-  prices.reverse();
-  assert.deepEqual(await service.getPrices(), original);
-  const crops = ['Maize', 'Rice', 'Cocoa', 'Groundnut'];
-  const first = await service.getPriceTrends(crops, 6);
-  assert.deepEqual(await freshService().getPriceTrends(crops, 6), first);
-  assert.equal(first.labels.length, 6);
+test('national coverage must be explicitly source-supported; same crop may have several markets', () => {
+  const national = publishedPrice({ scope: 'national', region: undefined, market: undefined });
+  assert.ok(publicationError(national));
+  assert.equal(publicationError({ ...national, nationalCoverageConfirmed: true }), null);
+  const rows = [
+    publishedPrice(),
+    publishedPrice({ region: 'Northern', market: 'Another test market' }),
+  ];
+  assert.equal(marketPricesSchema.safeParse(rows).success, true);
+  assert.equal(marketPricesSchema.safeParse([rows[0], rows[0]]).success, false);
+});
+
+test('farmers see published prices nationwide; filters do not depend on their home region', async () => {
+  const ashanti = publishedPrice({ region: 'Ashanti', market: 'First test market' });
+  const northern = publishedPrice({ region: 'Northern', market: 'Second test market', price: 6 });
+  storage.set(PLATFORM_KEYS.market, [
+    ashanti,
+    northern,
+    publishedPrice({ status: 'draft', price: 8 }),
+  ]);
+  const prices = await marketService.getPrices();
+  assert.equal(prices.length, 2);
   assert.deepEqual(
-    first.series.map((series) => series.prices.at(-1)),
-    [320, 550, 1350, 600],
+    filterMarketPrices(prices, { ...EMPTY_MARKET_FILTERS, region: 'Northern' }).map((p) => p.id),
+    [northern.id],
   );
+  assert.equal(
+    filterMarketPrices(prices, { ...EMPTY_MARKET_FILTERS, market: 'First test market' }).length,
+    1,
+  );
+  assert.equal(filterMarketPrices(prices, { ...EMPTY_MARKET_FILTERS, search: 'second' }).length, 1);
+  const html = renderToStaticMarkup(
+    createElement(MarketPrices, { prices, primaryCrops: ['Cocoa'] }),
+  );
+  assert.match(html, /Ashanti/);
+  assert.match(html, /Northern/);
+  assert.match(html, /View supporting source/);
+  assert.match(html, /2026-01-15/);
+  assert.doesNotMatch(html, /AI Forecast/);
+  prices[0].source.publisher = 'Changed copy';
+  assert.equal((await marketService.getPrices())[0].source.publisher, 'Fixture publisher');
+  storage.remove(PLATFORM_KEYS.market);
+});
+
+test('ranges compare matching crops, units, known package weights and dates only', () => {
+  const first = publishedPrice({ price: 4 });
+  const second = publishedPrice({ price: 6, priceMax: 7, region: 'Northern' });
+  assert.deepEqual(
+    supportedRanges([first, second]).map((r) => [r.low, r.high, r.count]),
+    [[4, 7, 2]],
+  );
+  for (const patch of [
+    { unit: 'tonne' },
+    { quantity: 100 },
+    { observedAt: '2026-01-14' },
+    { crop: 'Rice' },
+  ]) {
+    assert.equal(supportedRanges([first, publishedPrice(patch)]).length, 0);
+  }
+  assert.equal(
+    supportedRanges([publishedPrice({ unit: 'bag' }), publishedPrice({ unit: 'bag' })]).length,
+    0,
+  );
+  assert.equal(
+    supportedRanges([
+      publishedPrice({ unit: 'bag', packageWeightKg: 50 }),
+      publishedPrice({ unit: 'bag', packageWeightKg: 100 }),
+    ]).length,
+    0,
+  );
+});
+
+test('per-tonne reference respects quantities and refuses to select a national price from several observations', () => {
+  const price = publishedPrice({ unit: 'bag', quantity: 2, packageWeightKg: 50, price: 400 });
+  assert.equal(marketReference('Maize', [price]).perTonne, 4000);
+  assert.equal(marketReference('Maize', [price, publishedPrice()]), null);
+  assert.equal(marketReference('Maize', [{ ...price, status: 'draft' }]), null);
+  assert.equal(marketReference('Maize', [{ ...price, packageWeightKg: undefined }]).perTonne, null);
+  assert.equal(marketReference('Maize', [{ ...price, priceMax: 450 }]).perTonne, null);
+});
+
+test('research shows no recommendation without matching evidence and cites an exact observation', async () => {
+  const item = evidence();
+  const provider = {
+    research: async () => ({
+      evidence: [item],
+      recommendedEvidenceId: item.id,
+      explanation: 'Use the cited observation only.',
+    }),
+  };
+  const result = await marketResearchService.research(query, { provider });
+  assert.equal(result.status, 'ready');
+  const draft = evidenceToDraft(result.data.evidence[0]);
+  assert.equal(draft.price, item.price);
+  assert.equal(draft.status, 'draft');
+  assert.equal(draft.reviewedBy, undefined);
+  assert.ok(publicationError(draft));
+  for (const bad of [
+    null,
+    { evidence: [], recommendedEvidenceId: 'none', explanation: 'No source' },
+    { evidence: [item], recommendedEvidenceId: 'invented', explanation: 'Unsupported' },
+    {
+      evidence: [{ ...item, currency: 'USD' }],
+      recommendedEvidenceId: item.id,
+      explanation: 'Wrong currency',
+    },
+    {
+      evidence: [{ ...item, quantity: 100 }],
+      recommendedEvidenceId: item.id,
+      explanation: 'Wrong quantity',
+    },
+  ]) {
+    assert.equal(
+      (await marketResearchService.research(query, { provider: { research: async () => bad } }))
+        .status,
+      'unavailable',
+    );
+  }
+});
+
+test('research prioritizes official publications and refuses stale units, places and future-dated source claims', async () => {
+  const report = evidence({ source: { ...publishedPrice().source, kind: 'market-report' } });
+  const official = evidence();
+  const run = (items) =>
+    marketResearchService.research(query, {
+      provider: {
+        research: async () => ({
+          evidence: items,
+          recommendedEvidenceId: items[0].id,
+          explanation: 'Cited figures only.',
+        }),
+      },
+    });
+  assert.equal((await run([report, official])).data.evidence[0].id, official.id);
+  assert.equal((await run([{ ...official, region: 'Northern' }])).status, 'unavailable');
+  assert.equal((await run([{ ...official, observedAt: '2099-01-01' }])).status, 'unavailable');
+  assert.equal(
+    (await run([{ ...official, source: { ...official.source, url: 'javascript:bad()' } }])).status,
+    'unavailable',
+  );
+});
+
+test('server rendering never prompts; browser location denials/timeouts have manual fallbacks', async () => {
+  let calls = 0;
+  const browser = {
+    getCurrentPosition(success, _error, options) {
+      calls++;
+      assert.equal(options.timeout, 12000);
+      success({ coords: { latitude: 5.6, longitude: -0.2, accuracy: 50 } });
+    },
+  };
+  assert.equal(calls, 0);
+  renderToStaticMarkup(createElement(WeatherCard));
+  assert.equal(calls, 0, 'Rendering never prompts for permission');
+  const current = await requestWeatherLocation(browser);
+  assert.equal(calls, 1);
+  assert.equal(current.latitude, 5.6);
+  assert.equal(current.label, 'Your current location', 'No fabricated reverse-geocoded city');
+  await assert.rejects(
+    requestWeatherLocation({
+      getCurrentPosition(_success, error) {
+        error({ code: 1 });
+      },
+    }),
+    /denied.*region or city/,
+  );
+  await assert.rejects(
+    requestWeatherLocation({
+      getCurrentPosition(_success, error) {
+        error({ code: 3 });
+      },
+    }),
+    /timed out/,
+  );
+  await assert.rejects(
+    requestWeatherLocation({
+      getCurrentPosition(success) {
+        success({ coords: { latitude: NaN, longitude: 999 } });
+      },
+    }),
+    /invalid location/,
+  );
+});
+
+test('location keys distinguish cities and coordinates and reject invalid Ghana place selections', () => {
+  assert.equal(validWeatherLocation(accra), true);
+  assert.notEqual(weatherLocationKey(accra), weatherLocationKey(kumasi));
+  assert.equal(validWeatherLocation({ ...accra, region: 'Invalid' }), false);
+  assert.equal(
+    validWeatherLocation({ kind: 'coordinates', label: 'Test', latitude: 100, longitude: 0 }),
+    false,
+  );
+});
+
+test('future weather adapters receive the selected location and cannot return another city or invalid readings', async () => {
+  const locations = [];
+  const provider = {
+    async getForecast(location) {
+      locations.push(location);
+      return forecast(location);
+    },
+  };
+  assert.equal((await weatherService.getForecast(accra, { provider })).data.location.city, 'Accra');
+  assert.equal(
+    (await weatherService.getForecast(kumasi, { provider })).data.location.city,
+    'Kumasi',
+  );
+  assert.equal(locations.length, 2);
+  assert.equal(
+    (
+      await weatherService.getForecast(accra, {
+        provider: { getForecast: async () => forecast(kumasi) },
+      })
+    ).status,
+    'unavailable',
+  );
+  const wrong = forecast(accra);
+  wrong.current.humidity = 200;
+  assert.equal(
+    (await weatherService.getForecast(accra, { provider: { getForecast: async () => wrong } }))
+      .status,
+    'unavailable',
+  );
+  await assert.rejects(
+    weatherService.getForecast(accra, {
+      provider: {
+        getForecast: async () => {
+          throw new Error('Provider offline');
+        },
+      },
+    }),
+    /Provider offline/,
+  );
+});
+
+test('shared weather UI clearly labels the demo and retains full location controls', () => {
+  for (const scope of ['farmer', 'admin']) {
+    const html = renderToStaticMarkup(createElement(WeatherCard, { scope }));
+    assert.match(html, /Use my current location/);
+    assert.match(html, /Demo weather/);
+    assert.match(html, /Detecting your location/);
+    assert.match(html, /not live weather observations/);
+    assert.match(html, /Ashanti/);
+    assert.doesNotMatch(html, /Demo conditions|32°C|undefined/);
+  }
+  const reading = renderToStaticMarkup(createElement(WeatherReadings, { report: forecast() }));
+  for (const label of [
+    'Humidity',
+    'Rainfall',
+    'Rain probability',
+    'Wind speed',
+    'Daily forecast',
+    'Upcoming conditions',
+    'Last updated',
+  ])
+    assert.ok(reading.includes(label), label);
+  const research = renderToStaticMarkup(createElement(MarketResearchPanel, { onApprove() {} }));
+  assert.match(research, /Check Market Price with AI/);
+  assert.match(research, /No recommendation/);
+  assert.match(research, /Approve/);
+  assert.match(research, /Reject recommendation/);
+  assert.match(renderToStaticMarkup(createElement(DemoDataNotice)), /not connected yet/);
+});
+
+test('market UI escapes supplied source text and hides all unreviewed observations', () => {
+  const price = publishedPrice({ crop: '<script>bad()</script>', price: 3.75, priceMax: 4.25 });
+  const html = renderToStaticMarkup(
+    createElement(MarketPrices, {
+      prices: [price, publishedPrice({ crop: 'PRIVATE DRAFT', status: 'draft' })],
+    }),
+  );
+  assert.doesNotMatch(html, /<script>|PRIVATE DRAFT/);
+  assert.match(html, /&lt;script&gt;/);
+  assert.match(html, /GHS 3\.75/);
+  assert.match(html, /GHS 4\.25/);
+  const empty = renderToStaticMarkup(createElement(MarketPrices, { prices: [] }));
+  assert.match(empty, /Market price data unavailable/);
+  assert.doesNotMatch(empty, /GHS [\d,]+/);
+});
+
+test('market and weather have distinct desktop/mobile destinations and dashboard forecast links', () => {
+  const {
+    NAV_SECTIONS,
+    PAGE_META,
+    mobileNavFor,
+    isItemActive,
+  } = require('../constants/navigation.ts');
+  const {
+    ADMIN_NAV_ITEMS,
+    getAdminPageMeta,
+    isAdminNavActive,
+  } = require('../constants/admin-navigation.ts');
+  const { DEFAULT_FEATURE_FLAGS } = require('../lib/admin/defaults.ts');
+  const items = NAV_SECTIONS.flatMap((section) => section.items);
+  const market = items.find((item) => item.href === '/market');
+  const weather = items.find((item) => item.href === '/weather');
+  assert.equal(market.label, 'Market Prices');
+  assert.equal(weather.label, 'Weather');
+  assert.equal(PAGE_META['/weather'].title, 'Weather');
+  assert.equal(isItemActive('/weather', market), false);
+  assert.equal(isItemActive('/weather', weather), true);
+  const enabled = { ...DEFAULT_FEATURE_FLAGS, market: true };
+  assert.ok(mobileNavFor(enabled).menu.some((item) => item.href === '/weather'));
+  assert.ok(mobileNavFor(enabled).menu.some((item) => item.href === '/market'));
   assert.ok(
-    first.series.every(
-      (series) => series.prices.length === 6 && series.prices.every((price) => price > 0),
+    !mobileNavFor({ ...enabled, market: false }).menu.some((item) =>
+      ['/market', '/weather'].includes(item.href),
     ),
   );
+  const adminWeather = ADMIN_NAV_ITEMS.find((item) => item.href === '/admin/content/weather');
+  const adminMarket = ADMIN_NAV_ITEMS.find((item) => item.href === '/admin/content/market');
+  assert.equal(getAdminPageMeta(adminWeather.href).title, 'Weather');
+  assert.equal(isAdminNavActive(adminWeather.href, adminMarket), false);
+  for (const scope of ['farmer', 'admin']) {
+    const html = renderToStaticMarkup(createElement(WeatherCard, { scope, compact: true }));
+    assert.match(html, /View weather forecast/);
+    assert.ok(html.includes(`href="${scope === 'admin' ? adminWeather.href : weather.href}"`));
+    assert.doesNotMatch(html, /<form|Use my current location|<select/);
+    assert.match(html, /Demo weather/);
+  }
 });
 
-test('advisory applies strict rain, humidity and heat thresholds and personalizes crop advice', () => {
-  const boundary = {
-    condition: 'partly-cloudy',
-    temp: 30,
-    humidity: 75,
-    rainChance: 60,
-    description: 'Demo',
+test('automatic location detection shares in-flight permission requests and tries once per account/tab', async () => {
+  let calls = 0;
+  let success;
+  const browser = {
+    getCurrentPosition(done) {
+      calls++;
+      success = done;
+    },
   };
-  assert.equal(getWeatherAdvice(boundary, []).length, 1);
-  const wetHot = getWeatherAdvice({ ...boundary, temp: 31, humidity: 76, rainChance: 61 }, [
-    'Maize',
-    'Cocoa',
-  ]);
-  const text = wetHot.map((advice) => advice.text).join(' ');
-  assert.match(
-    text,
-    /Heavy rain expected\. Delay spraying and fertilizer; secure harvested crops\./,
-  );
-  assert.match(text, /High humidity raises fungal disease risk/);
-  assert.match(text, /High heat\. Irrigate early morning or late evening\./);
-  assert.match(text, /your Cocoa crop/);
-  assert.match(text, /Maize/);
-  assert.match(text, /Rice \(local\) prices up 8\.1%/);
-  assert.ok(wetHot.every((advice) => advice.icon));
-
-  const planting = getWeatherAdvice({ ...boundary, temp: 26, rainChance: 29 }, []);
-  assert.match(
-    planting.map((advice) => advice.text).join(' '),
-    /Good conditions for land preparation and planting/,
-  );
-  assert.equal(getWeatherAdvice({ ...boundary, temp: 25, rainChance: 29 }, []).length, 1);
-  assert.equal(getWeatherAdvice({ ...boundary, temp: 26, rainChance: 30 }, []).length, 1);
-  // Even mild weather with no triggered weather rule mentions the user's own crops.
-  assert.match(getWeatherAdvice(WEATHER_CONDITIONS[1], ['Maize']).at(-1).text, /Maize \+5\.2%/);
+  const first = requestInitialWeatherLocation('test-auto-location', browser);
+  const strictReplay = requestInitialWeatherLocation('test-auto-location', browser);
+  assert.equal(first, strictReplay);
+  assert.equal(calls, 1);
+  success({ coords: { latitude: 6.69, longitude: -1.62, accuracy: 35 } });
+  assert.equal((await first).latitude, 6.69);
+  assert.equal(await requestInitialWeatherLocation('test-auto-location', browser), null);
+  assert.equal(calls, 1, 'Navigation preserves the current or manually adjusted selection');
+  const denied = {
+    getCurrentPosition(_success, fail) {
+      calls++;
+      fail({ code: 1 });
+    },
+  };
+  await assert.rejects(requestInitialWeatherLocation('test-auto-denied', denied), /denied/);
+  assert.equal(await requestInitialWeatherLocation('test-auto-denied', denied), null);
+  assert.equal(calls, 2, 'Denied permission is not repeatedly requested on navigation');
 });
 
-test('market advice handles empty or falling prices without claiming an increase', () => {
-  const falling = getWeatherAdvice(
-    WEATHER_CONDITIONS[1],
-    [],
-    [
-      { crop: 'Maize', unit: 'bag', price: 320, change: -5 },
-      { crop: 'Rice', unit: 'bag', price: 550, change: -2 },
-    ],
-  ).at(-1).text;
-  assert.match(falling, /Rice has the smallest price decline at 2%/);
-  assert.doesNotMatch(falling, /prices up/);
-  assert.match(
-    getWeatherAdvice(WEATHER_CONDITIONS[1], [], []).at(-1).text,
-    /prices are unavailable/,
+test('frontend samples use the selected location and show measurements and forecasts as demo data', () => {
+  const now = new Date('2026-10-25T10:00:00Z');
+  const coastal = createDemoWeather(accra, now);
+  const inland = createDemoWeather(kumasi, now);
+  const northern = createDemoWeather(
+    { kind: 'coordinates', label: 'Detected position', latitude: 9.4, longitude: -0.8 },
+    now,
   );
-});
-
-test('crop matching, all three sorts, and percentage comparison preserve original data', () => {
-  assert.equal(isPrimaryCrop('Rice (local)', ['rice']), true);
-  assert.equal(isPrimaryCrop('Maize', ['Cocoa']), false);
-  const before = JSON.stringify(MARKET_PRICES);
-  assert.equal(sortMarketPrices(MARKET_PRICES, 'name')[0].crop, 'Cassava');
-  assert.equal(sortMarketPrices(MARKET_PRICES, 'price')[0].crop, 'Cocoa');
-  assert.equal(sortMarketPrices(MARKET_PRICES, 'change')[0].crop, 'Rice (local)');
-  assert.equal(JSON.stringify(MARKET_PRICES), before);
-  assert.deepEqual(percentageSeries([100, 125, 80]), [0, 25, -20]);
-  assert.deepEqual(percentageSeries([1000, 1250, 800]), [0, 25, -20]);
-  assert.deepEqual(percentageSeries([0, 20]), [0, 0]);
-  assert.deepEqual(percentageSeries([]), []);
-});
-
-test('demo notice, regional weather and highlighted primary crops render with distinct icons', () => {
-  const notice = renderToStaticMarkup(createElement(DemoDataNotice));
-  assert.match(notice, /Indicative prices and weather — demo data/);
-  assert.match(notice, /Live data sources will be connected/);
-  const weather = { ...WEATHER_CONDITIONS[0], updatedAt: '2026-10-18T14:35:00.000Z' };
-  const regional = renderToStaticMarkup(createElement(WeatherCard, { weather, region: 'Ashanti' }));
-  assert.match(regional, /Ashanti, Ghana/);
-  assert.match(regional, /Last updated:/);
-  assert.match(regional, /2026-10-18T14:35:00.000Z/);
-  assert.match(
-    renderToStaticMarkup(createElement(WeatherCard, { weather })),
-    /Greater Accra, Ghana/,
-  );
-  const market = renderToStaticMarkup(
-    createElement(MarketPrices, { prices: MARKET_PRICES, primaryCrops: ['Maize'] }),
-  );
-  const rows = market.match(/<li\b[\s\S]*?<\/li>/g);
-  assert.equal(rows.length, 8);
-  const maize = rows.find((row) => row.includes('title="Maize"'));
-  assert.match(maize, /Your crop/);
-  assert.match(maize, /border-accent\/50/);
-  assert.equal(rows.filter((row) => row.includes('Your crop')).length, 1);
-  assert.equal(new Set(Object.values(CROP_ICONS)).size, Object.values(CROP_ICONS).length);
-  assert.match(market, /Biggest change/);
-  assert.match(market, /AI Forecast/);
-  const advisory = renderToStaticMarkup(
-    createElement(WeatherAdvisory, { weather, primaryCrops: ['Maize'], prices: MARKET_PRICES }),
-  );
-  assert.match(advisory, /AI Weather Advisory/);
-  assert.match(advisory, /Maize/);
-});
-
-test('trend chart exposes an accessible percent toggle, correct units and a data table', async () => {
-  const trends = await freshService().getPriceTrends(['Maize', 'Rice', 'Cocoa', 'Groundnut'], 6);
-  const chart = renderToStaticMarkup(
-    createElement(PriceTrendChart, { trends, prices: MARKET_PRICES }),
-  );
-  assert.match(chart, /role="switch"/);
-  assert.match(chart, /aria-checked="false"/);
-  assert.match(chart, /Show percentage change instead of absolute prices/);
-  assert.match(chart, /50kg bag/);
-  assert.match(chart, /View price data/);
-  assert.match(chart, /GHS 550/);
-  assert.match(chart, /GHS 1,350/);
-  assert.equal((chart.match(/<tbody>[\s\S]*?<\/tbody>/)?.[0].match(/<tr\b/g) ?? []).length, 6);
+  assert.equal(coastal.demo, true);
+  assert.equal(coastal.location.city, 'Accra');
+  assert.equal(inland.location.city, 'Kumasi');
+  assert.notEqual(coastal.current.temp, inland.current.temp);
+  assert.notEqual(northern.current.temp, inland.current.temp);
+  assert.equal(coastal.daily.length, 3);
+  assert.equal(coastal.upcoming.length, 3);
+  assert.deepEqual(createDemoWeather(accra, now), coastal, 'No random measurements on rerender');
+  const html = renderToStaticMarkup(createElement(WeatherReadings, { report: coastal }));
+  for (const text of [
+    'Demo conditions',
+    'Sample data',
+    'Not live measurements',
+    'Humidity',
+    'Rainfall',
+    'Rain probability',
+    'Wind speed',
+    'Daily forecast (demo)',
+    'Upcoming conditions (demo)',
+    'Demo generated',
+  ])
+    assert.ok(html.includes(text), text);
+  assert.doesNotMatch(html, /Last updated/);
 });

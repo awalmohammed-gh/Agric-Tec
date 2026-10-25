@@ -3,7 +3,7 @@ import { FeatureGate } from '@/components/shared/feature-gate';
 import { DemoDataNotice } from '@/components/market/demo-data-notice';
 import { MarketView } from '@/components/market/market-view';
 
-export const metadata: Metadata = { title: 'Market & Weather' };
+export const metadata: Metadata = { title: 'Market Prices' };
 
 export default function MarketPage() {
   return (

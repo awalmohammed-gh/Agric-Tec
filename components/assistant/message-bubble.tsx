@@ -1,5 +1,6 @@
 import { Bot, UserRound } from 'lucide-react';
 import { MessageContent } from '@/components/assistant/message-content';
+import { ReplyAudioButton } from '@/components/assistant/reply-audio-button';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/types';
 
@@ -22,11 +23,11 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
       >
         <Icon size={17} />
       </div>
-      <div className="max-w-[85%] min-w-0">
+      <div className={cn('min-w-0', isUser ? 'max-w-[85%]' : 'flex-1')}>
         <span className="sr-only">{isUser ? 'You' : 'AgriCtec assistant'}</span>
         <div
           className={cn(
-            'rounded-2xl px-4 py-3.5 text-[13px] leading-relaxed [overflow-wrap:anywhere]',
+            'rounded-2xl px-4 py-3.5 text-sm leading-relaxed [overflow-wrap:anywhere] sm:text-[15px]',
             isUser
               ? 'rounded-tr-sm bg-linear-to-br from-emerald-700 to-emerald-800 text-white shadow-sm'
               : 'border-border bg-glass text-text rounded-tl-sm border',
@@ -34,13 +35,16 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
         >
           <MessageContent content={message.content} isAssistant={!isUser} />
         </div>
-        <time
-          dateTime={message.createdAt}
-          title={new Date(message.createdAt).toLocaleString('en-GH')}
-          className={cn('text-text-mute mt-1.5 block px-1 text-[10px]', isUser && 'text-right')}
-        >
-          {isUser ? 'You' : 'AgriCtec'} · {timeFormat.format(new Date(message.createdAt))}
-        </time>
+        <div className={cn('mt-1 flex flex-wrap items-center gap-x-3', isUser && 'justify-end')}>
+          {!isUser && <ReplyAudioButton content={message.content} />}
+          <time
+            dateTime={message.createdAt}
+            title={new Date(message.createdAt).toLocaleString('en-GH')}
+            className={cn('text-text-mute mt-1.5 block px-1 text-[10px]', isUser && 'text-right')}
+          >
+            {isUser ? 'You' : 'AgriCtec'} · {timeFormat.format(new Date(message.createdAt))}
+          </time>
+        </div>
       </div>
     </div>
   );

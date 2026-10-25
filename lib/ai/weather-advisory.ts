@@ -7,7 +7,6 @@ import {
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react';
-import { MARKET_PRICES } from '@/data/mock/market-prices';
 import { formatPriceChange, isPrimaryCrop } from '@/lib/market/data';
 import type { MarketPrice, Weather } from '@/types';
 
@@ -16,11 +15,11 @@ export interface WeatherAdvice {
   text: string;
 }
 
-/** Rule-based demo advice. The optional price input keeps advice aligned with the page data. */
+/** Optional rule-based guidance for supplied observations; no sample prices are filled in. */
 export function getWeatherAdvice(
   weather: Weather,
   primaryCrops: string[],
-  prices: MarketPrice[] = MARKET_PRICES,
+  prices: MarketPrice[] = [],
 ): WeatherAdvice[] {
   const advice: WeatherAdvice[] = [];
   const crops = primaryCrops.map((crop) => crop.trim()).filter(Boolean);

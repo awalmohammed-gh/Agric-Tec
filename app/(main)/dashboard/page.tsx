@@ -7,6 +7,7 @@ import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart'
 import { LoanReadinessCard } from '@/components/dashboard/loan-readiness-card';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { StatsRow } from '@/components/dashboard/stats-row';
+import { WeatherCard } from '@/components/market/weather-card';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
@@ -27,6 +28,7 @@ export default function DashboardPage() {
       </div>
 
       <StatsRow />
+      <WeatherCard compact />
 
       <div className="grid grid-cols-1 gap-5 sm:gap-6 @4xl:grid-cols-3">
         <IncomeExpenseChart className="@4xl:col-span-2" />

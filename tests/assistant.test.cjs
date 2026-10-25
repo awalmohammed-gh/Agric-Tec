@@ -104,7 +104,7 @@ test('all eleven topics return structured content and quick prompts route correc
   assert.match(replies[2].intro, /weakest factor is MoMo Activity \(10%\)/);
   assert.equal(replies[2].bullets.length, 5);
   assert.match(replies[2].bullets[0], /MoMo Activity/);
-  assert.match(replies[3].intro, /mock prices/);
+  assert.match(replies[3].intro, /source-backed/);
   assert.equal(replies[3].tip, 'Check COCOBOD for official farmgate prices');
   assert.equal(replies[7].bullets.length, 4);
   assert.match(replies[10].intro, /MoFA/);
@@ -140,7 +140,7 @@ test('weather uses market.service values and condition-specific advice', async (
   try {
     const reply = await getAssistantReply('rain', ctx);
     assert.match(reply.intro, /Test storm, 24°C, 88% humidity and 90%/);
-    assert.match(reply.intro, /simulated/);
+    assert.match(reply.intro, /location-specific availability/);
     assert.match(reply.bullets.join(' '), /drainage.*thunderstorms/);
   } finally {
     marketService.getWeather = original;
@@ -301,4 +301,202 @@ test('an old reply cannot leak into another user or reset their typing state', a
   assert.equal(useChatStore.getState().messages.length, 3);
   assert.equal(useChatStore.getState().messages.at(-1).content.title, 'Akwaaba, Farmer!');
   assert.equal(useChatStore.getState().isTyping, false);
+});
+
+test('voice input transcribes revised results, handles permission errors and detaches on disposal', () => {
+  const { startDictation } = require('../lib/ai/voice.ts');
+  let instance;
+  class Recognition {
+    constructor() {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias -- Expose the fake browser controller to exercise callbacks.
+      instance = this;
+      this.started = 0;
+      this.aborted = 0;
+    }
+    start() {
+      this.started++;
+    }
+    stop() {
+      this.onend?.();
+    }
+    abort() {
+      this.aborted++;
+    }
+  }
+  const transcripts = [];
+  const errors = [];
+  let ends = 0;
+  assert.equal(instance, undefined, 'No microphone request until the farmer clicks');
+  const callbacks = {
+    onText: (text) => transcripts.push(text),
+    onEnd: () => ends++,
+    onError: (error) => errors.push(error),
+  };
+  const session = startDictation(callbacks, { webkitSpeechRecognition: Recognition });
+  assert.equal(instance.started, 1);
+  assert.equal(instance.lang, 'en-GH');
+  instance.onresult({ results: [[{ transcript: 'Help my' }]] });
+  instance.onresult({
+    results: [[{ transcript: 'Help my maize' }], [{ transcript: 'leaves are yellow' }]],
+  });
+  assert.deepEqual(transcripts, ['Help my', 'Help my maize leaves are yellow']);
+  session.stop();
+  assert.equal(ends, 1);
+  const second = startDictation(callbacks, { SpeechRecognition: Recognition });
+  const late = instance.onresult;
+  second.dispose();
+  late({ results: [[{ transcript: 'Do not leak into the next account' }]] });
+  assert.equal(transcripts.length, 2);
+  assert.equal(instance.aborted, 1);
+  startDictation(callbacks, { SpeechRecognition: Recognition });
+  instance.onerror({ error: 'not-allowed' });
+  assert.match(errors.at(-1), /Microphone access was denied/);
+  assert.equal(instance.onresult, null);
+  assert.throws(() => startDictation(callbacks, {}), /not supported.*type/);
+});
+
+test('listen reads the complete structured answer in chunks and never overlaps another reply', () => {
+  const { replySpeechText, readReply } = require('../lib/ai/voice.ts');
+  const said = [];
+  let cancellations = 0;
+  let ends = 0;
+  const errors = [];
+  const browser = {
+    SpeechSynthesisUtterance: class {
+      constructor(text) {
+        this.text = text;
+      }
+    },
+    speechSynthesis: {
+      getVoices: () => [{ lang: 'en-GH', name: 'Test voice' }],
+      speak: (utterance) => said.push(utterance),
+      cancel: () => cancellations++,
+    },
+  };
+  const content = {
+    title: 'Maize care',
+    intro: 'Check your crop.',
+    bullets: Array.from({ length: 20 }, (_, i) => `Step ${i + 1}: inspect the leaves and soil.`),
+    tip: 'Ask your extension officer.',
+  };
+  const text = replySpeechText(content);
+  readReply(text, { onEnd: () => ends++, onError: (error) => errors.push(error) }, browser);
+  for (let i = 0; i < said.length; i++) said[i].onend?.();
+  assert.ok(said.length > 1);
+  assert.equal(said.map((part) => part.text).join(' '), text);
+  assert.equal(ends, 1);
+  assert.equal(said[0].voice.lang, 'en-GH');
+  const first = readReply('First reply', { onEnd: () => ends++, onError() {} }, browser);
+  const second = readReply('Second reply', { onEnd: () => ends++, onError() {} }, browser);
+  assert.equal(ends, 2, 'Starting the second reply stops the first');
+  const before = cancellations;
+  first.dispose();
+  assert.equal(cancellations, before, 'Disposing an older reply cannot stop the new reply');
+  second.stop();
+  assert.equal(cancellations, before + 1);
+  assert.deepEqual(errors, []);
+  assert.throws(() => readReply('Hello', { onEnd() {}, onError() {} }, {}), /not supported/);
+});
+
+test('microphone and reply audio stop each other and playback errors leave the text available', () => {
+  const { startDictation, readReply } = require('../lib/ai/voice.ts');
+  let micEnds = 0;
+  let audioEnds = 0;
+  let utterance;
+  let mic;
+  const browser = {
+    SpeechRecognition: class {
+      constructor() {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias -- Expose the fake microphone controller for cleanup assertions.
+        mic = this;
+      }
+      start() {}
+      stop() {
+        this.onend?.();
+      }
+      abort() {}
+    },
+    SpeechSynthesisUtterance: class {
+      constructor(text) {
+        this.text = text;
+      }
+    },
+    speechSynthesis: {
+      getVoices: () => [],
+      speak: (value) => (utterance = value),
+      cancel() {},
+    },
+  };
+  const microphone = () =>
+    startDictation({ onText() {}, onEnd: () => micEnds++, onError() {} }, browser);
+  microphone();
+  const errors = [];
+  readReply(
+    'A complete answer',
+    { onEnd: () => audioEnds++, onError: (message) => errors.push(message) },
+    browser,
+  );
+  assert.equal(micEnds, 1);
+  assert.equal(mic.onresult, null);
+  utterance.onerror();
+  assert.equal(audioEnds, 1);
+  assert.match(errors[0], /read the text on screen/);
+  readReply('Another reply', { onEnd: () => audioEnds++, onError() {} }, browser);
+  microphone().dispose();
+  assert.equal(audioEnds, 2, 'Starting dictation stops audio playback');
+});
+
+test('AI reply bubbles expose Listen controls while farmer messages do not', () => {
+  const { MessageBubble } = require('../components/assistant/message-bubble.tsx');
+  const message = {
+    id: 'speech-ui',
+    role: 'ai',
+    content: { title: 'Farm advice', tip: 'Check soil.' },
+    createdAt: '2026-10-25T12:00:00Z',
+  };
+  const html = renderToStaticMarkup(createElement(MessageBubble, { message }));
+  assert.match(html, /Listen to this reply/);
+  assert.match(html, /Farm advice/);
+  const farmer = renderToStaticMarkup(
+    createElement(MessageBubble, { message: { ...message, role: 'user', content: 'My question' } }),
+  );
+  assert.doesNotMatch(farmer, /Listen to this reply/);
+});
+
+test('playback prioritizes Ghanaian English locales and named Ghanaian English voices with an honest fallback', () => {
+  const { selectEnglishVoice, isGhanaianEnglishVoice, readReply } = require('../lib/ai/voice.ts');
+  const us = { name: 'US English', lang: 'en-US', default: true };
+  const uk = { name: 'UK English', lang: 'en-GB' };
+  const gh = { name: 'Ghana English', lang: 'en_GH' };
+  const named = { name: 'Ghanaian English voice', lang: 'en' };
+  const twi = { name: 'Ghana Twi', lang: 'ak-GH' };
+  assert.equal(selectEnglishVoice([us, uk, named, gh]), gh);
+  assert.equal(selectEnglishVoice([us, named]), named);
+  assert.equal(selectEnglishVoice([us, uk]), uk);
+  assert.equal(selectEnglishVoice([twi, us]), us);
+  assert.equal(isGhanaianEnglishVoice(twi), false);
+  assert.equal(selectEnglishVoice([]), undefined);
+  let selected;
+  let spoken;
+  const browser = {
+    SpeechSynthesisUtterance: class {
+      constructor(text) {
+        this.text = text;
+      }
+    },
+    speechSynthesis: {
+      getVoices: () => [us, uk],
+      speak: (utterance) => (spoken = utterance),
+      cancel() {},
+    },
+  };
+  const playback = readReply(
+    'Akwaaba. Here is your farm advice.',
+    { onEnd() {}, onError() {}, onVoice: (voice) => (selected = voice) },
+    browser,
+  );
+  assert.equal(spoken.voice, uk);
+  assert.equal(spoken.lang, 'en-GB', 'A fallback is not falsely tagged as a Ghanaian voice');
+  assert.deepEqual(selected, { name: 'UK English', ghanaian: false });
+  playback.dispose();
 });

@@ -8,6 +8,7 @@ import {
   Landmark,
   SlidersHorizontal,
   Store,
+  CloudSun,
   Wheat,
   Bot,
   Stethoscope,
@@ -99,9 +100,15 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     title: 'Content',
     items: [
       {
-        label: 'Market & Weather',
+        label: 'Market Price Management',
         href: '/admin/content/market',
         icon: Store,
+        permission: 'content.manage',
+      },
+      {
+        label: 'Weather',
+        href: '/admin/content/weather',
+        icon: CloudSun,
         permission: 'content.manage',
       },
       {
@@ -189,8 +196,12 @@ export const ADMIN_PAGE_META: Record<string, { title: string; subtitle: string }
     subtitle: 'Tune credit score weights, bands and loan eligibility.',
   },
   '/admin/content/market': {
-    title: 'Market & Weather',
-    subtitle: 'Set crop prices and override the weather farmers see.',
+    title: 'Market Price Management',
+    subtitle: 'Review and publish source-backed Ghana crop prices.',
+  },
+  '/admin/content/weather': {
+    title: 'Weather',
+    subtitle: 'View weather for your current location or another place in Ghana.',
   },
   '/admin/content/crops': {
     title: 'Crops & Yields',

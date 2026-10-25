@@ -11,6 +11,7 @@ import { RegionChart } from '@/components/admin/overview/region-chart';
 import { ScoreDistributionChart } from '@/components/admin/overview/score-distribution-chart';
 import { SignupsChart } from '@/components/admin/overview/signups-chart';
 import { SystemStatus } from '@/components/admin/overview/system-status';
+import { WeatherCard } from '@/components/market/weather-card';
 import { useCan } from '@/hooks/admin/use-can';
 import { usePlatformStatus } from '@/hooks/admin/use-platform-status';
 import { DATE_RANGES, type DateRange } from '@/lib/admin/overview';
@@ -87,6 +88,7 @@ export function AdminOverview() {
       </header>
 
       <KpiGrid range={range} bands={bands} />
+      <WeatherCard scope="admin" compact />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {canFarmers && <SignupsChart range={range} className="xl:col-span-2" />}

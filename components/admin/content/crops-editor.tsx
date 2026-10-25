@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { CROP_TONES, CropIcon } from '@/components/ui/crop-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { marketReference } from '@/lib/admin/crop-pricing';
+import { formatMarketAmount, unitLabel } from '@/lib/market/evidence';
 import { PLATFORM_KEYS } from '@/lib/admin/keys';
 import { formatGHS } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -357,22 +358,28 @@ function CropEditorPanel({
             {reference ? (
               <>
                 <p className="text-text font-semibold">
-                  Market page: {formatGHS(reference.row.price)}{' '}
-                  <span className="text-text-mute font-normal">per {reference.row.unit}</span>
+                  Market page: {formatMarketAmount(reference.row.price)}{' '}
+                  <span className="text-text-mute font-normal">per {unitLabel(reference.row)}</span>
                 </p>
                 <p className="text-text-mute text-xs">
                   {reference.perTonne === null
-                    ? 'This unit isn’t a weight, so it can’t be turned into a price per tonne.'
+                    ? 'This observation is a range or has no documented unit weight. No single per-tonne price can be copied.'
                     : matchesMarket
                       ? `Same as ${formatGHS(reference.perTonne)} per tonne. The two pages agree.`
                       : `That is ${formatGHS(reference.perTonne)} per tonne.`}
                 </p>
+                <p className="text-text-mute mt-1 text-xs">
+                  {[reference.row.market, reference.row.region].filter(Boolean).join(', ') ||
+                    'Source-reported nationwide coverage'}{' '}
+                  · {reference.row.observedAt} · {reference.row.source?.publisher}
+                </p>
               </>
             ) : (
               <>
-                <p className="text-text font-semibold">Not on the market page</p>
+                <p className="text-text font-semibold">No single source-reviewed reference</p>
                 <p className="text-text-mute text-xs">
-                  Add {draft.crop} under Market &amp; weather to compare prices.
+                  Review {draft.crop} under Market Price Management. Multiple regional prices are
+                  not reduced to one national price.
                 </p>
               </>
             )}

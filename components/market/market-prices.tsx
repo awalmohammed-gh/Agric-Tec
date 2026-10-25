@@ -1,111 +1,168 @@
 'use client';
 
-import { useId, useState } from 'react';
-import { ArrowDownRight, ArrowUpRight, Minus, Sparkles, Store } from 'lucide-react';
-import { AiChip } from '@/components/ui/ai-chip';
+import { useState } from 'react';
+import { ExternalLink, Store } from 'lucide-react';
+import { MarketPriceFilters } from '@/components/market/market-filters';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardSub, CardTitle } from '@/components/ui/card';
 import { CropTile, cropFromName } from '@/components/ui/crop-icon';
-import { Select } from '@/components/ui/select';
-import { formatGHS } from '@/lib/format';
 import {
-  formatPriceChange,
-  isPrimaryCrop,
-  sortMarketPrices,
-  type MarketSort,
-} from '@/lib/market/data';
-import { cn } from '@/lib/utils';
+  EMPTY_MARKET_FILTERS,
+  filterMarketPrices,
+  publishedPrices,
+  supportedRanges,
+  unitLabel,
+} from '@/lib/market/evidence';
+import { formatMarketAmount } from '@/lib/market/evidence';
+import { isPrimaryCrop } from '@/lib/market/data';
 import type { MarketPrice } from '@/types';
 
 export function MarketPrices({
   prices,
-  primaryCrops,
+  primaryCrops = [],
 }: {
   prices: MarketPrice[];
-  primaryCrops: string[];
+  primaryCrops?: string[];
 }) {
-  const [sort, setSort] = useState<MarketSort>('name');
-  const sortId = useId();
-  const sorted = sortMarketPrices(prices, sort);
+  const [filters, setFilters] = useState(EMPTY_MARKET_FILTERS);
+  const published = publishedPrices(prices);
+  const visible = filterMarketPrices(published, filters).sort(
+    (a, b) =>
+      (b.observedAt ?? '').localeCompare(a.observedAt ?? '') || a.crop.localeCompare(b.crop),
+  );
+  const ranges = supportedRanges(publishedPrices(visible));
+  const regions = new Set(published.filter((p) => p.scope !== 'national').map((p) => p.region))
+    .size;
+  const markets = new Set(published.map((p) => p.market).filter(Boolean)).size;
   return (
-    <Card className="rounded-3xl">
-      <CardHeader className="flex-wrap items-center">
+    <Card className="@container/market min-w-0 rounded-3xl">
+      <CardHeader>
         <div>
           <CardTitle className="flex items-center gap-2">
-            <Store size={17} aria-hidden="true" className="text-ink-green" />
-            Market Prices
+            <Store size={18} className="text-ink-green" aria-hidden="true" />
+            Ghana market overview
           </CardTitle>
-          <CardSub>Indicative prices across major Ghana markets</CardSub>
+          <CardSub>
+            Available price evidence across Ghana. Your location never limits this list.
+          </CardSub>
         </div>
-        <AiChip>
-          <Sparkles size={12} aria-hidden="true" />
-          AI Forecast
-        </AiChip>
       </CardHeader>
-      <div className="border-border mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-        <p className="text-text-mute text-xs">{prices.length} crops · prices per listed unit</p>
-        <div className="flex items-center gap-2">
-          <label htmlFor={sortId} className="text-text-mute text-xs">
-            Sort by
-          </label>
-          <Select
-            id={sortId}
-            value={sort}
-            onChange={(event) => setSort(event.target.value as MarketSort)}
-            className="min-h-9 py-1.5 text-xs"
-          >
-            <option value="name">Crop name</option>
-            <option value="price">Price: high to low</option>
-            <option value="change">Biggest change</option>
-          </Select>
+      <dl className="mb-5 grid grid-cols-1 gap-3 @lg/market:grid-cols-3">
+        {[
+          ['Published observations', published.length],
+          ['Regions represented', `${regions} of 16`],
+          ['Named markets', markets],
+        ].map(([label, value]) => (
+          <div key={label} className="border-border rounded-xl border p-3">
+            <dt className="text-text-mute text-xs">{label}</dt>
+            <dd className="text-text mt-1 text-xl font-bold">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <MarketPriceFilters prices={published} value={filters} onChange={setFilters} />
+      <p className="text-text-mute mt-3 text-xs">
+        No national average is calculated. Each amount belongs to the location, unit and observation
+        date reported by its source. Unrepresented regions have no published data yet.
+      </p>
+      {ranges.length > 0 && (
+        <div className="border-accent/20 bg-accent/5 mt-5 rounded-2xl border p-4">
+          <h3 className="text-text text-sm font-semibold">Supported price ranges</h3>
+          <ul className="mt-3 space-y-2 text-sm">
+            {ranges.map((range) => (
+              <li key={`${range.crop}-${range.unit}-${range.date}`} className="text-text-dim">
+                {range.crop}:{' '}
+                <strong className="text-text">
+                  {formatMarketAmount(range.low)}–{formatMarketAmount(range.high)}
+                </strong>{' '}
+                per {range.unit} · {range.date} · {range.count} comparable observations
+              </li>
+            ))}
+          </ul>
+          <p className="text-text-mute mt-2 text-xs">
+            Only matching crops, units, known package weights and dates are compared.
+          </p>
         </div>
-      </div>
-      <ul className="grid gap-2.5 @3xl:grid-cols-2">
-        {sorted.map((price) => {
-          const owned = isPrimaryCrop(price.crop, primaryCrops);
-          const ChangeIcon =
-            price.change > 0 ? ArrowUpRight : price.change < 0 ? ArrowDownRight : Minus;
-          return (
-            <li
-              key={price.crop}
-              className={cn(
-                'flex min-w-0 items-center gap-3 rounded-2xl border p-3.5',
-                owned ? 'border-accent/50 bg-accent/5' : 'border-border bg-bg-2/40',
-              )}
+      )}
+      {!visible.length ? (
+        <div className="bg-bg-2/40 mt-5 rounded-2xl p-5 text-center" role="status">
+          <h3 className="text-text font-semibold">
+            {published.length ? 'No prices match these filters' : 'Market price data unavailable'}
+          </h3>
+          <p className="text-text-dim mt-2 text-sm">
+            {published.length
+              ? 'Try another crop, region or market.'
+              : 'Source-backed observations will appear after an administrator reviews and publishes them. No sample prices are shown.'}
+          </p>
+          {published.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilters(EMPTY_MARKET_FILTERS)}
+              className="mt-3"
             >
-              <CropTile crop={cropFromName(price.crop)} />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <p className="text-text truncate text-sm font-semibold" title={price.crop}>
-                    {price.crop}
-                  </p>
-                  {owned && <Badge className="px-2 text-[9px]">Your crop</Badge>}
+              Clear filters
+            </Button>
+          )}
+        </div>
+      ) : (
+        <ul className="mt-5 grid min-w-0 gap-4 @3xl/market:grid-cols-2">
+          {visible.map((price) => (
+            <li key={price.id} className="border-border bg-bg-2/40 min-w-0 rounded-2xl border p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <CropTile crop={cropFromName(price.crop)} />
+                  <div className="min-w-0">
+                    <h3 className="text-text font-semibold break-words">{price.crop}</h3>
+                    <p className="text-text-mute mt-1 text-xs">
+                      {price.scope === 'national'
+                        ? 'Nationwide coverage reported by source'
+                        : [price.market, price.region].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-text-mute mt-1 text-[11px]">{price.unit}</p>
+                {isPrimaryCrop(price.crop, primaryCrops) && <Badge>Your crop</Badge>}
               </div>
-              <div className="shrink-0 text-right">
-                <p className="text-text text-sm font-bold tabular-nums">{formatGHS(price.price)}</p>
-                <p
-                  className={cn(
-                    'mt-1 flex items-center justify-end gap-0.5 text-xs font-semibold tabular-nums',
-                    price.change > 0
-                      ? 'text-ink-green'
-                      : price.change < 0
-                        ? 'text-ink-red'
-                        : 'text-text-mute',
-                  )}
-                >
-                  <ChangeIcon size={14} aria-hidden="true" />
-                  <span className="sr-only">
-                    {price.change > 0 ? 'Up ' : price.change < 0 ? 'Down ' : 'Unchanged '}
-                  </span>
-                  {formatPriceChange(price.change)}
-                </p>
-              </div>
+              <p className="text-ink-green mt-4 text-xl font-bold break-words">
+                {formatMarketAmount(price.price)}
+                {price.priceMax && price.priceMax !== price.price
+                  ? `–${formatMarketAmount(price.priceMax)}`
+                  : ''}
+              </p>
+              <p className="text-text-dim mt-1 text-sm">per {unitLabel(price)}</p>
+              <dl className="text-text-mute mt-4 space-y-1 text-xs">
+                <div>
+                  <dt className="inline font-semibold">Observed: </dt>
+                  <dd className="inline">{price.observedAt}</dd>
+                </div>
+                <div>
+                  <dt className="inline font-semibold">Source: </dt>
+                  <dd className="inline">
+                    {price.source?.publisher} · {price.source?.title}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="inline font-semibold">Published by source: </dt>
+                  <dd className="inline">{price.source?.publishedAt}</dd>
+                </div>
+                <div>
+                  <dt className="inline font-semibold">Admin reviewed: </dt>
+                  <dd className="inline">{price.reviewedAt?.slice(0, 10)}</dd>
+                </div>
+              </dl>
+              <a
+                href={price.source!.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ink-green mt-3 inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold underline"
+              >
+                View supporting source
+                <ExternalLink size={12} aria-hidden="true" />
+              </a>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }

@@ -79,6 +79,7 @@ const { announcementsService } = require('../services/admin/announcements.servic
 const { contentService } = require('../services/admin/content.service.ts');
 const { farmersService } = require('../services/admin/farmers.service.ts');
 const { marketService } = require('../services/market.service.ts');
+const { publishedPrice } = require('./market-fixtures.cjs');
 const { storage } = require('../services/storage.ts');
 
 const STRONG = 'Harvest#2026!';
@@ -109,10 +110,9 @@ test('setup: sign in as super admin', async () => {
 });
 
 test('a maize price change reaches the market page and the yield revenue', async () => {
-  const prices = await contentService.getMarketPrices();
-  await contentService.saveMarketPrices(
-    prices.map((p) => (p.crop === 'Maize' ? { ...p, price: 400 } : p)),
-  );
+  await contentService.saveMarketPrices([
+    publishedPrice({ crop: 'Maize', unit: 'bag', packageWeightKg: 100, price: 400 }),
+  ]);
   const market = await marketService.getPrices();
   assert.equal(market.find((p) => p.crop === 'Maize').price, 400);
 
@@ -147,12 +147,14 @@ test('market units convert to a price per tonne only when they are weights', () 
   assert.equal(kgPerUnit('64 kg bag'), 64);
   assert.equal(kgPerUnit('tonne'), 1000);
   assert.equal(kgPerUnit('bunch'), null);
-  const prices = [{ crop: 'Rice (local)', unit: '50kg bag', price: 550, change: 0 }];
+  const prices = [
+    publishedPrice({ crop: 'Rice (local)', unit: 'bag', packageWeightKg: 50, price: 550 }),
+  ];
   assert.equal(marketReference('Rice', prices).perTonne, 11000);
   assert.equal(marketReference('Yam', prices), null);
 });
 
-test('a storm override changes the weather and the advisory', async () => {
+test('legacy weather overrides remain readable for migration but cannot produce live weather', async () => {
   const storm = {
     condition: 'storm',
     temp: 24,
@@ -162,9 +164,8 @@ test('a storm override changes the weather and the advisory', async () => {
   };
   await contentService.saveWeatherOverride(storm);
   const weather = await marketService.getWeather();
-  assert.equal(weather.condition, 'storm');
-  assert.equal(weather.rainChance, 95);
-  const advice = getWeatherAdvice(weather, ['Maize']).map((a) => a.text);
+  assert.equal(weather, null);
+  const advice = getWeatherAdvice(storm, ['Maize']).map((a) => a.text);
   assert.ok(advice.some((text) => /Heavy rain expected/.test(text)));
   await assert.rejects(() => contentService.saveWeatherOverride({ ...storm, humidity: 140 }));
   await contentService.saveWeatherOverride(null);

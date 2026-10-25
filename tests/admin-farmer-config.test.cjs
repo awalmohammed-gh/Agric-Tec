@@ -86,6 +86,7 @@ const { loanApplicationsService } = require('../services/admin/loan-applications
 const { authService, SUSPENDED_MESSAGE } = require('../services/auth.service.ts');
 const { loansService } = require('../services/loans.service.ts');
 const { marketService } = require('../services/market.service.ts');
+const { publishedPrice } = require('./market-fixtures.cjs');
 const { useAuthStore } = require('../store/auth-store.ts');
 const { usePlatformStore, initialPlatformState } = require('../store/platform-store.ts');
 
@@ -305,7 +306,7 @@ test('lenders, content, announcements and plans flow from the admin into the far
   assert.ok(!(await loansService.getPartners()).some((l) => l.id === first.id));
   await lendersService.toggleActive(first.id);
 
-  // Weather: the admin's override replaces the simulated weather.
+  // Old overrides can no longer supply fabricated live readings.
   const override = {
     condition: 'storm',
     temp: 21,
@@ -314,15 +315,12 @@ test('lenders, content, announcements and plans flow from the admin into the far
     rainChance: 95,
   };
   await contentService.saveWeatherOverride(override);
-  assert.equal((await marketService.getWeather()).description, 'Admin storm');
+  assert.equal(await marketService.getWeather(), null);
   await contentService.saveWeatherOverride(null);
-  assert.notEqual((await marketService.getWeather()).description, 'Admin storm');
+  assert.equal(await marketService.getWeather(), null);
 
   // Prices: the admin's prices are what the farmer sees.
-  const prices = await contentService.getMarketPrices();
-  await contentService.saveMarketPrices(
-    prices.map((p) => (p.crop === 'Cocoa' ? { ...p, price: 2000 } : p)),
-  );
+  await contentService.saveMarketPrices([publishedPrice({ crop: 'Cocoa', price: 2000 })]);
   assert.equal((await marketService.getPrices()).find((p) => p.crop === 'Cocoa').price, 2000);
 
   // Assistant: a new knowledge item wins by priority; placeholders use the farmer's data.
